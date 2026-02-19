@@ -177,10 +177,21 @@ class AylikFaaliyetResource extends Resource
         return $query;
     }
 
-    public static function canCreate(): bool { return auth()->id() !== 1; }
-    public static function canEdit($record): bool { return auth()->id() !== 1; }
-    public static function canDelete($record): bool { return auth()->id() !== 1; }
+// En alta bu metodları şu şekilde güncelleyerek ekleyin veya değiştirin
+public static function canCreate(): bool 
+{ 
+    return auth()->check() && auth()->id() !== 1; 
+}
 
+public static function canEdit($record): bool 
+{ 
+    return auth()->check() && auth()->id() !== 1; 
+}
+
+public static function canDelete($record): bool 
+{ 
+    return auth()->check() && auth()->id() !== 1; 
+}
     public static function getPages(): array
     {
         return [
