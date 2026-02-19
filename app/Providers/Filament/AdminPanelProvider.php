@@ -19,6 +19,8 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Filament\Widgets\GenelIstatistikWidget;
 use App\Filament\Widgets\AylikFaaliyetChart;
+use App\Filament\Widgets\AdminStatsOverview;
+use App\Filament\Widgets\FaaliyetIstatistikGrafik;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -39,11 +41,12 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
-                Widgets\FilamentInfoWidget::class,
-                GenelIstatistikWidget::class,
+                \App\Filament\Widgets\GecikenIslerUyari::class,
                 AylikFaaliyetChart::class,
-            ])
+                AdminStatsOverview::class,
+                FaaliyetIstatistikGrafik::class,
+
+])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
