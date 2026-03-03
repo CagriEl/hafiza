@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use Filament\Http\Middleware\Authenticate;
+use Filament\Navigation\NavigationItem;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -58,6 +59,15 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+
+            ->navigationItems([
+            NavigationItem::make('Talep Oluştur')
+                ->url('http://talep.belediye.local/talep/', shouldOpenInNewTab: true)
+                ->icon('heroicon-o-chat-bubble-left-right') // İsteğe bağlı ikon
+                ->group('Dış Bağlantılar') // İsterseniz bir grup altında toplayabilirsiniz
+                ->sort(10),
+        ])
+
             ->authMiddleware([
                 Authenticate::class,
             ]);

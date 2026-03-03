@@ -18,6 +18,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Get;
 use Carbon\Carbon;
 
 class AylikFaaliyetResource extends Resource
@@ -27,104 +29,90 @@ class AylikFaaliyetResource extends Resource
     protected static ?string $navigationLabel = 'Aylık Plan ve Faaliyet';
     protected static ?string $navigationGroup = 'Raporlama';
 
+    public static function hasBlockingOverdueTasks(): bool
+    {
+        if (auth()->id() === 1) return false;
+        $userRecords = AylikFaaliyet::where('user_id', auth()->id())->get();
+        foreach ($userRecords as $record) {
+            $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
+            if (!is_array($isler)) continue;
+            foreach ($isler as $is) {
+                $isPast = !empty($is['son_tarih']) && Carbon::parse($is['son_tarih'])->isPast();
+                $hasNote = !empty($is['gerceklesme_notu']);
+                $isCompleted = (bool)($is['is_completed'] ?? false);
+                if ($isPast && !$hasNote && !$isCompleted) { return true; }
+            }
+        }
+        return false;
+    }
+
     public static function form(Form $form): Form
     {
         $personelDurum = PersonelDurum::where('user_id', auth()->id())->first();
+        $isBlocked = static::hasBlockingOverdueTasks();
 
         return $form
             ->schema([
-                // --- 1. BÖLÜM: DÖNEM BİLGİLERİ ---
+                Section::make('⚠️ SİSTEM KİLİTLENDİ')
+                    ->description('Gerekçesi yazılmamış gecikmiş işleriniz var!')
+                    ->schema([
+                        Forms\Components\Placeholder::make('warning_status')
+                            ->label('DURUM:')
+                            ->content(new \Illuminate\Support\HtmlString('<b style="color:red;">Geçmiş raporları tamamlamadan yeni planlama yapılamaz.</b>'))
+                    ])
+                    ->visible($isBlocked),
+
                 Section::make('Dönem Bilgisi')
                     ->schema([
                         Grid::make(2)->schema([
                             Select::make('yil')
-                                ->label('Yıl')
-                                ->options([2024 => '2024', 2025 => '2025', 2026 => '2026', 2027 => '2027'])
-                                ->default(now()->year)
-                                ->required(),
+                                ->options([2025 => '2025', 2026 => '2026'])
+                                ->default(now()->year)->required(),
                             Select::make('ay')
-                                ->label('Ay')
                                 ->options(['01' => 'Ocak', '02' => 'Şubat', '03' => 'Mart', '04' => 'Nisan', '05' => 'Mayıs', '06' => 'Haziran', '07' => 'Temmuz', '08' => 'Ağustos', '09' => 'Eylül', '10' => 'Ekim', '11' => 'Kasım', '12' => 'Aralık'])
-                                ->default(now()->format('m'))
-                                ->required(),
+                                ->default(now()->format('m'))->required(),
                         ]),
-                    ]),
+                    ])->disabled($isBlocked),
 
-                // --- 2. BÖLÜM: PERSONEL DURUMU ---
-                Section::make('Mevcut Personel Sayıları')
-                    ->schema([
-                        Grid::make(5)->schema([
-                            TextInput::make('memur')->label('Memur')->numeric()->default($personelDurum->memur ?? 0)->readOnly(),
-                            TextInput::make('sozlesmeli_memur')->label('Sözleşmeli P.')->numeric()->default($personelDurum->sozlesmeli_memur ?? 0)->readOnly(),
-                            TextInput::make('kadrolu_isci')->label('Kadrolu İşçi')->numeric()->default($personelDurum->kadrolu_isci ?? 0)->readOnly(),
-                            TextInput::make('sirket_personeli')->label('Şirket Pers.')->numeric()->default($personelDurum->sirket_personeli ?? 0)->readOnly(),
-                            TextInput::make('gecici_isci')->label('Geçici İşçi')->numeric()->default($personelDurum->gecici_isci ?? 0)->readOnly(),
-                        ]),
-                    ]),
-
-                // --- 3. BÖLÜM: FAALİYET PLANI ---
-                Section::make('Faaliyet Planı ve Gerçekleşmeler')
-                    ->description('Ay içindeki haftalara göre yapacağınız işleri planlayın.')
+                Section::make('İş Planlama Listesi')
                     ->schema([
                         Repeater::make('faaliyetler')
-                            ->label('İş Listesi')
                             ->schema([
-                                // ÜST SATIR: Hafta, Durum ve Son Tarih
                                 Grid::make(3)->schema([
                                     Select::make('hafta')
                                         ->label('Hafta')
-                                        ->options([1 => '1. Hafta', 2 => '2. Hafta', 3 => '3. Hafta', 4 => '4. Hafta', 5 => '5. Hafta'])
-                                        ->required(),
-
-                                    Select::make('durum')
-                                        ->label('İşin Durumu')
                                         ->options([
-                                            'bekliyor' => '⏳ Planlandı / Bekliyor',
-                                            'devam' => '⚙️ Devam Ediyor',
-                                            'tamam' => '✅ Tamamlandı',
+                                            1 => '1. Hafta', 
+                                            2 => '2. Hafta', 
+                                            3 => '3. Hafta', 
+                                            4 => '4. Hafta' // İstediğin gibi 4 haftaya düşürüldü
                                         ])
-                                        ->default('bekliyor')
-                                        ->required()
-                                        ->live(),
-
+                                        ->required(),
                                     DatePicker::make('son_tarih')
-                                        ->label('Son Tarih')
+                                        ->label('Hedef Bitiş')
                                         ->required()
                                         ->native(false)
                                         ->displayFormat('d/m/Y')
-                                        ->minDate(now()->startOfDay()) // Geçmiş tarih seçilemez
-                                        ->live(),
-                                ]), // <--- HATA BURADAYDI: Grid burada kapanmalıydı.
+                                        // Kesin engelleme:
+                                        ->minDate(now()->startOfDay()) 
+                                        ->validationMessages(['min' => 'Geçmiş bir tarih planlanamaz.']),
+                                    Checkbox::make('is_completed')
+                                        ->label('Tamamlandı')
+                                        ->live()
+                                        ->hidden(fn ($livewire) => $livewire instanceof Pages\CreateAylikFaaliyet),
+                                ]),
 
-                                // ALT SATIRLAR: Konu ve Gerekçeler
-                                TextInput::make('konu')
-                                    ->label('Yapılacak İş / Konu')
-                                    ->required()
-                                    ->columnSpanFull(),
+                                TextInput::make('konu')->required()->columnSpanFull(),
 
-                                // GECİKME GEREKÇESİ
-                                Textarea::make('gecikme_gerekcesi')
-                                    ->label('Gecikme Gerekçesi')
-                                    ->placeholder('İşin süresi geçtiği için nedenini yazmak zorunludur.')
-                                    ->required(fn (Forms\Get $get) => 
-                                        $get('son_tarih') && 
-                                        Carbon::parse($get('son_tarih'))->isPast() && 
-                                        $get('durum') !== 'tamam'
-                                    )
-                                    ->visible(fn (Forms\Get $get) => 
-                                        $get('son_tarih') && 
-                                        Carbon::parse($get('son_tarih'))->isPast() && 
-                                        $get('durum') !== 'tamam'
-                                    )
-                                    ->columnSpanFull(),
-
-                                TextInput::make('aciklama')
-                                    ->label('Gerçekleşme Sonucu')
+                                Textarea::make('gerceklesme_notu')
+                                    ->label('Gerekçe / Sonuç')
+                                    ->required(fn (Get $get) => $get('is_completed') || ($get('son_tarih') && Carbon::parse($get('son_tarih'))->isPast()))
+                                    ->visible(fn (Get $get) => $get('is_completed') || ($get('son_tarih') && Carbon::parse($get('son_tarih'))->isPast()))
                                     ->columnSpanFull(),
                             ])
-                            ->defaultItems(1)
+                            ->addable(!$isBlocked) 
+                            ->deletable(!$isBlocked)
                             ->reorderableWithButtons()
-                            ->collapsible(),
                     ]),
             ]);
     }
@@ -140,58 +128,78 @@ class AylikFaaliyetResource extends Resource
                         '01' => 'Ocak', '02' => 'Şubat', '03' => 'Mart', '04' => 'Nisan', '05' => 'Mayıs', '06' => 'Haziran',
                         '07' => 'Temmuz', '08' => 'Ağustos', '09' => 'Eylül', '10' => 'Ekim', '11' => 'Kasım', '12' => 'Aralık', default => $state,
                     }),
-                Tables\Columns\TextColumn::make('user.name')->label('Müdürlük')->sortable()->searchable(),
                 
-                Tables\Columns\TextColumn::make('geciken_isler')
-                    ->label('Gecikme Durumu')
+                // YENİ EKLENEN HAFTA SÜTUNU:
+                Tables\Columns\TextColumn::make('planlanan_haftalar')
+                    ->label('Haftalar')
+                    ->badge()
+                    ->color('gray')
+                    ->getStateUsing(function ($record) {
+                        $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
+                        if (!is_array($isler)) return '-';
+                        return collect($isler)->pluck('hafta')->unique()->sort()->implode(', ') ?: '-';
+                    }),
+
+                Tables\Columns\TextColumn::make('user.name')->label('Müdürlük')->searchable(),
+                
+                Tables\Columns\TextColumn::make('analiz')
+                    ->label('Durum')
                     ->badge()
                     ->getStateUsing(function ($record) {
                         $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
-                        if (!is_array($isler)) return 'Sorun Yok';
-                        
-                        $gecikenSayisi = 0;
-                        foreach ($isler as $is) {
-                            if (isset($is['son_tarih']) && Carbon::parse($is['son_tarih'])->isPast() && ($is['durum'] ?? '') !== 'tamam') {
-                                $gecikenSayisi++;
+                        $geciken = 0;
+                        if (is_array($isler)) {
+                            foreach ($isler as $is) {
+                                if (empty($is['gerceklesme_notu']) && !empty($is['son_tarih']) && Carbon::parse($is['son_tarih'])->isPast()) {
+                                    $geciken++;
+                                }
                             }
                         }
-                        return $gecikenSayisi > 0 ? "$gecikenSayisi İş Gecikti" : 'Zamanında';
+                        return $geciken > 0 ? "$geciken Gecikme (KİLİTLİ)" : 'Sorun Yok';
                     })
-                    ->color(fn ($state) => str_contains($state, 'Gecikti') ? 'danger' : 'success'),
-
-                Tables\Columns\TextColumn::make('created_at')->label('Oluşturulma')->date('d.m.Y'),
+                    ->color(fn ($state) => str_contains($state, 'KİLİTLİ') ? 'danger' : 'success'),
             ])
             ->actions([
-                Tables\Actions\ViewAction::make(),
-                Tables\Actions\EditAction::make()->label('Planı Güncelle'),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\Action::make('gecikmeBildir')
+                    ->label('Raporla')
+                    ->icon('heroicon-o-pencil-square')
+                    ->color('warning')
+                    ->modalHeading('Gecikme Gerekçelerini Girin')
+                    ->form(function ($record) {
+                        $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
+                        $fields = [];
+                        foreach ($isler as $index => $is) {
+                            if (empty($is['gerceklesme_notu']) && !empty($is['son_tarih']) && Carbon::parse($is['son_tarih'])->isPast()) {
+                                $fields[] = Section::make("İş: " . ($is['konu'] ?? 'Tanımsız'))
+                                    ->schema([
+                                        Textarea::make("updates.{$index}.gerceklesme_notu")->label('Gecikme Nedeni')->required(),
+                                    ]);
+                            }
+                        }
+                        return $fields;
+                    })
+                    ->action(function (AylikFaaliyet $record, array $data) {
+                        $current = $record->faaliyetler;
+                        if (isset($data['updates'])) {
+                            foreach ($data['updates'] as $index => $up) {
+                                $current[$index]['gerceklesme_notu'] = $up['gerceklesme_notu'];
+                            }
+                            $record->update(['faaliyetler' => $current]);
+                        }
+                    })
+                    ->visible(fn ($record) => auth()->id() !== 1 && static::hasBlockingOverdueTasks()),
+
+                Tables\Actions\EditAction::make()->modal(),
             ]);
     }
 
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
-        if (auth()->id() !== 1) { 
-            $query->where('user_id', auth()->id());
-        }
+        if (auth()->id() !== 1) { $query->where('user_id', auth()->id()); }
         return $query;
     }
 
-// En alta bu metodları şu şekilde güncelleyerek ekleyin veya değiştirin
-public static function canCreate(): bool 
-{ 
-    return auth()->check() && auth()->id() !== 1; 
-}
-
-public static function canEdit($record): bool 
-{ 
-    return auth()->check() && auth()->id() !== 1; 
-}
-
-public static function canDelete($record): bool 
-{ 
-    return auth()->check() && auth()->id() !== 1; 
-}
     public static function getPages(): array
     {
         return [
