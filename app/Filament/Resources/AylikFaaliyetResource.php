@@ -3,33 +3,48 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\AylikFaaliyetResource\Pages;
-use App\Models\AylikFaaliyet;
 use App\Models\ActivityCatalog;
+use App\Models\AylikFaaliyet;
+use App\Models\User;
+use App\Models\ViceMayor;
+use App\Services\ActivityService;
+use App\Support\AylikFaaliyetEscalation;
+use App\Support\CoordinationAccess;
+use App\Support\ReportingModelReader;
+use App\Support\TurkishString;
+use Carbon\Carbon;
 use Filament\Forms;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\Section as InfolistSection;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\Rule;
 
 class AylikFaaliyetResource extends Resource
 {
     protected static ?string $model = AylikFaaliyet::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
-    protected static ?string $navigationLabel = 'Haftalık Operasyonel Rapor';
+
+    protected static ?string $navigationLabel = 'Aylık Faaliyet';
+
     protected static ?string $navigationGroup = 'Raporlama';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                // DÖNEM SEÇİMİ
                 Section::make('Rapor Dönemi')
                     ->schema([
                         Grid::make(2)->schema([
@@ -42,21 +57,37 @@ class AylikFaaliyetResource extends Resource
                         ]),
                     ])->compact(),
 
-                // ANA RAPORLAMA ALANI
                 Section::make('Faaliyet ve Performans Takip Listesi')
                     ->description('Katalogdan faaliyet seçerek haftalık hedeflerinizi ve gerçekleşen rakamları giriniz.')
                     ->schema([
                         Repeater::make('faaliyetler')
                             ->label('İş Listesi')
                             ->schema([
-                                // 1. SATIR: KATALOG VE TEMEL BİLGİLER
                                 Grid::make(4)->schema([
                                     Forms\Components\Select::make('activity_catalog_id')
                                         ->label('Faaliyet Tanımı (Katalog)')
-                                        ->options(function () {
-                                            // Kullanıcının kendi müdürlüğüne ait faaliyetleri getirir
-                                            return ActivityCatalog::where('mudurluk', auth()->user()->name)
-                                                ->pluck('faaliyet_ailesi', 'id');
+                                        ->options(function (Forms\Components\Select $field) {
+                                            /** @var ActivityService $activities */
+                                            $activities = app(ActivityService::class);
+                                            $mudurlukAdi = auth()->user()?->name ?? '';
+                                            $record = $field->getRecord();
+                                            if (! $record instanceof AylikFaaliyet) {
+                                                $livewire = $field->getLivewire();
+                                                if (is_object($livewire) && method_exists($livewire, 'getRecord')) {
+                                                    $root = $livewire->getRecord();
+                                                    if ($root instanceof AylikFaaliyet) {
+                                                        $record = $root;
+                                                    }
+                                                }
+                                            }
+                                            if ($record instanceof AylikFaaliyet) {
+                                                $record->loadMissing('user');
+                                                if ($record->user && filled($record->user->name)) {
+                                                    $mudurlukAdi = $record->user->name;
+                                                }
+                                            }
+
+                                            return $activities->getCatalogOptionsForMudurluk($mudurlukAdi);
                                         })
                                         ->reactive()
                                         ->afterStateUpdated(function (Set $set, $state) {
@@ -68,7 +99,7 @@ class AylikFaaliyetResource extends Resource
                                         })
                                         ->required()
                                         ->columnSpan(2),
-                                    
+
                                     Forms\Components\TextInput::make('faaliyet_kodu')
                                         ->label('Kod')
                                         ->readOnly()
@@ -80,11 +111,107 @@ class AylikFaaliyetResource extends Resource
                                         ->extraAttributes(['class' => 'bg-gray-50']),
                                 ]),
 
-                                // 2. SATIR: SAYISAL KPI VERİLERİ
+                                Forms\Components\Select::make('faaliyet_turu')
+                                    ->label('Faaliyet Türü')
+                                    ->options([
+                                        'Operasyonel' => 'Operasyonel',
+                                        'Koordinasyon' => 'Koordinasyon',
+                                    ])
+                                    ->default('Operasyonel')
+                                    ->live()
+                                    ->required()
+                                    ->disabled(fn () => ! auth()->user()?->isMudurlukReportingAccount())
+                                    ->afterStateUpdated(function (Set $set, $state): void {
+                                        if ($state !== 'Koordinasyon') {
+                                            $set('isbirligi_hangi_ihtiyac', null);
+                                            $set('isbirligi_hedef_tarih', null);
+                                            $set('isbirligi_bitis_suresi', null);
+                                            $set('isbirligi_hedef_mudurluk_user_ids', []);
+                                        }
+                                    }),
+
+                                Section::make('Müdürlüklerle İşbirliği')
+                                    ->description('Koordinasyon faaliyetlerinde diğer müdürlüklerle planlanan ihtiyaç ve süre bilgileri. Yalnızca müdürlük hesapları düzenleyebilir.')
+                                    ->schema([
+                                        Forms\Components\Select::make('isbirligi_hedef_mudurluk_user_ids')
+                                            ->label('İşbirliği Yapılacak Müdürlükler')
+                                            ->multiple()
+                                            ->searchable()
+                                            ->preload()
+                                            ->options(function () {
+                                                $viceIds = ViceMayor::query()->pluck('user_id')->all();
+                                                $uid = (int) (auth()->id() ?? 0);
+
+                                                return User::query()
+                                                    ->where('id', '!=', 1)
+                                                    ->whereNotIn('id', $viceIds)
+                                                    ->when($uid > 0, fn (Builder $q) => $q->where('id', '!=', $uid))
+                                                    ->orderBy('name')
+                                                    ->pluck('name', 'id')
+                                                    ->all();
+                                            })
+                                            ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon')
+                                            ->rules([
+                                                fn (Get $get) => Rule::when(
+                                                    auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon',
+                                                    ['array', 'min:1']
+                                                ),
+                                            ]),
+
+                                        Grid::make(3)->schema([
+                                            Forms\Components\Textarea::make('isbirligi_hangi_ihtiyac')
+                                                ->label('Hangi İhtiyaç')
+                                                ->rows(3)
+                                                ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon')
+                                                ->rules([
+                                                    fn (Get $get) => Rule::when(
+                                                        auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon',
+                                                        ['string', 'max:5000']
+                                                    ),
+                                                ]),
+
+                                            Forms\Components\DatePicker::make('isbirligi_hedef_tarih')
+                                                ->label('Hedef Tarih')
+                                                ->native(false)
+                                                ->displayFormat('d.m.Y')
+                                                ->minDate(Carbon::today()->startOfDay())
+                                                ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon')
+                                                ->rules([
+                                                    fn (Get $get) => Rule::when(
+                                                        auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon',
+                                                        ['date', 'after_or_equal:today']
+                                                    ),
+                                                ]),
+
+                                            Forms\Components\TextInput::make('isbirligi_bitis_suresi')
+                                                ->label('Bitiş Süresi')
+                                                ->placeholder('Örn: 10 iş günü, 2 hafta')
+                                                ->maxLength(255)
+                                                ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon')
+                                                ->rules([
+                                                    fn (Get $get) => Rule::when(
+                                                        auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon',
+                                                        ['string', 'max:255']
+                                                    ),
+                                                ]),
+                                        ]),
+                                    ])
+                                    ->visible(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon'),
+
                                 Grid::make(4)->schema([
                                     Forms\Components\Select::make('hafta')
                                         ->label('Rapor Haftası')
                                         ->options([1 => '1. Hafta', 2 => '2. Hafta', 3 => '3. Hafta', 4 => '4. Hafta'])
+                                        ->helperText(function (Get $get) {
+                                            $catalog = ActivityCatalog::find($get('activity_catalog_id'));
+                                            $kat = $catalog?->kategori ?? '';
+                                            if ($kat === '' || ! TurkishString::same($kat, 'Destek / İç İşleyiş')) {
+                                                return null;
+                                            }
+                                            $hint = ReportingModelReader::reportingStyleForKategori('Destek / İç İşleyiş');
+
+                                            return $hint ? 'Raporlama modeli (Destek / İç İşleyiş): '.$hint : null;
+                                        })
                                         ->required(),
 
                                     Forms\Components\TextInput::make('hedef')
@@ -105,7 +232,6 @@ class AylikFaaliyetResource extends Resource
                                         ->placeholder('Örn: 18'),
                                 ]),
 
-                                // 3. SATIR: SAPMA VE ANALİZ
                                 Grid::make(2)->schema([
                                     Forms\Components\Textarea::make('sapma_nedeni')
                                         ->label('Sapma Nedeni')
@@ -119,19 +245,21 @@ class AylikFaaliyetResource extends Resource
                                         ->rows(2),
                                 ]),
 
-                                // 4. SATIR: KARAR VE ÜST YÖNETİM NOTU
                                 Grid::make(1)->schema([
                                     Forms\Components\TextInput::make('karar_ihtiyaci')
                                         ->label('📌 Üst Yönetim Karar İhtiyacı')
                                         ->placeholder('Başkanlık makamından beklenen karar veya destek nedir?'),
-                                    
+
                                     Forms\Components\Textarea::make('vice_mayor_notu')
                                         ->label('Başkan Yardımcısı Değerlendirmesi')
                                         ->placeholder('Başkan yardımcısı buraya görüşünü yazacak...')
                                         ->rows(2)
                                         ->disabled(function () {
-                                            $isViceMayor = \App\Models\ViceMayor::where('user_id', auth()->id())->exists();
-                                            return auth()->id() !== 1 && !$isViceMayor;
+                                            $u = auth()->user();
+
+                                            return $u instanceof User
+                                                && ! $u->isReportingSuperAdmin()
+                                                && ! $u->isViceMayorAccount();
                                         })
                                         ->extraAttributes(['class' => 'bg-green-50 border-l-4 border-green-500']),
                                 ]),
@@ -150,35 +278,53 @@ class AylikFaaliyetResource extends Resource
                 Tables\Columns\TextColumn::make('yil')->label('Yıl')->badge(),
                 Tables\Columns\TextColumn::make('ay')->label('Ay'),
                 Tables\Columns\TextColumn::make('user.name')->label('Müdürlük')->searchable(),
-                
-                // Performans Özeti Sütunu
+
                 Tables\Columns\TextColumn::make('performans_ozeti')
                     ->label('Haftalık Verimlilik')
                     ->getStateUsing(function ($record) {
                         $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
-                        if (!is_array($isler)) return '-';
-                        
+                        if (! is_array($isler)) {
+                            return '-';
+                        }
+
                         $toplamHedef = collect($isler)->sum('hedef');
                         $toplamGerceklesen = collect($isler)->sum('gerceklesen');
-                        
-                        if ($toplamHedef == 0) return 'Sayısal Veri Yok';
+
+                        if ($toplamHedef == 0) {
+                            return 'Sayısal Veri Yok';
+                        }
                         $oran = round(($toplamGerceklesen / $toplamHedef) * 100);
+
                         return "% {$oran} Başarı";
                     })
                     ->badge()
                     ->color(fn ($state) => match (true) {
-                        str_contains($state, '100') => 'success',
-                        str_contains($state, '80') => 'warning',
+                        str_contains((string) $state, '100') => 'success',
+                        str_contains((string) $state, '80') => 'warning',
                         default => 'danger',
                     }),
 
-                // Karar İhtiyacı İkonu
                 Tables\Columns\IconColumn::make('karar_bekleyen')
-                    ->label('Karar İhtiyacı')
+                    ->label('Üst yönetim bildirimi')
                     ->boolean()
                     ->getStateUsing(function ($record) {
                         $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
-                        return collect($isler)->whereNotNull('karar_ihtiyaci')->count() > 0;
+                        if (! is_array($isler)) {
+                            return false;
+                        }
+                        foreach ($isler as $is) {
+                            if (! is_array($is)) {
+                                continue;
+                            }
+                            if (filled(trim((string) ($is['karar_ihtiyaci'] ?? '')))) {
+                                return true;
+                            }
+                            if (AylikFaaliyetEscalation::itemNeedsUpperManagementAttention($is)) {
+                                return true;
+                            }
+                        }
+
+                        return false;
                     })
                     ->trueIcon('heroicon-o-exclamation-triangle')
                     ->trueColor('danger'),
@@ -187,8 +333,166 @@ class AylikFaaliyetResource extends Resource
                 Tables\Filters\SelectFilter::make('yil')->options([2025 => '2025', 2026 => '2026']),
             ])
             ->actions([
-                Tables\Actions\EditAction::make()->label('Detay / Denetim'),
+                Tables\Actions\ViewAction::make()
+                    ->label('Görüntüle')
+                    ->visible(fn (AylikFaaliyet $record) => static::canView($record) && ! static::canEdit($record)),
+                Tables\Actions\EditAction::make()
+                    ->label('Detay / Denetim')
+                    ->visible(fn (AylikFaaliyet $record) => static::canEdit($record)),
             ]);
+    }
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                InfolistSection::make('Rapor')
+                    ->schema([
+                        TextEntry::make('user.name')->label('Müdürlük'),
+                        TextEntry::make('yil')->label('Yıl'),
+                        TextEntry::make('ay')->label('Ay'),
+                    ])
+                    ->columns(3),
+                InfolistSection::make('Faaliyet satırları')
+                    ->schema([
+                        RepeatableEntry::make('faaliyetler')
+                            ->schema([
+                                TextEntry::make('faaliyet_kodu')->label('Kod'),
+                                TextEntry::make('faaliyet_turu')->label('Tür'),
+                                TextEntry::make('isbirligi_hedef_mudurluk_user_ids')
+                                    ->label('İşbirliği müdürlükleri')
+                                    ->default('-')
+                                    ->formatStateUsing(function ($state) {
+                                        if (! is_array($state) || $state === []) {
+                                            return '-';
+                                        }
+                                        $ids = array_map('intval', $state);
+
+                                        return User::query()->whereIn('id', $ids)->pluck('name')->implode(', ') ?: '-';
+                                    }),
+                                TextEntry::make('hafta')->label('Hafta'),
+                                TextEntry::make('hedef')->label('Hedef'),
+                                TextEntry::make('gerceklesen')->label('Gerçekleşen'),
+                                TextEntry::make('sapma_nedeni')->label('Sapma')->placeholder('—'),
+                                TextEntry::make('karar_ihtiyaci')->label('Karar ihtiyacı')->placeholder('—'),
+                            ])
+                            ->columns(2),
+                    ]),
+            ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $base = parent::getEloquentQuery();
+        if (! $base instanceof Builder) {
+            return $base;
+        }
+
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return $base->whereRaw('0 = 1');
+        }
+
+        if ($user->isReportingSuperAdmin()) {
+            return $base;
+        }
+
+        $audience = $user->reportAudienceUserIds();
+        if ($audience === null) {
+            return $base;
+        }
+
+        if ($audience === []) {
+            return $base->whereRaw('0 = 1');
+        }
+
+        if ($user->isViceMayorAccount()) {
+            return $base->whereIn('user_id', $audience);
+        }
+
+        $incoming = CoordinationAccess::incomingAylikFaaliyetIdsForUser((int) $user->id);
+
+        return $base->where(function (Builder $q) use ($audience, $incoming) {
+            $q->whereIn('user_id', $audience);
+            if ($incoming !== []) {
+                $q->orWhereIn('id', $incoming);
+            }
+        });
+    }
+
+    public static function canViewAny(): bool
+    {
+        return auth()->check();
+    }
+
+    public static function canView(Model $record): bool
+    {
+        $u = auth()->user();
+        if (! $u instanceof User) {
+            return false;
+        }
+
+        if ($u->isReportingSuperAdmin()) {
+            return true;
+        }
+
+        if ($u->isViceMayorAccount()) {
+            return $u->canViewReportDataForOwnerId((int) $record->user_id);
+        }
+
+        if ($u->canViewReportDataForOwnerId((int) $record->user_id)) {
+            return true;
+        }
+
+        return in_array((int) $record->id, CoordinationAccess::incomingAylikFaaliyetIdsForUser((int) $u->id), true);
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        $u = auth()->user();
+        if (! $u instanceof User) {
+            return false;
+        }
+
+        if ($u->isReportingSuperAdmin()) {
+            return true;
+        }
+
+        if ($u->isViceMayorAccount()) {
+            return $u->canViewReportDataForOwnerId((int) $record->user_id);
+        }
+
+        return (int) $record->user_id === (int) $u->id;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        $u = auth()->user();
+        if (! $u instanceof User) {
+            return false;
+        }
+
+        if ($u->isReportingSuperAdmin()) {
+            return true;
+        }
+
+        return (int) $record->user_id === (int) $u->id;
+    }
+
+    public static function canCreate(): bool
+    {
+        $u = auth()->user();
+        if (! $u instanceof User) {
+            return false;
+        }
+        if ($u->isReportingSuperAdmin()) {
+            return false;
+        }
+        if ($u->isViceMayorAccount()) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function getPages(): array
@@ -196,6 +500,7 @@ class AylikFaaliyetResource extends Resource
         return [
             'index' => Pages\ListAylikFaaliyets::route('/'),
             'create' => Pages\CreateAylikFaaliyet::route('/create'),
+            'view' => Pages\ViewAylikFaaliyet::route('/{record}'),
             'edit' => Pages\EditAylikFaaliyet::route('/{record}/edit'),
         ];
     }

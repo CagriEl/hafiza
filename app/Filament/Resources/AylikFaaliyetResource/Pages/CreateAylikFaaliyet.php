@@ -2,15 +2,25 @@
 
 namespace App\Filament\Resources\AylikFaaliyetResource\Pages;
 
+use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\AylikFaaliyetResource;
+use App\Models\User;
+use App\Support\AylikFaaliyetEscalation;
+use Filament\Notifications\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
-use Filament\Notifications\Notification; // Bildirim sınıfı
-use Filament\Notifications\Actions\Action; // Bildirim içi buton
-use App\Models\User; // Kullanıcı modeli
 
 class CreateAylikFaaliyet extends CreateRecord
 {
+    use WarnsIfActivityCatalogEmpty;
+
     protected static string $resource = AylikFaaliyetResource::class;
+
+    public function mount(): void
+    {
+        parent::mount();
+        $this->warnIfActivityCatalogEmpty(auth()->user()?->name ?? '');
+    }
 
     protected function getRedirectUrl(): string
     {
@@ -29,17 +39,23 @@ class CreateAylikFaaliyet extends CreateRecord
         $admin = User::find(1);
 
         if ($admin) {
+            $faaliyetler = $this->record->faaliyetler;
+            $escalation = is_array($faaliyetler) && AylikFaaliyetEscalation::recordHasEscalation($faaliyetler);
+
             Notification::make()
                 ->title('Yeni Faaliyet Raporu Girildi')
-                ->body("$mudurlukAdi, $yil - $ay ayı faaliyet planını sisteme yükledi.")
-                ->success() // Yeşil renkli başarı ikonu
+                ->body(
+                    $escalation
+                        ? "$mudurlukAdi, $yil - $ay ayı raporunda üst yönetim bilgilendirmesi gereken sapma veya gecikme satırları var."
+                        : "$mudurlukAdi, $yil - $ay ayı faaliyet planını sisteme yükledi."
+                )
+                ->success()
                 ->actions([
-                    // Bildirimin içinde "Görüntüle" butonu olsun
                     Action::make('goruntule')
                         ->label('Raporu Gör')
                         ->url(AylikFaaliyetResource::getUrl('edit', ['record' => $this->record])),
                 ])
-                ->sendToDatabase($admin); // Sadece Admin'in paneline düşür
+                ->sendToDatabase($admin);
         }
     }
 }

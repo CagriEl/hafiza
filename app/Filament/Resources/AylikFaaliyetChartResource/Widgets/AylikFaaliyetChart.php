@@ -2,32 +2,28 @@
 
 namespace App\Filament\Widgets;
 
-use Filament\Widgets\ChartWidget;
 use App\Models\HaftalikRapor;
+use App\Support\ReportDirectorateScope;
 use Carbon\Carbon;
+use Filament\Widgets\ChartWidget;
 
 class AylikFaaliyetChart extends ChartWidget
 {
     protected static ?string $heading = 'Aylık Faaliyet Yoğunluğu';
-    
+
     // Grafiğin genişliği (Opsiyonel, full width yapar)
-    protected int | string | array $columnSpan = 'full';
-    
+    protected int|string|array $columnSpan = 'full';
+
     // Sıralama (Stats widget'ın altında görünsün diye)
     protected static ?int $sort = 2;
 
     protected function getData(): array
     {
-        $user = auth()->user();
-        $isAdmin = $user->id === 1;
         $yil = now()->year; // Sadece bu yılın verisi
 
-        // 1. Verileri Çek
-        $query = HaftalikRapor::query()->whereYear('baslangic_tarihi', $yil);
-
-        if (!$isAdmin) {
-            $query->where('user_id', $user->id);
-        }
+        $query = ReportDirectorateScope::constrain(
+            HaftalikRapor::query()->whereYear('baslangic_tarihi', $yil)
+        );
 
         $raporlar = $query->get();
 
@@ -42,7 +38,7 @@ class AylikFaaliyetChart extends ChartWidget
 
             // İçindeki işleri say
             $isler = is_string($rapor->faaliyetler) ? json_decode($rapor->faaliyetler, true) : $rapor->faaliyetler;
-            
+
             if (is_array($isler)) {
                 $sayi = count($isler);
                 // İlgili aya ekle
@@ -61,8 +57,8 @@ class AylikFaaliyetChart extends ChartWidget
                 ],
             ],
             'labels' => [
-                'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 
-                'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'
+                'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+                'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
             ],
         ];
     }

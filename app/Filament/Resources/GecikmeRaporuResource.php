@@ -4,30 +4,50 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GecikmeRaporuResource\Pages;
 use App\Models\AylikFaaliyet;
-use App\Models\User; // Müdürlükleri çekmek için
+use App\Models\User;
+use App\Models\ViceMayor;
+use App\Support\AylikFaaliyetEscalation;
+use App\Support\ReportDirectorateScope;
+use Filament\Infolists\Components\Section as InfoSection;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Filament\Infolists\Infolist;
-use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\Section as InfoSection;
-use Carbon\Carbon;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class GecikmeRaporuResource extends Resource
 {
     protected static ?string $model = AylikFaaliyet::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
+
     protected static ?string $navigationLabel = 'Gecikme Raporu';
+
     protected static ?string $pluralModelLabel = 'Gecikme Raporları';
+
     protected static ?string $modelLabel = 'Gecikme Raporu';
+
     protected static ?string $navigationGroup = 'Yönetim';
 
     public static function canViewAny(): bool
     {
-        return auth()->id() === 1;
+        $u = auth()->user();
+        if (! $u instanceof User) {
+            return false;
+        }
+        if ($u->isReportingSuperAdmin()) {
+            return true;
+        }
+
+        return ViceMayor::query()->where('user_id', $u->id)->exists();
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return ReportDirectorateScope::constrain(parent::getEloquentQuery());
     }
 
     public static function table(Table $table): Table
@@ -41,22 +61,27 @@ class GecikmeRaporuResource extends Resource
 
                 TextColumn::make('donem')
                     ->label('Dönem')
-                    ->getStateUsing(fn ($record) => $record->yil . ' / ' . $record->ay),
+                    ->getStateUsing(fn ($record) => $record->yil.' / '.$record->ay),
 
                 TextColumn::make('geciken_ozeti')
-                    ->label('Geciken İşler')
+                    ->label('Üst yönetim / Gecikme / Sapma')
                     ->html()
                     ->getStateUsing(function ($record) {
                         $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
-                        $output = "";
+                        $output = '';
                         if (is_array($isler)) {
                             foreach ($isler as $is) {
-                                if (isset($is['son_tarih']) && Carbon::parse($is['son_tarih'])->isPast() && ($is['durum'] ?? '') !== 'tamam') {
-                                    $output .= "• " . e($is['konu']) . "<br>";
+                                if (! is_array($is)) {
+                                    continue;
+                                }
+                                $line = AylikFaaliyetEscalation::describeItemForManagement($is);
+                                if ($line !== null) {
+                                    $output .= '• '.e($line).'<br>';
                                 }
                             }
                         }
-                        return $output ?: '<span class="text-gray-400">Gecikme yok</span>';
+
+                        return $output !== '' ? $output : '<span class="text-gray-400">Bildirim gerektiren satır yok</span>';
                     }),
             ])
             ->filters([
@@ -66,7 +91,7 @@ class GecikmeRaporuResource extends Resource
                     ->relationship('user', 'name') // User modeliyle olan ilişkiden isimleri çeker
                     ->searchable()
                     ->preload(),
-                
+
                 // YIL FİLTRESİ (Opsiyonel ama yararlı olur)
                 SelectFilter::make('yil')
                     ->label('Yıl Seç')
@@ -89,22 +114,26 @@ class GecikmeRaporuResource extends Resource
             InfoSection::make('Detaylar')->schema([
                 TextEntry::make('user.name')->label('Müdürlük'),
                 TextEntry::make('geciken_detaylari')
-                    ->label('Geciken İşler')
+                    ->label('Üst yönetim / Gecikme / Sapma')
                     ->html()
                     ->getStateUsing(function ($record) {
                         $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
-                        $liste = "";
+                        $liste = '';
                         if (is_array($isler)) {
                             foreach ($isler as $is) {
-                                if (isset($is['son_tarih']) && Carbon::parse($is['son_tarih'])->isPast() && ($is['durum'] ?? '') !== 'tamam') {
-                                    $gerekce = $is['gecikme_gerekcesi'] ?? 'Gerekçe girilmemiş!';
-                                    $liste .= "<div style='margin-bottom:10px; border-bottom:1px solid #eee;'><b>{$is['konu']}</b><br>Gerekçe: {$gerekce}</div>";
+                                if (! is_array($is)) {
+                                    continue;
+                                }
+                                $line = AylikFaaliyetEscalation::describeItemForManagement($is);
+                                if ($line !== null) {
+                                    $liste .= '<div style="margin-bottom:10px; border-bottom:1px solid #eee;">'.e($line).'</div>';
                                 }
                             }
                         }
-                        return $liste ?: 'Gecikme yok.';
+
+                        return $liste !== '' ? $liste : 'Bildirim gerektiren satır yok.';
                     })->columnSpanFull(),
-            ])
+            ]),
         ]);
     }
 

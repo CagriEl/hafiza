@@ -1,0 +1,34 @@
+{
+    "version": 1,
+    "layers": {
+        "1": {
+            "label": "Katman 1 — Operasyonel takip",
+            "description": "Haftalık hedef, gerçekleşme ve temel KPI alanları",
+            "enabled": true,
+            "required_fields": ["activity_catalog_id", "hafta", "hedef", "gerceklesen"]
+        },
+        "2": {
+            "label": "Katman 2 — Sapma ve risk",
+            "description": "Hedef altı gerçekleşmede sapma gerekçesi ve risk notları",
+            "enabled": true,
+            "optional_fields": ["risk_engel"],
+            "conditional_required": [
+                {
+                    "id": "sapma_hedef_alti",
+                    "when": {
+                        "type": "numeric_less_than",
+                        "left_field": "gerceklesen",
+                        "right_field": "hedef"
+                    },
+                    "required_fields": ["sapma_nedeni"]
+                }
+            ]
+        },
+        "3": {
+            "label": "Katman 3 — Üst yönetim",
+            "description": "Karar ihtiyacı ve başkan yardımcılığı değerlendirmesi",
+            "enabled": true,
+            "optional_fields": ["karar_ihtiyaci", "vice_mayor_notu"]
+        }
+    }
+}

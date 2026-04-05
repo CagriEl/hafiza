@@ -4,48 +4,48 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\SwotAnalizResource\Pages;
 use App\Models\SwotAnaliz;
-use Filament\Forms;
+use App\Models\ViceMayor;
+use App\Support\ReportDirectorateScope;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\Section;
+// Eğer soft delete kullanıyorsanız
+use Filament\Forms\Components\Select; // PDF Kütüphanesi
+use Filament\Forms\Components\TextInput;     // Dosya isimlendirme için
+// Form Bileşenleri
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Actions\DeleteAction;
+use Filament\Tables\Actions\EditAction;
+// Tablo Bileşenleri
+use Filament\Tables\Actions\ViewAction;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope; // Eğer soft delete kullanıyorsanız
-use Barryvdh\DomPDF\Facade\Pdf; // PDF Kütüphanesi
-use Illuminate\Support\Str;     // Dosya isimlendirme için
-
-// Form Bileşenleri
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\RichEditor;
-use Filament\Forms\Components\Grid;
-
-// Tablo Bileşenleri
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\EditAction;
-use Filament\Tables\Actions\ViewAction;
-use Filament\Tables\Actions\DeleteAction;
+use Illuminate\Support\Str;
 
 class SwotAnalizResource extends Resource
 {
     protected static ?string $model = SwotAnaliz::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-bar';
+
     protected static ?string $navigationLabel = 'SWOT Analizleri';
+
     protected static ?string $navigationGroup = 'Kurumsal Hafıza';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                
+
                 // --- BÖLÜM 1: GENEL BİLGİLER (Başlık ve Yıl) ---
                 Section::make('Dönem ve Başlık Bilgisi')
                     ->description('Analiz için açıklayıcı bir başlık ve yıl seçiniz.')
                     ->schema([
-                        
+
                         // YENİ EKLENEN BAŞLIK ALANI
                         TextInput::make('baslik')
                             ->label('Analiz Başlığı')
@@ -86,7 +86,7 @@ class SwotAnalizResource extends Resource
                                     ->label('ZAYIF YÖNLER (Weaknesses)')
                                     ->toolbarButtons(['bold', 'bulletList', 'orderedList', 'undo', 'redo'])
                                     ->columnSpan(1),
-                                
+
                                 // 3. FIRSATLAR (Sol Alt)
                                 RichEditor::make('firsatlar')
                                     ->label('FIRSATLAR (Opportunities)')
@@ -136,14 +136,14 @@ class SwotAnalizResource extends Resource
             ])
             ->defaultSort('created_at', 'desc')
             ->actions([
-                
+
                 // --- PDF İNDİRME BUTONU ---
                 Action::make('pdf_indir')
                     ->label('PDF İndir')
                     ->icon('heroicon-o-arrow-down-tray') // İndirme ikonu
                     ->color('success') // Yeşil Buton
                     ->action(function (SwotAnaliz $record) {
-                        
+
                         // İlişkiyi Yükle (Müdürlük adını PDF'te kullanmak için)
                         $record->load('user');
 
@@ -167,17 +167,25 @@ class SwotAnalizResource extends Resource
             ]);
     }
 
-    // --- YETKİLENDİRME ---
-    // Eğer kullanıcı Admin (ID: 1) değilse sadece kendi kayıtlarını görür.
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
+        return ReportDirectorateScope::constrain(parent::getEloquentQuery());
+    }
 
-        if (auth()->id() !== 1) { 
-            $query->where('user_id', auth()->id());
+    public static function canCreate(): bool
+    {
+        $u = auth()->user();
+        if (! $u instanceof \App\Models\User) {
+            return false;
         }
-        
-        return $query;
+        if ($u->isReportingSuperAdmin()) {
+            return false;
+        }
+        if (ViceMayor::query()->where('user_id', $u->id)->exists()) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function getPages(): array

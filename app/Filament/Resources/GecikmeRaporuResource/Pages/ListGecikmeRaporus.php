@@ -3,9 +3,10 @@
 namespace App\Filament\Resources\GecikmeRaporuResource\Pages;
 
 use App\Filament\Resources\GecikmeRaporuResource;
+use App\Support\AylikFaaliyetEscalation;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class ListGecikmeRaporus extends ListRecords
 {
@@ -26,10 +27,10 @@ class ListGecikmeRaporus extends ListRecords
                     $pdf = Pdf::loadHTML($this->generatePdfHtml($data))
                         ->setPaper('a4', 'portrait')
                         ->setWarnings(false);
-                    
+
                     return response()->streamDownload(function () use ($pdf) {
                         echo $pdf->output();
-                    }, 'gecikme_raporu_' . now()->format('d_m_Y') . '.pdf');
+                    }, 'gecikme_raporu_'.now()->format('d_m_Y').'.pdf');
                 }),
         ];
     }
@@ -81,8 +82,8 @@ class ListGecikmeRaporus extends ListRecords
         </head>
         <body>
             <div class="header">
-                <h2>MÜDÜRLÜK BAZLI GECİKME RAPORU</h2>
-                <p>Rapor Tarihi: ' . now()->format('d.m.Y H:i') . '</p>
+                <h2>MÜDÜRLÜK BAZLI GECİKME / SAPMA RAPORU</h2>
+                <p>Rapor Tarihi: '.now()->format('d.m.Y H:i').'</p>
             </div>
 
             <table>
@@ -90,31 +91,31 @@ class ListGecikmeRaporus extends ListRecords
                     <tr>
                         <th width="25%">Müdürlük</th>
                         <th width="15%">Dönem</th>
-                        <th width="60%">Geciken İşler ve Gerekçeler</th>
+                        <th width="60%">Üst yönetim bildirimi / gecikme / sapma</th>
                     </tr>
                 </thead>
                 <tbody>';
 
         foreach ($data as $record) {
             $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
-            $gecikenlerHtml = "";
-            
+            $gecikenlerHtml = '';
+
             if (is_array($isler)) {
                 foreach ($isler as $is) {
-                    if (isset($is['son_tarih']) && \Carbon\Carbon::parse($is['son_tarih'])->isPast() && ($is['durum'] ?? '') !== 'tamam') {
-                        $gerekce = !empty($is['gecikme_gerekcesi']) ? $is['gecikme_gerekcesi'] : 'Gerekçe belirtilmemiş!';
-                        $gecikenlerHtml .= "<div class='gecikme-item'>
-                                                <b>İş:</b> " . e($is['konu']) . "<br>
-                                                <b>Gerekçe:</b> " . e($gerekce) . "
-                                            </div>";
+                    if (! is_array($is)) {
+                        continue;
+                    }
+                    $line = AylikFaaliyetEscalation::describeItemForManagement($is);
+                    if ($line !== null) {
+                        $gecikenlerHtml .= "<div class='gecikme-item'>".e($line).'</div>';
                     }
                 }
             }
-            
-            if (!empty($gecikenlerHtml)) {
-                $html .= "<tr>
-                            <td>" . e($record->user->name) . "</td>
-                            <td>" . $record->yil . " / " . $record->ay . "</td>
+
+            if (! empty($gecikenlerHtml)) {
+                $html .= '<tr>
+                            <td>'.e($record->user->name).'</td>
+                            <td>'.$record->yil.' / '.$record->ay."</td>
                             <td>{$gecikenlerHtml}</td>
                           </tr>";
             }
@@ -132,7 +133,7 @@ class ListGecikmeRaporus extends ListRecords
         return $html;
     }
 
-    public function getTitle(): string 
+    public function getTitle(): string
     {
         return 'Müdürlük Bazlı Gecikme Raporu';
     }

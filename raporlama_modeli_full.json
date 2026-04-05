@@ -1,0 +1,245 @@
+[
+    {
+        "Önerilen Raporlama Kurgusu": null,
+        "Unnamed: 1": null,
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "A. Faaliyet sınıflandırma modeli",
+        "Unnamed: 1": null,
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": "Not"
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "Seviye",
+        "Unnamed: 1": "Kategori",
+        "Unnamed: 2": "Tanım",
+        "Unnamed: 3": "Raporlama Şekli",
+        "Unnamed: 4": "Ölçü Örnekleri",
+        "Unnamed: 5": null,
+        "Unnamed: 6": "Bu model; hizmet standardı, kontrol listesi, RACI, tekil kayıt, SLA/KPI ve haftalık operasyonel koordinasyon mantığına göre tasarlanmıştır."
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "1",
+        "Unnamed: 1": "Operasyonel Hizmet",
+        "Unnamed: 2": "Sahada veya hizmet noktalarında sürekli yürütülen ana hizmet",
+        "Unnamed: 3": "Haftalık sayısal KPI + sapma özeti",
+        "Unnamed: 4": "adet, kişi, ton/kg, m2/m, km, saat, araç, olay sayısı, tamamlama süresi",
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "2",
+        "Unnamed: 1": "Başvuru / İşlem",
+        "Unnamed: 2": "Vatandaş, kurum veya iç paydaş başvurusuna dayalı işlem",
+        "Unnamed: 3": "Gelen-sonuçlanan-bekleyen + SLA",
+        "Unnamed: 4": "başvuru sayısı, sonuçlanan sayısı, bekleyen dosya, ort. gün",
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "3",
+        "Unnamed: 1": "Denetim / Uyum",
+        "Unnamed: 2": "Mevzuat, saha uygunluğu, kontrol ve tebligat süreçleri",
+        "Unnamed: 3": "Denetim sayısı + uygunsuzluk + kapanış",
+        "Unnamed: 4": "denetim sayısı, tutanak sayısı, uygunsuzluk, kapanış oranı",
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "4",
+        "Unnamed: 1": "Proje / Yatırım / Sözleşme",
+        "Unnamed: 2": "Başlangıç ve bitişi olan yatırım, yapım, ihale, hakediş veya proje işi",
+        "Unnamed: 3": "Haftalık yalnız kilometre taşı, gecikme ve karar ihtiyacı",
+        "Unnamed: 4": "% ilerleme, gerçekleşen kilometre taşı, gecikme günü, hakediş sayısı",
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "5",
+        "Unnamed: 1": "Destek / İç İşleyiş",
+        "Unnamed: 2": "İdari, mali, teknik ve kurum içi destek süreçleri",
+        "Unnamed: 3": "Sadece hacimli veya kritik olanlar haftalık; diğerleri aylık",
+        "Unnamed: 4": "iş emri sayısı, destek talebi, tamamlanan iş, stok, mutabakat",
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "6",
+        "Unnamed: 1": "Strateji / İyileştirme / Eğitim",
+        "Unnamed: 2": "Yönerge, süreç tasarımı, eğitim, plan, DÖF ve iyileştirme işleri",
+        "Unnamed: 3": "Haftalık yalnız tamamlanan kritik çıktı veya gecikme",
+        "Unnamed: 4": "tamamlanan doküman, eğitim sayısı, katılımcı, açık DÖF",
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "7",
+        "Unnamed: 1": "Olağanüstü / Kriz / Acil",
+        "Unnamed: 2": "Afet, arıza, yangın, acil müdahale, kritik kesinti",
+        "Unnamed: 3": "Her hafta ayrı blokta olay bazlı",
+        "Unnamed: 4": "olay sayısı, müdahale süresi, etkilenen kişi/alan, kapanış süresi",
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "8",
+        "Unnamed: 1": "İletişim / Memnuniyet / Paydaş",
+        "Unnamed: 2": "Çağrı merkezi, memnuniyet, toplantı, protokol ve bilgilendirme",
+        "Unnamed: 3": "Hacim + memnuniyet + açık kritik konu",
+        "Unnamed: 4": "çağrı sayısı, memnuniyet %, toplantı sayısı, geri bildirim kapanış oranı",
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": null,
+        "Unnamed: 1": null,
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "B. Raporlama katmanları",
+        "Unnamed: 1": null,
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "Katman",
+        "Unnamed: 1": "Adı",
+        "Unnamed: 2": "Kural",
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "Katman 1",
+        "Unnamed: 1": "Haftalık Operasyonel Gösterge",
+        "Unnamed: 2": "Yalnız çekirdek süreç hacmi, sonuçlanan iş, bekleyen iş, SLA ve kritik sapma raporlanır.",
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "Katman 2",
+        "Unnamed: 1": "Kritik İstisna / Karar Notu",
+        "Unnamed: 2": "Haftaya özel risk, gecikme, kaynak ihtiyacı, mevzuat riski ve üst yönetim kararı gerektiren konu yazılır.",
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "Katman 3",
+        "Unnamed: 1": "Proje / Milestone İzleme",
+        "Unnamed: 2": "Uzun soluklu yatırım, proje, ihale, plan ve iyileştirme işleri sadece kilometre taşı mantığıyla izlenir; mikro adımlar yazılmaz.",
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": null,
+        "Unnamed: 1": null,
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "C. Haftalık rapora alma kuralları",
+        "Unnamed: 1": null,
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "No",
+        "Unnamed: 1": "Kural",
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "1",
+        "Unnamed: 1": "Bir faaliyet haftalık rapora girecekse ölçülebilir bir çıktısı olmalıdır.",
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "2",
+        "Unnamed: 1": "Mikro görevler değil, süreç ailesi raporlanmalıdır. Örnek: 'yazıcı bağlandı' yerine 'son kullanıcı destek talepleri'.",
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "3",
+        "Unnamed: 1": "Rutin süreçlerde 'gelen-sonuçlanan-bekleyen-SLA' mantığı kullanılmalıdır.",
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "4",
+        "Unnamed: 1": "Uzun soluklu projeler haftalık listede mikro adımlarla değil, kilometre taşı ve % ilerleme ile raporlanmalıdır.",
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "5",
+        "Unnamed: 1": "Tek seferlik yazışma, olur, dosya iletimi vb. işler yalnız üst yönetim kararı veya kritik risk içeriyorsa rapora girmelidir.",
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "6",
+        "Unnamed: 1": "Her süreç için tek sorumlu müdürlük, veri kaynağı ve raporlama birimi tanımlanmalıdır.",
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    },
+    {
+        "Önerilen Raporlama Kurgusu": "7",
+        "Unnamed: 1": "Aynı verinin iki yerde tutulmaması için EBYS / CRM / iş emri / SCADA gibi asıl sistem tek kayıt kaynağı kabul edilmelidir.",
+        "Unnamed: 2": null,
+        "Unnamed: 3": null,
+        "Unnamed: 4": null,
+        "Unnamed: 5": null,
+        "Unnamed: 6": null
+    }
+]

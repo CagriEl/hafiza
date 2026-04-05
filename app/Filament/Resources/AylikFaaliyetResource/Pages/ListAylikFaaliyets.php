@@ -3,15 +3,79 @@
 namespace App\Filament\Resources\AylikFaaliyetResource\Pages;
 
 use App\Filament\Resources\AylikFaaliyetResource;
-use Filament\Actions\Action;
-use Filament\Actions\CreateAction;
-use Filament\Resources\Pages\ListRecords;
+use App\Models\User;
+use App\Services\ActivityService;
+use App\Support\CoordinationAccess;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
+use Filament\Actions\Action;
+use Filament\Actions\CreateAction;
+use Filament\Resources\Components\Tab;
+use Filament\Resources\Pages\ListRecords;
+use Illuminate\Database\Eloquent\Builder;
 
 class ListAylikFaaliyets extends ListRecords
 {
     protected static string $resource = AylikFaaliyetResource::class;
+
+    public function mount(): void
+    {
+        parent::mount();
+
+        $user = auth()->user();
+        if (! $user instanceof User || $user->isReportingSuperAdmin()) {
+            return;
+        }
+
+        $q = AylikFaaliyetResource::getEloquentQuery();
+        if ($q instanceof Builder && $q->count() === 0) {
+            $bundle = app(ActivityService::class)->resolveCatalogOptionsForMudurluk(trim($user->name ?? ''));
+            $payload = [
+                'message' => 'Aylık faaliyet listesi boş — olası nedenler',
+                'mudurluk_kullanici_adi' => $user->name,
+                'erisim_kapsaminda_rapor_sayisi' => 0,
+                'katalog_cozumleme' => $bundle['debug'],
+                'not' => 'Aktif sekme veya tablo filtreleri listeyi boşaltıyor olabilir; "Raporlarım" sekmesi ve yıl filtresini kontrol edin. Katalog boşsa müdürlük adı eşleşmesi veya php artisan activity-catalog:sync gerekir.',
+            ];
+            if (method_exists($this, 'js')) {
+                $this->js('console.warn('.json_encode($payload, JSON_UNESCAPED_UNICODE).')');
+            }
+        }
+    }
+
+    public function getTabs(): array
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! $user->isMudurlukReportingAccount()) {
+            return [];
+        }
+
+        $uid = (int) $user->id;
+
+        return [
+            'own' => Tab::make('Raporlarım')
+                ->icon('heroicon-o-clipboard-document-list')
+                ->query(function (Builder $query) use ($user) {
+                    $ids = $user->reportAudienceUserIds() ?? [];
+                    if ($ids === []) {
+                        return $query->whereRaw('0 = 1');
+                    }
+
+                    return $query->whereIn('user_id', $ids);
+                }),
+            'incoming' => Tab::make('Gelen Koordinasyon İşleri')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->badge(fn () => (string) count(CoordinationAccess::incomingAylikFaaliyetIdsForUser($uid)))
+                ->query(function (Builder $query) use ($uid) {
+                    $incoming = CoordinationAccess::incomingAylikFaaliyetIdsForUser($uid);
+                    if ($incoming === []) {
+                        return $query->whereRaw('0 = 1');
+                    }
+
+                    return $query->whereIn('id', $incoming);
+                }),
+        ];
+    }
 
     protected function getHeaderActions(): array
     {
@@ -19,7 +83,7 @@ class ListAylikFaaliyets extends ListRecords
             // 1. OLUŞTURMA BUTONU: Admin (ID: 1) haricindeki herkes görür
             CreateAction::make()
                 ->label('Yeni Faaliyet Raporu Oluştur')
-                ->visible(fn () => auth()->id() !== 1),
+                ->visible(fn () => AylikFaaliyetResource::canCreate()),
 
             // 2. PDF İNDİRME BUTONU: Sadece Admin (ID: 1) görür
             Action::make('pdfIndir')
@@ -34,10 +98,10 @@ class ListAylikFaaliyets extends ListRecords
                     $pdf = Pdf::loadHTML($this->generateAylikFaaliyetHtml($records))
                         ->setPaper('a4', 'landscape')
                         ->setWarnings(false);
-                    
+
                     return response()->streamDownload(function () use ($pdf) {
                         echo $pdf->output();
-                    }, 'aylik_faaliyet_raporu_' . now()->format('d_m_Y') . '.pdf');
+                    }, 'aylik_faaliyet_raporu_'.now()->format('d_m_Y').'.pdf');
                 }),
         ];
     }
@@ -62,7 +126,7 @@ class ListAylikFaaliyets extends ListRecords
         </head>
         <body>
             <div class="title">AYLIK FAALİYET VE PLANLAMA GENEL RAPORU</div>
-            <p style="text-align:right">Rapor Tarihi: ' . now()->format('d.m.Y') . '</p>
+            <p style="text-align:right">Rapor Tarihi: '.now()->format('d.m.Y').'</p>
 
             <table>
                 <thead>
@@ -76,11 +140,11 @@ class ListAylikFaaliyets extends ListRecords
 
         foreach ($records as $record) {
             $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
-            $isDetaylari = "";
+            $isDetaylari = '';
 
             if (is_array($isler)) {
                 foreach ($isler as $is) {
-                    $durum = match($is['durum'] ?? '') {
+                    $durum = match ($is['durum'] ?? '') {
                         'tamam' => 'Tamamlandı',
                         'devam' => 'Devam Ediyor',
                         'bekliyor' => 'Planlandı',
@@ -89,17 +153,17 @@ class ListAylikFaaliyets extends ListRecords
 
                     $sonTarih = isset($is['son_tarih']) ? Carbon::parse($is['son_tarih'])->format('d.m.Y') : '-';
                     $isDetaylari .= "<div style='margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;'>
-                                        <b>[" . e($durum) . "]</b> " . e($is['konu']) . " 
-                                        <br><b>Bitiş:</b> " . $sonTarih . "
-                                     </div>";
+                                        <b>[".e($durum).']</b> '.e($is['konu']).' 
+                                        <br><b>Bitiş:</b> '.$sonTarih.'
+                                     </div>';
                 }
             }
 
-            $html .= "<tr>
-                        <td>" . e($record->user->name ?? 'Belirtilmemiş') . "</td>
-                        <td>" . $record->yil . " / " . $record->ay . "</td>
-                        <td>" . ($isDetaylari ?: 'Kayıtlı faaliyet yok.') . "</td>
-                      </tr>";
+            $html .= '<tr>
+                        <td>'.e($record->user->name ?? 'Belirtilmemiş').'</td>
+                        <td>'.$record->yil.' / '.$record->ay.'</td>
+                        <td>'.($isDetaylari ?: 'Kayıtlı faaliyet yok.').'</td>
+                      </tr>';
         }
 
         $html .= '</tbody></table></body></html>';

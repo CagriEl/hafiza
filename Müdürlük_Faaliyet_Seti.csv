@@ -1,0 +1,128 @@
+Yönetmeliklerle Uyumlu Önerilen Müdürlük Faaliyet Setleri,,,,,,,
+,,,kategoriye uygun ,Dahil et,,,
+Müdürlük,Faaliyet Kodu,Faaliyet Ailesi,Kategori,Kapsam,Ölçü Birimi,Ana KPI / SLA,Veri Kaynağı
+Özel Kalem Müdürlüğü,OKM-01,Protokol ve Başkanlık Takvimi,İletişim / Memnuniyet / Paydaş,"Randevu, kabul, ziyaret, tören ve protokol koordinasyonu",adet / hafta,zamanında gerçekleşme oranı,Başkanlık takvimi / EBYS
+Özel Kalem Müdürlüğü,OKM-02,Vatandaş Deneyimi ve Geri Bildirim,İletişim / Memnuniyet / Paydaş,"Çağrı-çözüm, başvuru izleme, memnuniyet analizi",başvuru / memnuniyet %,"kapanış oranı, memnuniyet",CRM / anket
+Özel Kalem Müdürlüğü,OKM-03,Paydaş ve İstişare Süreçleri,İletişim / Memnuniyet / Paydaş,"Paydaş haritalama, görüşme, toplantı ve çıktı takibi",toplantı / çıktı,eylem planına bağlanan çıktı,EBYS / toplantı notu
+Özel Kalem Müdürlüğü,OKM-04,Kurumsal İletişim ve BYHİK,İletişim / Memnuniyet / Paydaş,"Basın bülteni, sosyal medya, kriz iletişimi",içerik / erişim,yayın planı gerçekleşme,BYHİK kayıtları
+Özel Kalem Müdürlüğü,OKM-05,Kritik Proje Fikri ve Koordinasyon,Proje / Yatırım / Sözleşme,"AB/hibe veya tematik proje fikri, konsept notu, paydaş listesi",proje notu / adet,tamamlanan konsept notu,EBYS / proje klasörü
+Yazı İşleri Müdürlüğü,YZM-01,Meclis ve Encümen Sekretaryası,Destek / İç İşleyiş,"Gündem, tutanak, karar, komisyon ve tebliğ süreçleri",toplantı / karar,aynı gün bildirim oranı,EBYS / meclis kayıtları
+Yazı İşleri Müdürlüğü,YZM-02,Evrak Kayıt ve Dağıtım,Başvuru / İşlem,"Gelen-giden evrak, havale, dağıtım ve tebligat",evrak sayısı,1 iş günü havale oranı,EBYS / KEP
+Yazı İşleri Müdürlüğü,YZM-03,CİMER / 4982 / 3071 Başvuruları,Başvuru / İşlem,"Vatandaş başvurusu kayıt, yönlendirme ve cevap takibi",başvuru sayısı,SLA içinde cevap oranı,EBYS / başvuru sistemi
+Yazı İşleri Müdürlüğü,YZM-04,Kurumsal Arşiv ve Bilgi Yönetimi,Destek / İç İşleyiş,"Arşiv devir, erişim, imha, dosyalama",dosya / kutu / işlem,SDP uygunluk oranı,Arşiv kayıtları
+Yazı İşleri Müdürlüğü,YZM-05,Evlendirme İşlemleri,Başvuru / İşlem,"Başvuru, nikâh ve nüfus bildirim süreci",başvuru / nikâh,zamanında sonuçlanan işlem,Evlendirme kayıtları
+Yazı İşleri Müdürlüğü,YZM-06,EBYS Süreç Desteği,Destek / İç İşleyiş,"Yetki, akış, sınıflandırma ve klasör doğruluğu",talep sayısı,kapanış süresi,EBYS destek kayıtları
+İnsan Kaynakları ve Eğitim Müdürlüğü,IKM-01,"Özlük, Atama ve Sicil",Destek / İç İşleyiş,"Atama, intibak, sicil, görevlendirme",işlem sayısı,tamamlanan işlem süresi,Personel sistemi / EBYS
+İnsan Kaynakları ve Eğitim Müdürlüğü,IKM-02,"İzin, Disiplin ve Devamsızlık",Destek / İç İşleyiş,"İzin, disiplin, rapor, mesai takipleri",işlem sayısı,SLA içinde kapanış,Personel sistemi
+İnsan Kaynakları ve Eğitim Müdürlüğü,IKM-03,Bordro ve KBS/SGK Veri Hazırlığı,Destek / İç İşleyiş,"Bordro girdileri, kesenek ve SGK işlemleri",personel / belge,zamanında veri aktarımı,KBS / SGK
+İnsan Kaynakları ve Eğitim Müdürlüğü,IKM-04,Eğitim ve Gelişim,Strateji / İyileştirme / Eğitim,"Hizmet içi eğitim, oryantasyon, staj",eğitim / katılımcı,kişi başı eğitim saati,Eğitim planı
+İnsan Kaynakları ve Eğitim Müdürlüğü,IKM-05,Performans ve Yetkinlik,Strateji / İyileştirme / Eğitim,"Değerlendirme, gelişim ve kariyer süreçleri",değerlendirme / rapor,tamamlanan değerlendirme oranı,İK kayıtları
+İnsan Kaynakları ve Eğitim Müdürlüğü,IKM-06,İSG ve İSGB Koordinasyonu,Denetim / Uyum,"Risk, muayene, KKD, kurul, ramak kala ve DÖF",olay / eğitim / kontrol,"açık DÖF, eğitim uygunluğu",İSG kayıtları
+Fen İşleri Müdürlüğü,FNM-01,"Yol, Kaldırım ve Üstyapı İşleri",Operasyonel Hizmet,"Yol, kaldırım, bordür, kavşak, yaya geçidi, üstyapı onarımı",m / m2 / adet,tamamlanan imalat miktarı,İş emri / saha tutanağı
+Fen İşleri Müdürlüğü,FNM-02,"Proje, Keşif, Metraj ve Hakediş",Proje / Yatırım / Sözleşme,"Teknik dosya, yaklaşık maliyet, ataşman, hakediş",dosya / hakediş,tamamlanan teknik dosya süresi,EBYS / proje klasörü
+Fen İşleri Müdürlüğü,FNM-03,Şantiye ve Tesis Yönetimi,Destek / İç İşleyiş,"Şantiye, üretim sahası, stok ve ekip planı",iş emri / üretim,şantiye verimliliği,Şantiye kayıtları
+Fen İşleri Müdürlüğü,FNM-04,Bina ve Sanat Yapıları,Proje / Yatırım / Sözleşme,"Belediye tesisleri, menfez, istinat, küçük köprü işleri",iş / adet,zamanında tamamlanan iş,Saha kontrol
+Fen İşleri Müdürlüğü,FNM-05,Park Sert Zemin ve Altyapı Destek,Operasyonel Hizmet,"Park altyapısı, temel, ankraj, sulama hattı altlığı",m / adet,tamamlanan iş miktarı,İş emri
+Fen İşleri Müdürlüğü,FNM-06,Kışla Mücadele ve Acil Müdahale,Olağanüstü / Kriz / Acil,"Kar-buz, sel, acil onarım, erişim açma",olay / müdahale,müdahale süresi,Acil durum kayıtları
+Su ve Kanalizasyon Müdürlüğü,SKM-01,"Arıtma, Su Kalitesi ve Üretim",Operasyonel Hizmet,"Arıtma, dezenfeksiyon, analiz ve depolama",numune / m3,uygun numune oranı,SCADA / laboratuvar
+Su ve Kanalizasyon Müdürlüğü,SKM-02,"Şebeke Arıza, Bakım ve Onarım",Operasyonel Hizmet,"Su arızası, isale hattı, pompa ve bakım işleri",arıza / müdahale,ortalama müdahale süresi,185 hattı / saha kayıt
+Su ve Kanalizasyon Müdürlüğü,SKM-03,Abonelik ve Tahakkuk İşlemleri,Başvuru / İşlem,"Abonelik açma-kapama, değişiklik, bildirim",işlem sayısı,sonuçlanan başvuru oranı,Abone sistemi
+Su ve Kanalizasyon Müdürlüğü,SKM-04,"Sayaç, Endeks ve Kaçak Su",Denetim / Uyum,"Sayaç kontrol, endeks, kaçak tespiti",işlem / tutanak,kaçak tespit kapanış süresi,Sayaç kayıtları
+Su ve Kanalizasyon Müdürlüğü,SKM-05,Su Verimliliği ve Kayıp-Kaçak,Strateji / İyileştirme / Eğitim,"Kayıp-kaçak analizi, verimlilik, eğitim",oran / faaliyet,kayıp-kaçak oranı,Analiz raporu
+Su ve Kanalizasyon Müdürlüğü,SKM-06,Kanalizasyon ve Yağmursuyu,Operasyonel Hizmet,"Kanal, yağmursuyu, kuka, vidanjör operasyonları",iş emri / müdahale,kapanış süresi,Saha kayıtları
+Makine İkmal Bakım ve Onarım Müdürlüğü,MKM-01,Planlı Bakım,Destek / İç İşleyiş,"Periyodik bakım, muayene, kalibrasyon hazırlığı",araç / ekipman,planlı bakım uyum oranı,Bakım planı
+Makine İkmal Bakım ve Onarım Müdürlüğü,MKM-02,Arıza Bakım ve Revizyon,Destek / İç İşleyiş,"Arıza giderme, motor, kaporta, kaynak, HVAC",iş emri,ortalama onarım süresi,Atölye kayıtları
+Makine İkmal Bakım ve Onarım Müdürlüğü,MKM-03,Garaj ve Saha Operasyonları,Destek / İç İşleyiş,"Görev sevk, dönüş kontrolü, şoför ve nöbet planı",sevk / araç,araç kullanılabilirlik oranı,Garaj kayıtları
+Makine İkmal Bakım ve Onarım Müdürlüğü,MKM-04,Yakıt ve Telematik Verimliliği,Strateji / İyileştirme / Eğitim,"Yakıt tüketimi, rölanti, kilometre, verimlilik analizi",lt / km / saat,yakıt sapma oranı,ATS
+Makine İkmal Bakım ve Onarım Müdürlüğü,MKM-05,Yedek Parça ve Teknik Stok,Destek / İç İşleyiş,"Kritik parça, stok, garanti ve iade süreçleri",stok kartı / parça,kritik stok altı kalem,Stok sistemi
+Makine İkmal Bakım ve Onarım Müdürlüğü,MKM-06,Teknik Temin ve Servis Yönetimi,Proje / Yatırım / Sözleşme,"Servis, muayene-kabul, garanti, teknik alım süreçleri",dosya / servis işi,zamanında kapanış oranı,EBYS / servis dosyası
+Hukuk İşleri Müdürlüğü,HKM-01,Dava ve İcra Takibi,Denetim / Uyum,"Adli, idari ve icra dosyaları",dosya sayısı,aktif dosya / sonuçlanan dosya,Dava takip listesi
+Hukuk İşleri Müdürlüğü,HKM-02,Hukuki Görüş Talepleri,Destek / İç İşleyiş,Birimlerden gelen görüş ve değerlendirme talepleri,talep sayısı,ortalama cevap süresi,EBYS
+Hukuk İşleri Müdürlüğü,HKM-03,Sözleşme ve Protokol İnceleme,Proje / Yatırım / Sözleşme,Taslak inceleme ve önleyici hukuk süreçleri,inceleme sayısı,uygunluk görüş süresi,EBYS / sözleşme klasörü
+Hukuk İşleri Müdürlüğü,HKM-04,Tebligat ve Müzekkere Takibi,Başvuru / İşlem,"Tebligat, müzekkere, bilgi-belge cevabı",tebligat / yazı,zamanında cevap oranı,EBYS / UYAP
+Hukuk İşleri Müdürlüğü,HKM-05,Arabuluculuk ve Uzlaşma,Başvuru / İşlem,Alternatif uyuşmazlık çözümü ve sonuçları,dosya / toplantı,anlaşma oranı,Dosya kayıtları
+Hukuk İşleri Müdürlüğü,HKM-06,Mevzuat ve Uyum İzleme,Denetim / Uyum,"Mevzuat değişikliği, risk ve uyum notları",bilgi notu / adet,yayınlanan uyum notu,Mevzuat takip listesi
+Bilgi İşlem Müdürlüğü,BLM-01,Son Kullanıcı Destek,Destek / İç İşleyiş,"Yazıcı, bilgisayar, projeksiyon, kurulum ve destek talepleri",talep sayısı,ilk temas çözüm oranı,Yardım masası
+Bilgi İşlem Müdürlüğü,BLM-02,"Ağ, Sunucu ve Yedekleme",Destek / İç İşleyiş,"Ağ, veri merkezi, yedekleme ve e-posta işletimi",olay / süre,kesinti süresi,İzleme sistemi
+Bilgi İşlem Müdürlüğü,BLM-03,Uygulama ve Entegrasyon,Destek / İç İşleyiş,"EBYS, YBS, web, mobil ve entegrasyon değişiklikleri",talep / sürüm,tamamlanan talep süresi,Uygulama kayıtları
+Bilgi İşlem Müdürlüğü,BLM-04,Siber Güvenlik ve Olay Yönetimi,Denetim / Uyum,"SOME, log, SIEM, phishing, zafiyet ve olay kaydı",olay / uyarı,kapanış süresi,Güvenlik kayıtları
+Bilgi İşlem Müdürlüğü,BLM-05,"Yetki, Erişim ve KVKK Teknik Tedbirler",Denetim / Uyum,"Kullanıcı yetkisi, maskeleme, erişim matrisi",işlem sayısı,zamanında yetki kapatma,IAM kayıtları
+Bilgi İşlem Müdürlüğü,BLM-06,"Donanım, Lisans ve Envanter",Destek / İç İşleyiş,"BT varlık, lisans, kiosk, yazıcı, zimmet",envanter / lisans,güncel envanter oranı,Envanter sistemi
+İmar ve Şehircilik Müdürlüğü,IMM-01,Ruhsat ve Proje Tasdik,Başvuru / İşlem,"Yapı ruhsatı, tadilat, proje inceleme",başvuru / dosya,sonuçlanan dosya süresi,Ruhsat kayıtları
+İmar ve Şehircilik Müdürlüğü,IMM-02,İskan ve Kat Mülkiyeti,Başvuru / İşlem,"İskan, kat irtifakı/mülkiyeti proje onayları",işlem sayısı,tamamlama süresi,İmar sistemi
+İmar ve Şehircilik Müdürlüğü,IMM-03,İmar Durumu ve Başvuru İşlemleri,Başvuru / İşlem,"İmar durumu, yazılı teknik görüşler",başvuru sayısı,SLA içinde sonuçlanan oran,EBYS
+İmar ve Şehircilik Müdürlüğü,IMM-04,Yapı Denetim ve Yaptırım,Denetim / Uyum,"Yapı tatil, aykırılık, metruk yapı, yıkım takip",tutanak / işlem,uygunsuzluk kapanış oranı,Saha tutanakları
+İmar ve Şehircilik Müdürlüğü,IMM-05,Planlama ve Kentsel Dönüşüm,Strateji / İyileştirme / Eğitim,"Plan değişikliği, komisyon, riskli yapı süreçleri",dosya / teklif,mile-stone gerçekleşme,Plan klasörü
+İmar ve Şehircilik Müdürlüğü,IMM-06,"Harita, Uygulama ve Numarataj",Başvuru / İşlem,"İfraz-tevhit, aplikasyon, numarataj, CBS güncelleme",işlem / parsel,güncel veri oranı,CBS / harita kayıtları
+İtfaiye Müdürlüğü,ITM-01,Yangın Müdahaleleri,Olağanüstü / Kriz / Acil,"Ev, araç, trafo, çöp, tesis yangınları",vaka sayısı,ortalama çıkış-varış süresi,112 / vaka kayıtları
+İtfaiye Müdürlüğü,ITM-02,Teknik Kurtarma ve Su Baskını,Olağanüstü / Kriz / Acil,"Kaza, mahsur kalma, su baskını, hayvan kurtarma",vaka sayısı,müdahale süresi,Vaka kayıtları
+İtfaiye Müdürlüğü,ITM-03,Önleme ve Denetim,Denetim / Uyum,"Yangın güvenliği denetimi, uygunluk raporu",denetim sayısı,uygunsuzluk kapanış oranı,Denetim kayıtları
+İtfaiye Müdürlüğü,ITM-04,Eğitim ve Tatbikat,Strateji / İyileştirme / Eğitim,"Kurum, okul, işletme eğitimi ve tatbikat",etkinlik / katılımcı,katılımcı sayısı,Eğitim kayıtları
+İtfaiye Müdürlüğü,ITM-05,112 Koordinasyon ve Zaman Damgası,Olağanüstü / Kriz / Acil,"Çağrı, sevk, kayıt doğrulama, karşılıklı destek",çağrı / sevk,zaman damgası doğruluk oranı,ATS / 112
+İtfaiye Müdürlüğü,ITM-06,Araç ve Ekipman Hazırlığı,Destek / İç İşleyiş,"Bakım, kalibrasyon, stok ve hazır olma",araç / cihaz,hazır araç oranı,Bakım kayıtları
+Afet İşleri ve Risk Yönetimi Müdürlüğü,AFM-01,Kurumsal Risk Yönetimi,Strateji / İyileştirme / Eğitim,"Risk kaydı, KRI, risk haritası, DÖF",risk / DÖF,açık yüksek risk sayısı,Risk kayıtları
+Afet İşleri ve Risk Yönetimi Müdürlüğü,AFM-02,İş Sürekliliği ve Planlama,Strateji / İyileştirme / Eğitim,"BIA, BCP/DRP, sivil savunma ve plan güncellemeleri",plan / güncelleme,tamamlanan plan oranı,Plan klasörü
+Afet İşleri ve Risk Yönetimi Müdürlüğü,AFM-03,"Eğitim, Tatbikat ve Gönüllülük",Strateji / İyileştirme / Eğitim,"Afet farkındalık, tatbikat, gönüllü programları",etkinlik / katılımcı,katılımcı sayısı,Eğitim kayıtları
+Afet İşleri ve Risk Yönetimi Müdürlüğü,AFM-04,ARKUR ve Lojistik Hazırlık,Olağanüstü / Kriz / Acil,"Ekip, teçhizat, lojistik, intikal hazırlığı",ekipman / görev,hazır ekip oranı,Lojistik kayıtları
+Afet İşleri ve Risk Yönetimi Müdürlüğü,AFM-05,"Siren, KBRN ve Sivil Savunma",Olağanüstü / Kriz / Acil,"İkaz-alarm, sığınak, KBRN ve seferberlik süreçleri",test / plan,test başarı oranı,Sistem kayıtları
+Afet İşleri ve Risk Yönetimi Müdürlüğü,AFM-06,AYDES ve Kurumlar Arası Koordinasyon,Olağanüstü / Kriz / Acil,"AYDES veri girişi, AFAD/Valilik koordinasyonu",toplantı / veri seti,zamanında veri gönderimi,AYDES / EBYS
+Temizlik İşleri Müdürlüğü,TEM-01,Evsel Atık Toplama ve Taşıma,Operasyonel Hizmet,Rota bazlı atık toplama ve sevk,ton / sefer,gerçekleşen rota oranı,ATS / sevk kayıtları
+Temizlik İşleri Müdürlüğü,TEM-02,Süpürme ve Yıkama,Operasyonel Hizmet,"Cadde, sokak, meydan ve ortak alan temizliği",rota / km / alan,zamanında tamamlanan rota,Saha planı
+Temizlik İşleri Müdürlüğü,TEM-03,Pazar ve Etkinlik Sonrası Temizlik,Operasyonel Hizmet,"Pazar, etkinlik ve yoğun alan temizlikleri",iş / alan,tamamlanan iş süresi,Saha kayıtları
+Temizlik İşleri Müdürlüğü,TEM-04,Konteyner Hijyen ve Bakım,Operasyonel Hizmet,"Yıkama, dezenfeksiyon, boya, tamir",adet,temizlenen konteyner sayısı,Saha kayıtları
+Temizlik İşleri Müdürlüğü,TEM-05,Vektör Uygulama Lojistiği,Operasyonel Hizmet,Larvasit/ULV saha uygulama desteği,uygulama alanı / adet,plan gerçekleşme oranı,Saha planı
+Temizlik İşleri Müdürlüğü,TEM-06,Şikâyet ve Rota Sapma Yönetimi,İletişim / Memnuniyet / Paydaş,"Talep, şikâyet, SLA ve DÖF",başvuru / kapanış,SLA içinde kapanış oranı,CRM / EBYS
+İklim Değişikliği ve Sıfır Atık Müdürlüğü,IKL-01,Atıksu Arıtma ve Su Kalitesi,Operasyonel Hizmet,"AAT işletimi, analiz, deşarj ve bakım",numune / m3,uygun deşarj oranı,SCADA / laboratuvar
+İklim Değişikliği ve Sıfır Atık Müdürlüğü,IKL-02,Sıfır Atık ve Ayrı Toplama,Operasyonel Hizmet,"Ayrı toplama, AGM, EÇBS beyan, performans",kg / ton / işlem,toplanan atık miktarı,EÇBS / saha kayıt
+İklim Değişikliği ve Sıfır Atık Müdürlüğü,IKL-03,Özel Atık Akışları,Operasyonel Hizmet,"AEEE, atık ilaç, bitkisel yağ, pil, ÖTL vb.",teslim / kg,lisanslı teslim sayısı,Protokol / tutanak
+İklim Değişikliği ve Sıfır Atık Müdürlüğü,IKL-04,"Hafriyat, Moloz ve Kaçak Döküm",Denetim / Uyum,"İzin, saha denetimi, sevk ve kontrol",izin / denetim,kaçak döküm kapanış oranı,İzin kayıtları
+İklim Değişikliği ve Sıfır Atık Müdürlüğü,IKL-05,"GHG, SECAP ve Enerji Projeleri",Strateji / İyileştirme / Eğitim,"Sera gazı envanteri, enerji-su verimliliği, yenilenebilir enerji",rapor / proje,tamamlanan aksiyon oranı,GHG / proje kayıtları
+İklim Değişikliği ve Sıfır Atık Müdürlüğü,IKL-06,"Eğitim, Farkındalık ve Hibe",Strateji / İyileştirme / Eğitim,"Eğitim, kampanya, proje başvuruları",etkinlik / proje,katılımcı sayısı / proje sayısı,Etkinlik kayıtları
+Veteriner İşleri Müdürlüğü,VTM-01,Yakalama ve Kabul,Operasyonel Hizmet,"Sahipsiz hayvan yakalama, kabul ve kayıt",hayvan sayısı,kabul edilen hayvan sayısı,Bakımevi kayıtları
+Veteriner İşleri Müdürlüğü,VTM-02,"Klinik, Kısırlaştırma ve Tedavi",Operasyonel Hizmet,"Muayene, ameliyat, pansuman, aşılama",işlem sayısı,kısırlaştırma / tedavi sayısı,Klinik kayıtları
+Veteriner İşleri Müdürlüğü,VTM-03,Sahiplendirme ve Rehabilitasyon,Operasyonel Hizmet,"Sahiplendirme, geri salım, doğal yaşam alanı sevki",hayvan sayısı,sahiplendirme oranı,PETVET / bakımevi
+Veteriner İşleri Müdürlüğü,VTM-04,"Zoonoz, Karantina ve Bildirim",Denetim / Uyum,Zoonoz hastalık bildirimi ve karantina,olay / bildirim,zamanında bildirim oranı,Resmî bildirim kayıtları
+Veteriner İşleri Müdürlüğü,VTM-05,Mama Üretimi ve Besleme,Operasyonel Hizmet,"Artık yemek toplama, mama üretim ve dağıtım",kg / rota,üretilen mama miktarı,Tesis kayıtları
+Veteriner İşleri Müdürlüğü,VTM-06,Bertaraf ve Tıbbi Atık,Operasyonel Hizmet,Ölü hayvan ve tıbbi atık süreçleri,teslim / işlem,uygun teslim oranı,Tutanak / lisanslı firma
+Zabıta Müdürlüğü,ZBM-01,İşyeri Ruhsat Uyum Denetimi,Denetim / Uyum,"İşyeri denetimi, ruhsat uyumu, yeniden kontrol",denetim sayısı,uygunsuzluk kapanış oranı,Denetim tutanakları
+Zabıta Müdürlüğü,ZBM-02,"Mıntıka, Seyyar ve İşgaliye",Denetim / Uyum,"Seyyar, işgaliye, çevre-gürültü ve saha şikâyetleri",olay / tutanak,kapanış süresi,Saha ekip kayıtları
+Zabıta Müdürlüğü,ZBM-03,Pazar ve Terminal Denetimi,Denetim / Uyum,"Pazar düzeni, terazi, etiket, terminal kontrolleri",denetim sayısı,tespit edilen aykırılık,Denetim planı
+Zabıta Müdürlüğü,ZBM-04,Trafik ve Alan Yönetimi Saha İcrası,Operasyonel Hizmet,"Bariyer, cadde kapama-açma, hafriyat saha kontrolü",uygulama sayısı,uygulama süresinde tamamlama,Saha kayıtları
+Zabıta Müdürlüğü,ZBM-05,Ölçüler ve Ayar,Denetim / Uyum,Ölçü ve tartı aleti muayene/damga süreçleri,işlem sayısı,tamamlanan muayene oranı,Ölçüler kayıtları
+Zabıta Müdürlüğü,ZBM-06,"Tespit, Tebligat ve İdari Yaptırım",Denetim / Uyum,"Tutanak, tebliğ, yaptırım teklif/uygulama",tutanak / tebliğ,tebliğ süresi,EBYS / saha tutanağı
+Mezarlıklar Müdürlüğü,MZM-01,Defin ve Cenaze Hizmeti,Operasyonel Hizmet,"Defin, mezar kazı, cenaze kaldırma",defin sayısı,talebin zamanında karşılanması,Defin kayıtları
+Mezarlıklar Müdürlüğü,MZM-02,Mezar Yeri Tahsis ve Kayıt,Başvuru / İşlem,"Tahsis, defin kütüğü, belge düzeni",işlem sayısı,güncel kayıt oranı,DMBS / EBYS
+Mezarlıklar Müdürlüğü,MZM-03,Şehir İçi / Dışı Cenaze Nakli,Operasyonel Hizmet,Nakil planlama ve sevk,nakil sayısı,zamanında nakil oranı,Sevk kayıtları
+Mezarlıklar Müdürlüğü,MZM-04,Mezarlık Saha Bakımı,Operasyonel Hizmet,"Ot biçimi, temizlik, budama, çeşme ve yol bakım",iş emri / alan,tamamlanan iş sayısı,Saha kayıtları
+Mezarlıklar Müdürlüğü,MZM-05,DMBS ve Veri Güncelleme,Destek / İç İşleyiş,"Ada-parsel, defin kütüğü ve sorgu sistemi",güncelleme / kayıt,güncel veri oranı,DMBS
+Mezarlıklar Müdürlüğü,MZM-06,Vatandaş Talep ve Bilgilendirme,İletişim / Memnuniyet / Paydaş,"Bilgi alma, yönlendirme, memnuniyet, şikâyet",başvuru sayısı,kapanış süresi,Başvuru kayıtları
+Ulaşım Hizmetleri Müdürlüğü,ULM-01,Kent Kart ve Vize İşlemleri,Başvuru / İşlem,"Kart başvuru, basım, vize, iptal, usulsüz kullanım",işlem sayısı,sonuçlanan başvuru süresi,Kart sistemi
+Ulaşım Hizmetleri Müdürlüğü,ULM-02,Ticari Plaka ve Servis İşlemleri,Başvuru / İşlem,"T/S/HO izin, tahsis, devir, vize dosyaları",işlem sayısı,tamamlanan dosya süresi,Ulaşım kayıtları
+Ulaşım Hizmetleri Müdürlüğü,ULM-03,"Hat, Durak ve Veri Güncelleme",Destek / İç İşleyiş,Hat-güzergâh-durak ve GTFS/AVL verisi,hat / veri seti,güncel veri oranı,AVL / GTFS
+Ulaşım Hizmetleri Müdürlüğü,ULM-04,Sinyalizasyon ve İşaretleme,Operasyonel Hizmet,"Arıza, bakım, yatay-dikey işaretleme",arıza / iş,müdahale süresi,Sinyalizasyon kayıtları
+Ulaşım Hizmetleri Müdürlüğü,ULM-05,Geçici Trafik Düzeni ve Şantiye Güvenliği,Denetim / Uyum,Geçici trafik planı ve saha uygulama takibi,uygulama sayısı,planlı kapanış süresi,EBYS / saha planı
+Ulaşım Hizmetleri Müdürlüğü,ULM-06,Terminal Koordinasyonu ve Talep Yönetimi,İletişim / Memnuniyet / Paydaş,"Terminal akışı, peron, talep-şikâyet",talep / gözlem,kapanış oranı,Terminal kayıtları
+"Kültür, Sanat ve Sosyal İşler Müdürlüğü",KSS-01,Kültür ve Sanat Etkinlikleri,Operasyonel Hizmet,"Etkinlik takvimi, sergi, konser, atölye",etkinlik / katılımcı,katılımcı sayısı,Etkinlik kayıtları
+"Kültür, Sanat ve Sosyal İşler Müdürlüğü",KSS-02,Sosyal İnceleme ve Yardımlar,Başvuru / İşlem,"Sosyal inceleme, ayni/nakdi destek, sıcak yemek",başvuru / sonuç,sonuçlanan başvuru oranı,SHM kayıtları
+"Kültür, Sanat ve Sosyal İşler Müdürlüğü",KSS-03,"Kadın, Aile, Çocuk ve Engelli Hizmetleri",Operasyonel Hizmet,"Danışmanlık, yönlendirme, erişilebilirlik desteği",vaka / etkinlik,kapanış veya yönlendirme süresi,Başvuru / etkinlik kaydı
+"Kültür, Sanat ve Sosyal İşler Müdürlüğü",KSS-04,"Gençlik, Spor ve Kurslar",Operasyonel Hizmet,"Kurs, turnuva, gençlik ve spor etkinlikleri",etkinlik / kursiyer,katılımcı sayısı,Kurs kayıtları
+"Kültür, Sanat ve Sosyal İşler Müdürlüğü",KSS-05,Muhtarlık Talepleri,İletişim / Memnuniyet / Paydaş,"Muhtar taleplerinin kayıt, yönlendirme ve kapanışı",talep sayısı,kapanış oranı,MBS / EBYS
+"Kültür, Sanat ve Sosyal İşler Müdürlüğü",KSS-06,Hibe ve Proje Süreçleri,Proje / Yatırım / Sözleşme,"Hibe çağrısı, başvuru, uygulama, raporlama",proje / çağrı,başvuru ve gerçekleşme,Proje dosyası
+Gelirler Müdürlüğü,GLR-01,"Sicil, Beyan ve Düzeltme",Başvuru / İşlem,"Sicil açılış-kapanış, beyan, düzeltme",işlem sayısı,zamanında işlenen kayıt oranı,Gelir sistemi
+Gelirler Müdürlüğü,GLR-02,Tahakkuk İşlemleri,Başvuru / İşlem,"Emlak, ÇTV, harç, katılma payı, ücret",tahakkuk / sicil,tahakkuk tutarı / sayısı,Gelir sistemi
+Gelirler Müdürlüğü,GLR-03,Tahsilat ve Mutabakat,Başvuru / İşlem,"Vezne, banka, POS, e-ödeme ve gün sonu işlemleri",tahsilat / TL,gün sonu mutabakatı,Tahsilat sistemi
+Gelirler Müdürlüğü,GLR-04,Cebrî Takip ve Yapılandırma,Denetim / Uyum,"Ödeme emri, haciz, tecil, yapılandırma",dosya / işlem,tahsil edilen takip dosyası oranı,Takip sistemi
+Gelirler Müdürlüğü,GLR-05,"Kira, Ecrimisil ve İşgaliye",Başvuru / İşlem,Kira/ecrimisil tahakkuk ve takipleri,dosya / TL,tahsilat performansı,Gelir sistemi / tutanak
+Gelirler Müdürlüğü,GLR-06,"İade, Mahsup ve Raporlama",Destek / İç İşleyiş,"İade/mahsup, gelir raporları ve kesin hesap veri üretimi",işlem / rapor,tamamlanan iade süresi,EBYS / gelir raporu
+Mali Hizmetler Müdürlüğü,MHM-01,Muhasebe ve Ödeme İşlemleri,Destek / İç İşleyiş,"Ödeme emri, MİF, banka ve muhasebeleştirme",belge / ödeme,zamanında ödeme oranı,Muhasebe sistemi
+Mali Hizmetler Müdürlüğü,MHM-02,Bütçe ve Ödenek Yönetimi,Destek / İç İşleyiş,"Bütçe, ödenek gönderme/aktarma, harcama programı",işlem / rapor,ödenek gerçekleşme,Bütçe sistemi
+Mali Hizmetler Müdürlüğü,MHM-03,Stratejik Plan ve Performans Koordinasyonu,Strateji / İyileştirme / Eğitim,"Performans programı, hedef, gösterge, raporlama",rapor / veri seti,zamanında veri toplama oranı,EBYS / strateji dosyası
+Mali Hizmetler Müdürlüğü,MHM-04,Ön Mali Kontrol,Denetim / Uyum,"Taahhüt dosyası, hakediş, doğrudan temin ödeme kontrolü",dosya sayısı,iade-eksik belge oranı,ÖMK kayıtları
+Mali Hizmetler Müdürlüğü,MHM-05,"Teminat, Emanet ve Ön Ödeme",Destek / İç İşleyiş,"Teminat, emanet, avans-kredi ve mahsup süreçleri",işlem sayısı,zamanında mahsup oranı,Muhasebe sistemi
+Mali Hizmetler Müdürlüğü,MHM-06,Mali Tablolar ve Kesin Hesap,Destek / İç İşleyiş,"Mizan, bilanço, faaliyet sonuçları, kesin hesap",rapor / tablo,zamanında rapor üretimi,Muhasebe sistemi
+Destek Hizmetleri Müdürlüğü,DHM-01,İhale ve Satın Alma,Proje / Yatırım / Sözleşme,"İhale dosyası, ilan, teklif, karar ve sözleşme",dosya / ihale,tamamlanan ihale süresi,EKAP / EBYS
+Destek Hizmetleri Müdürlüğü,DHM-02,Doğrudan Temin,Proje / Yatırım / Sözleşme,"Piyasa araştırması, sipariş, teslim, muayene-kabul",dosya sayısı,tamamlanan temin süresi,EBYS
+Destek Hizmetleri Müdürlüğü,DHM-03,Sözleşme ve Garanti Yönetimi,Proje / Yatırım / Sözleşme,"Teminat, süre uzatımı, yaptırım, garanti, iade",sözleşme / işlem,uygunsuzluk kapanış oranı,Sözleşme klasörü
+Destek Hizmetleri Müdürlüğü,DHM-04,"Depo, Lojistik ve Stok",Destek / İç İşleyiş,"Mal kabul, stok, dağıtım, minimum stok, sayım",stok kalemi / dağıtım,kritik stok altı kalem,Depo sistemi
+Destek Hizmetleri Müdürlüğü,DHM-05,Yemekhane ve Bütçe İçi İşletmeler,Destek / İç İşleyiş,"Yemek üretim/servis, sosyal tesis ve işletme süreçleri",öğün / satış,maliyet ve hizmet sürekliliği,İşletme kayıtları
+Destek Hizmetleri Müdürlüğü,DHM-06,Taşınmaz ve Otopark İşlemleri,Proje / Yatırım / Sözleşme,"Taşınmaz ihalesi, ecrimisil, otopark/parkmetre",dosya / alan,tahsis/işletme kapanış oranı,Taşınmaz portföyü

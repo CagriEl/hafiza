@@ -2,10 +2,12 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\SwotAnaliz;
 use App\Models\HaftalikRapor;
+use App\Models\SwotAnaliz;
+use App\Support\ReportDirectorateScope;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Database\Eloquent\Builder;
 
 class GenelIstatistikWidget extends BaseWidget
 {
@@ -14,17 +16,15 @@ class GenelIstatistikWidget extends BaseWidget
 
     protected function getStats(): array
     {
-        $user = auth()->user();
-        $isAdmin = $user->id === 1; // Admin ID kontrolü
+        $swotQuery = ReportDirectorateScope::constrain(SwotAnaliz::query());
+        $raporQuery = ReportDirectorateScope::constrain(HaftalikRapor::query());
 
-        // --- SORGULARI HAZIRLA ---
-        $swotQuery = SwotAnaliz::query();
-        $raporQuery = HaftalikRapor::query();
-
-        // Admin değilse sadece kendi verisini görsün
-        if (!$isAdmin) {
-            $swotQuery->where('user_id', $user->id);
-            $raporQuery->where('user_id', $user->id);
+        if (! $swotQuery instanceof Builder || ! $raporQuery instanceof Builder) {
+            return [
+                Stat::make('Toplam SWOT Analizi', '—')->color('gray'),
+                Stat::make('Haftalik Rapor Sayısı', '—')->color('gray'),
+                Stat::make('Toplam Tamamlanan Faaliyet', '—')->color('gray'),
+            ];
         }
 
         // --- RAPORLARDAKİ TOPLAM İŞ (SATIR) SAYISINI HESAPLA ---
