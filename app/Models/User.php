@@ -21,6 +21,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'sorumlu_ad_soyad', // Eklendi
+        'sorumlu_unvan',    // Eklendi
+        'sorumlu_dahili',
     ];
 
     /**
@@ -45,4 +48,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function viceMayor()
+{
+    return $this->belongsTo(ViceMayor::class);
+}
 }

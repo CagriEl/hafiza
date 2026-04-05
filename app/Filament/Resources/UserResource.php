@@ -45,7 +45,30 @@ class UserResource extends Resource
                         ->dehydrateStateUsing(fn ($state) => Hash::make($state))
                         ->dehydrated(fn ($state) => filled($state)) // Sadece doluysa güncelle
                         ->required(fn (string $context): bool => $context === 'create'), // Sadece oluştururken zorunlu
-                ])
+                Forms\Components\Section::make('Sorumlu Personel Detayları')
+                ->description('Bu müdürlükten sorumlu olan personelin iletişim bilgileri.')
+                ->schema([
+
+                Forms\Components\Select::make('vice_mayor_id')
+                    ->relationship('viceMayor', 'ad_soyad')
+                    ->label('Bağlı Olduğu Başkan Yardımcısı')
+                    ->placeholder('Başkan Yardımcısı Seçiniz...')
+                    ->required(),
+                    Forms\Components\TextInput::make('sorumlu_ad_soyad')
+                        ->label('Sorumlu Adı Soyadı')
+                        ->placeholder('Örn: Ahmet Yılmaz'),
+                        
+                    Forms\Components\TextInput::make('sorumlu_unvan')
+                        ->label('Ünvanı')
+                        ->placeholder('Örn: Bilgisayar İşletmeni'),
+                    Forms\Components\TextInput::make('sorumlu_dahili')
+                        ->label('Dahili Telefon No')
+                        ->tel()
+                        ->placeholder('Örn: 1234'),
+                ])->columns(3),
+                
+                        ])
+
         ]);
 }
 

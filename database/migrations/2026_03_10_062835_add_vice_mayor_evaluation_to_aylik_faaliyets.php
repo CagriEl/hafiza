@@ -9,12 +9,11 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-  public function up(): void
+    public function up(): void
 {
     Schema::table('aylik_faaliyets', function (Blueprint $table) {
-        $table->date('son_tarih')->nullable();
-        $table->text('gecikme_gerekcesi')->nullable();
-        $table->string('durum')->default('planlandi'); // planlandi, devam_ediyor, tamamlandi
+        $table->text('vice_mayor_notu')->nullable(); // Başkan yardımcısının özeti
+        $table->timestamp('vice_mayor_onay_tarihi')->nullable(); // Ne zaman değerlendirdi?
     });
 }
 

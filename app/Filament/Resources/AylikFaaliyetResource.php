@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\AylikFaaliyetResource\Pages;
 use App\Models\AylikFaaliyet;
-use App\Models\PersonelDurum;
+use App\Models\ActivityCatalog;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -13,106 +13,132 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Carbon\Carbon;
 
 class AylikFaaliyetResource extends Resource
 {
     protected static ?string $model = AylikFaaliyet::class;
-    protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
-    protected static ?string $navigationLabel = 'Aylık Plan ve Faaliyet';
+    protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
+    protected static ?string $navigationLabel = 'Haftalık Operasyonel Rapor';
     protected static ?string $navigationGroup = 'Raporlama';
-
-    public static function hasBlockingOverdueTasks(): bool
-    {
-        if (auth()->id() === 1) return false;
-        $userRecords = AylikFaaliyet::where('user_id', auth()->id())->get();
-        foreach ($userRecords as $record) {
-            $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
-            if (!is_array($isler)) continue;
-            foreach ($isler as $is) {
-                $isPast = !empty($is['son_tarih']) && Carbon::parse($is['son_tarih'])->isPast();
-                $hasNote = !empty($is['gerceklesme_notu']);
-                $isCompleted = (bool)($is['is_completed'] ?? false);
-                if ($isPast && !$hasNote && !$isCompleted) { return true; }
-            }
-        }
-        return false;
-    }
 
     public static function form(Form $form): Form
     {
-        $personelDurum = PersonelDurum::where('user_id', auth()->id())->first();
-        $isBlocked = static::hasBlockingOverdueTasks();
-
         return $form
             ->schema([
-                Section::make('⚠️ SİSTEM KİLİTLENDİ')
-                    ->description('Gerekçesi yazılmamış gecikmiş işleriniz var!')
-                    ->schema([
-                        Forms\Components\Placeholder::make('warning_status')
-                            ->label('DURUM:')
-                            ->content(new \Illuminate\Support\HtmlString('<b style="color:red;">Geçmiş raporları tamamlamadan yeni planlama yapılamaz.</b>'))
-                    ])
-                    ->visible($isBlocked),
-
-                Section::make('Dönem Bilgisi')
+                // DÖNEM SEÇİMİ
+                Section::make('Rapor Dönemi')
                     ->schema([
                         Grid::make(2)->schema([
-                            Select::make('yil')
+                            Forms\Components\Select::make('yil')
                                 ->options([2025 => '2025', 2026 => '2026'])
                                 ->default(now()->year)->required(),
-                            Select::make('ay')
+                            Forms\Components\Select::make('ay')
                                 ->options(['01' => 'Ocak', '02' => 'Şubat', '03' => 'Mart', '04' => 'Nisan', '05' => 'Mayıs', '06' => 'Haziran', '07' => 'Temmuz', '08' => 'Ağustos', '09' => 'Eylül', '10' => 'Ekim', '11' => 'Kasım', '12' => 'Aralık'])
                                 ->default(now()->format('m'))->required(),
                         ]),
-                    ])->disabled($isBlocked),
+                    ])->compact(),
 
-                Section::make('İş Planlama Listesi')
+                // ANA RAPORLAMA ALANI
+                Section::make('Faaliyet ve Performans Takip Listesi')
+                    ->description('Katalogdan faaliyet seçerek haftalık hedeflerinizi ve gerçekleşen rakamları giriniz.')
                     ->schema([
                         Repeater::make('faaliyetler')
+                            ->label('İş Listesi')
                             ->schema([
-                                Grid::make(3)->schema([
-                                    Select::make('hafta')
-                                        ->label('Hafta')
-                                        ->options([
-                                            1 => '1. Hafta', 
-                                            2 => '2. Hafta', 
-                                            3 => '3. Hafta', 
-                                            4 => '4. Hafta' // İstediğin gibi 4 haftaya düşürüldü
-                                        ])
-                                        ->required(),
-                                    DatePicker::make('son_tarih')
-                                        ->label('Hedef Bitiş')
+                                // 1. SATIR: KATALOG VE TEMEL BİLGİLER
+                                Grid::make(4)->schema([
+                                    Forms\Components\Select::make('activity_catalog_id')
+                                        ->label('Faaliyet Tanımı (Katalog)')
+                                        ->options(function () {
+                                            // Kullanıcının kendi müdürlüğüne ait faaliyetleri getirir
+                                            return ActivityCatalog::where('mudurluk', auth()->user()->name)
+                                                ->pluck('faaliyet_ailesi', 'id');
+                                        })
+                                        ->reactive()
+                                        ->afterStateUpdated(function (Set $set, $state) {
+                                            $catalog = ActivityCatalog::find($state);
+                                            if ($catalog) {
+                                                $set('olcu_birimi', $catalog->olcu_birimi);
+                                                $set('faaliyet_kodu', $catalog->faaliyet_kodu);
+                                            }
+                                        })
                                         ->required()
-                                        ->native(false)
-                                        ->displayFormat('d/m/Y')
-                                        // Kesin engelleme:
-                                        ->minDate(now()->startOfDay()) 
-                                        ->validationMessages(['min' => 'Geçmiş bir tarih planlanamaz.']),
-                                    Checkbox::make('is_completed')
-                                        ->label('Tamamlandı')
-                                        ->live()
-                                        ->hidden(fn ($livewire) => $livewire instanceof Pages\CreateAylikFaaliyet),
+                                        ->columnSpan(2),
+                                    
+                                    Forms\Components\TextInput::make('faaliyet_kodu')
+                                        ->label('Kod')
+                                        ->readOnly()
+                                        ->extraAttributes(['class' => 'bg-gray-50']),
+
+                                    Forms\Components\TextInput::make('olcu_birimi')
+                                        ->label('Birim')
+                                        ->readOnly()
+                                        ->extraAttributes(['class' => 'bg-gray-50']),
                                 ]),
 
-                                TextInput::make('konu')->required()->columnSpanFull(),
+                                // 2. SATIR: SAYISAL KPI VERİLERİ
+                                Grid::make(4)->schema([
+                                    Forms\Components\Select::make('hafta')
+                                        ->label('Rapor Haftası')
+                                        ->options([1 => '1. Hafta', 2 => '2. Hafta', 3 => '3. Hafta', 4 => '4. Hafta'])
+                                        ->required(),
 
-                                Textarea::make('gerceklesme_notu')
-                                    ->label('Gerekçe / Sonuç')
-                                    ->required(fn (Get $get) => $get('is_completed') || ($get('son_tarih') && Carbon::parse($get('son_tarih'))->isPast()))
-                                    ->visible(fn (Get $get) => $get('is_completed') || ($get('son_tarih') && Carbon::parse($get('son_tarih'))->isPast()))
-                                    ->columnSpanFull(),
+                                    Forms\Components\TextInput::make('hedef')
+                                        ->label('Haftalık Hedef')
+                                        ->numeric()
+                                        ->placeholder('Örn: 450')
+                                        ->live(),
+
+                                    Forms\Components\TextInput::make('gerceklesen')
+                                        ->label('Gerçekleşen')
+                                        ->numeric()
+                                        ->placeholder('Örn: 395')
+                                        ->live(),
+
+                                    Forms\Components\TextInput::make('bekleyen_is')
+                                        ->label('Açık/Bekleyen İş')
+                                        ->numeric()
+                                        ->placeholder('Örn: 18'),
+                                ]),
+
+                                // 3. SATIR: SAPMA VE ANALİZ
+                                Grid::make(2)->schema([
+                                    Forms\Components\Textarea::make('sapma_nedeni')
+                                        ->label('Sapma Nedeni')
+                                        ->placeholder('Hedef gerçekleşmediyse nedenini yazınız...')
+                                        ->rows(2)
+                                        ->visible(fn (Get $get) => filled($get('hedef')) && $get('gerceklesen') < $get('hedef')),
+
+                                    Forms\Components\Textarea::make('risk_engel')
+                                        ->label('Risk / Engel')
+                                        ->placeholder('İşin önündeki engelleri belirtiniz...')
+                                        ->rows(2),
+                                ]),
+
+                                // 4. SATIR: KARAR VE ÜST YÖNETİM NOTU
+                                Grid::make(1)->schema([
+                                    Forms\Components\TextInput::make('karar_ihtiyaci')
+                                        ->label('📌 Üst Yönetim Karar İhtiyacı')
+                                        ->placeholder('Başkanlık makamından beklenen karar veya destek nedir?'),
+                                    
+                                    Forms\Components\Textarea::make('vice_mayor_notu')
+                                        ->label('Başkan Yardımcısı Değerlendirmesi')
+                                        ->placeholder('Başkan yardımcısı buraya görüşünü yazacak...')
+                                        ->rows(2)
+                                        ->disabled(function () {
+                                            $isViceMayor = \App\Models\ViceMayor::where('user_id', auth()->id())->exists();
+                                            return auth()->id() !== 1 && !$isViceMayor;
+                                        })
+                                        ->extraAttributes(['class' => 'bg-green-50 border-l-4 border-green-500']),
+                                ]),
                             ])
-                            ->addable(!$isBlocked) 
-                            ->deletable(!$isBlocked)
-                            ->reorderableWithButtons()
+                            ->itemLabel(fn (array $state): ?string => $state['faaliyet_kodu'] ?? 'Yeni Faaliyet Girişi')
+                            ->collapsible()
+                            ->defaultItems(1),
                     ]),
             ]);
     }
@@ -122,82 +148,47 @@ class AylikFaaliyetResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('yil')->label('Yıl')->badge(),
-                Tables\Columns\TextColumn::make('ay')
-                    ->label('Ay')
-                    ->formatStateUsing(fn (string $state): string => match ($state) {
-                        '01' => 'Ocak', '02' => 'Şubat', '03' => 'Mart', '04' => 'Nisan', '05' => 'Mayıs', '06' => 'Haziran',
-                        '07' => 'Temmuz', '08' => 'Ağustos', '09' => 'Eylül', '10' => 'Ekim', '11' => 'Kasım', '12' => 'Aralık', default => $state,
-                    }),
+                Tables\Columns\TextColumn::make('ay')->label('Ay'),
+                Tables\Columns\TextColumn::make('user.name')->label('Müdürlük')->searchable(),
                 
-                // YENİ EKLENEN HAFTA SÜTUNU:
-                Tables\Columns\TextColumn::make('planlanan_haftalar')
-                    ->label('Haftalar')
-                    ->badge()
-                    ->color('gray')
+                // Performans Özeti Sütunu
+                Tables\Columns\TextColumn::make('performans_ozeti')
+                    ->label('Haftalık Verimlilik')
                     ->getStateUsing(function ($record) {
                         $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
                         if (!is_array($isler)) return '-';
-                        return collect($isler)->pluck('hafta')->unique()->sort()->implode(', ') ?: '-';
+                        
+                        $toplamHedef = collect($isler)->sum('hedef');
+                        $toplamGerceklesen = collect($isler)->sum('gerceklesen');
+                        
+                        if ($toplamHedef == 0) return 'Sayısal Veri Yok';
+                        $oran = round(($toplamGerceklesen / $toplamHedef) * 100);
+                        return "% {$oran} Başarı";
+                    })
+                    ->badge()
+                    ->color(fn ($state) => match (true) {
+                        str_contains($state, '100') => 'success',
+                        str_contains($state, '80') => 'warning',
+                        default => 'danger',
                     }),
 
-                Tables\Columns\TextColumn::make('user.name')->label('Müdürlük')->searchable(),
-                
-                Tables\Columns\TextColumn::make('analiz')
-                    ->label('Durum')
-                    ->badge()
+                // Karar İhtiyacı İkonu
+                Tables\Columns\IconColumn::make('karar_bekleyen')
+                    ->label('Karar İhtiyacı')
+                    ->boolean()
                     ->getStateUsing(function ($record) {
                         $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
-                        $geciken = 0;
-                        if (is_array($isler)) {
-                            foreach ($isler as $is) {
-                                if (empty($is['gerceklesme_notu']) && !empty($is['son_tarih']) && Carbon::parse($is['son_tarih'])->isPast()) {
-                                    $geciken++;
-                                }
-                            }
-                        }
-                        return $geciken > 0 ? "$geciken Gecikme (KİLİTLİ)" : 'Sorun Yok';
+                        return collect($isler)->whereNotNull('karar_ihtiyaci')->count() > 0;
                     })
-                    ->color(fn ($state) => str_contains($state, 'KİLİTLİ') ? 'danger' : 'success'),
+                    ->trueIcon('heroicon-o-exclamation-triangle')
+                    ->trueColor('danger'),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('yil')->options([2025 => '2025', 2026 => '2026']),
             ])
             ->actions([
-                Tables\Actions\Action::make('gecikmeBildir')
-                    ->label('Raporla')
-                    ->icon('heroicon-o-pencil-square')
-                    ->color('warning')
-                    ->modalHeading('Gecikme Gerekçelerini Girin')
-                    ->form(function ($record) {
-                        $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
-                        $fields = [];
-                        foreach ($isler as $index => $is) {
-                            if (empty($is['gerceklesme_notu']) && !empty($is['son_tarih']) && Carbon::parse($is['son_tarih'])->isPast()) {
-                                $fields[] = Section::make("İş: " . ($is['konu'] ?? 'Tanımsız'))
-                                    ->schema([
-                                        Textarea::make("updates.{$index}.gerceklesme_notu")->label('Gecikme Nedeni')->required(),
-                                    ]);
-                            }
-                        }
-                        return $fields;
-                    })
-                    ->action(function (AylikFaaliyet $record, array $data) {
-                        $current = $record->faaliyetler;
-                        if (isset($data['updates'])) {
-                            foreach ($data['updates'] as $index => $up) {
-                                $current[$index]['gerceklesme_notu'] = $up['gerceklesme_notu'];
-                            }
-                            $record->update(['faaliyetler' => $current]);
-                        }
-                    })
-                    ->visible(fn ($record) => auth()->id() !== 1 && static::hasBlockingOverdueTasks()),
-
-                Tables\Actions\EditAction::make()->modal(),
+                Tables\Actions\EditAction::make()->label('Detay / Denetim'),
             ]);
-    }
-
-    public static function getEloquentQuery(): Builder
-    {
-        $query = parent::getEloquentQuery();
-        if (auth()->id() !== 1) { $query->where('user_id', auth()->id()); }
-        return $query;
     }
 
     public static function getPages(): array

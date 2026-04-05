@@ -11,10 +11,8 @@ return new class extends Migration
      */
   public function up(): void
 {
-    Schema::table('aylik_faaliyets', function (Blueprint $table) {
-        $table->date('son_tarih')->nullable();
-        $table->text('gecikme_gerekcesi')->nullable();
-        $table->string('durum')->default('planlandi'); // planlandi, devam_ediyor, tamamlandi
+    Schema::table('vice_mayors', function (Blueprint $table) {
+        $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
     });
 }
 
@@ -23,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('aylik_faaliyets', function (Blueprint $table) {
+        Schema::table('vice_mayors', function (Blueprint $table) {
             //
         });
     }
