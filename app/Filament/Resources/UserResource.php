@@ -4,6 +4,8 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
+use App\Models\ViceMayor;
+use App\Support\QuerySafety;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
@@ -20,6 +22,10 @@ class UserResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+    protected static ?string $navigationLabel = 'Kullanıcılar';
+
+    protected static ?int $navigationSort = 4;
+
     public static function form(Form $form): Form
     {
         return $form
@@ -27,7 +33,7 @@ class UserResource extends Resource
                 Section::make('Müdürlük Bilgileri')
                     ->schema([
                         TextInput::make('name')
-                            ->label('Müdürlük Adı')
+                            ->label('Birim / Kullanıcı Adı')
                             ->required(),
 
                         TextInput::make('email')
@@ -50,7 +56,29 @@ class UserResource extends Resource
                                     ->relationship('viceMayor', 'ad_soyad')
                                     ->label('Bağlı Olduğu Başkan Yardımcısı')
                                     ->placeholder('Başkan Yardımcısı Seçiniz...')
-                                    ->required(),
+                                    ->required(fn (Forms\Get $get): bool => $get('role') !== 'Denetim Ekibi'),
+                                Forms\Components\Select::make('role')
+                                    ->label('Rol')
+                                    ->options([
+                                        'Müdürlük' => 'Müdürlük',
+                                        'Denetim Ekibi' => 'Denetim Ekibi',
+                                    ])
+                                    ->default('Müdürlük')
+                                    ->live(),
+                                Forms\Components\Select::make('assignedDirectorates')
+                                    ->label('Atanan Müdürlükler')
+                                    ->relationship(
+                                        name: 'assignedDirectorates',
+                                        titleAttribute: 'name',
+                                        modifyQueryUsing: fn (Builder $q) => $q
+                                            ->where('id', '!=', 1)
+                                            ->whereNotIn('id', ViceMayor::query()->pluck('user_id'))
+                                            ->orderBy('name')
+                                    )
+                                    ->multiple()
+                                    ->searchable()
+                                    ->preload()
+                                    ->visible(fn (Forms\Get $get): bool => $get('role') === 'Denetim Ekibi'),
                                 Forms\Components\TextInput::make('sorumlu_ad_soyad')
                                     ->label('Sorumlu Adı Soyadı')
                                     ->placeholder('Örn: Ahmet Yılmaz'),
@@ -140,6 +168,23 @@ class UserResource extends Resource
     {
         // Sadece ID'si 1 olan kullanıcı (Siz) bu menüyü görebilir.
         return auth()->id() === 1;
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+        try {
+            if (! $query->getModel()) {
+                return $query;
+            }
+        } catch (\Throwable) {
+            return $query;
+        }
+        if (! QuerySafety::shouldApplyFilters($query)) {
+            return $query;
+        }
+
+        return $query;
     }
 
     public static function getPages(): array

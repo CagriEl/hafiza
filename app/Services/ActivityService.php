@@ -73,45 +73,43 @@ class ActivityService
      */
     public function getActivitiesForMudurluk(string $mudurluk): array
     {
+        $mudurluk = trim($mudurluk);
         foreach ($this->getAllSets() as $set) {
-            $label = (string) ($set['mudurluk'] ?? '');
-            if (TurkishString::same($label, $mudurluk) || $this->mudurlukNamesLooselyMatch($label, $mudurluk)) {
+            $setMudurluk = trim((string) ($set['mudurluk'] ?? ''));
+            if (TurkishString::same($setMudurluk, $mudurluk)) {
                 $activities = $set['activities'] ?? [];
 
                 return is_array($activities) ? array_values($activities) : [];
             }
         }
 
+        $candidates = [];
+        foreach ($this->getAllSets() as $set) {
+            $setMudurluk = trim((string) ($set['mudurluk'] ?? ''));
+            if ($setMudurluk !== '' && $this->mudurlukLabelMatchesLoose($mudurluk, $setMudurluk)) {
+                $candidates[] = $set;
+            }
+        }
+        if (count($candidates) === 1) {
+            $activities = $candidates[0]['activities'] ?? [];
+
+            return is_array($activities) ? array_values($activities) : [];
+        }
+        if (count($candidates) > 1) {
+            $labels = array_map(fn (array $s) => trim((string) ($s['mudurluk'] ?? '')), $candidates);
+            $best = $this->pickBestMudurlukLabel($mudurluk, $labels);
+            if ($best !== null) {
+                foreach ($candidates as $set) {
+                    if (trim((string) ($set['mudurluk'] ?? '')) === $best) {
+                        $activities = $set['activities'] ?? [];
+
+                        return is_array($activities) ? array_values($activities) : [];
+                    }
+                }
+            }
+        }
+
         return [];
-    }
-
-    /**
-     * Kullanıcı adı ile katalog / JSON müdürlük metni birebir aynı olmayabilir (ek/eksik "Müdürlüğü" vb.).
-     * trim + tr küçük harf sonrası tam eşitlik veya anlamlı içerme ile eşler.
-     */
-    private function mudurlukNamesLooselyMatch(string $catalogSide, string $userSide): bool
-    {
-        $catalogSide = trim($catalogSide);
-        $userSide = trim($userSide);
-        if ($catalogSide === '' || $userSide === '') {
-            return false;
-        }
-        if (TurkishString::same($catalogSide, $userSide)) {
-            return true;
-        }
-
-        $nc = TurkishString::normalizeForFuzzyMatch($catalogSide);
-        $nu = TurkishString::normalizeForFuzzyMatch($userSide);
-        if ($nc === '' || $nu === '') {
-            return false;
-        }
-
-        $minLen = min(mb_strlen($nc, 'UTF-8'), mb_strlen($nu, 'UTF-8'));
-        if ($minLen < 4) {
-            return false;
-        }
-
-        return str_contains($nc, $nu) || str_contains($nu, $nc);
     }
 
     /**
@@ -137,12 +135,12 @@ class ActivityService
             'full_json_path' => null,
             'full_json_readable' => false,
             'full_json_matched_rows' => 0,
-            'full_json_fuzzy_matched_rows' => 0,
             'codes_from_full_json' => [],
+            'mudurluk_match_mode' => null,
+            'resolved_mudurluk_label' => null,
             'fallback_activity_sets' => false,
             'codes_after_fallback' => [],
             'catalog_rows_fetched' => 0,
-            'catalog_mudurluk_fallback_used' => false,
             'reason_if_empty' => null,
             'sample_mudurlukler_from_json' => [],
         ];
@@ -153,27 +151,11 @@ class ActivityService
 
         $codes = [];
         if ($debug['full_json_readable']) {
-            foreach ($this->getFaaliyetFullJsonRows() as $row) {
-                if (! is_array($row)) {
-                    continue;
-                }
-                $mCol = trim((string) ($row['Müdürlük'] ?? ''));
-                $strict = TurkishString::same($mCol, trim($mudurlukRaw));
-                $fuzzy = ! $strict && $this->mudurlukNamesLooselyMatch($mCol, $mudurlukRaw);
-                if (! $strict && ! $fuzzy) {
-                    continue;
-                }
-                if ($strict) {
-                    $debug['full_json_matched_rows']++;
-                } else {
-                    $debug['full_json_fuzzy_matched_rows']++;
-                }
-                $k = trim((string) ($row['Faaliyet Kodu'] ?? ''));
-                if ($k !== '') {
-                    $codes[] = $k;
-                }
-            }
-            $codes = array_values(array_unique($codes));
+            $bundle = $this->collectFaaliyetCodesFromFullJson($mudurlukRaw);
+            $codes = $bundle['codes'];
+            $debug['full_json_matched_rows'] = $bundle['matched_rows'];
+            $debug['mudurluk_match_mode'] = $bundle['mode'];
+            $debug['resolved_mudurluk_label'] = $bundle['label'];
         }
         $debug['codes_from_full_json'] = $codes;
 
@@ -206,32 +188,11 @@ class ActivityService
 
         if ($codes !== []) {
             $options = $rows->mapWithKeys(fn (ActivityCatalog $r) => [$r->id => $r->faaliyet_ailesi])->all();
-            if ($options === [] && trim($mudurlukRaw) !== '') {
-                $debug['catalog_mudurluk_fallback_used'] = true;
-                $rows = ActivityCatalog::query()
-                    ->orderBy('faaliyet_kodu')
-                    ->get()
-                    ->filter(fn (ActivityCatalog $r) => $this->mudurlukNamesLooselyMatch($r->mudurluk, $mudurlukRaw));
-                $debug['catalog_rows_fetched'] = $rows->count();
-                $options = $rows->mapWithKeys(fn (ActivityCatalog $r) => [$r->id => $r->faaliyet_ailesi])->all();
-            }
         } else {
             $options = $rows
-                ->filter(fn (ActivityCatalog $r) => $this->mudurlukNamesLooselyMatch($r->mudurluk, $mudurlukRaw))
+                ->filter(fn (ActivityCatalog $r) => $this->mudurlukLabelMatchesLoose($mudurlukRaw, (string) $r->mudurluk))
                 ->mapWithKeys(fn (ActivityCatalog $r) => [$r->id => $r->faaliyet_ailesi])
                 ->all();
-        }
-
-        if ($options === [] && trim($mudurlukRaw) !== '') {
-            $debug['catalog_mudurluk_fallback_used'] = true;
-            $fallbackRows = ActivityCatalog::query()
-                ->orderBy('faaliyet_kodu')
-                ->get()
-                ->filter(fn (ActivityCatalog $r) => $this->mudurlukNamesLooselyMatch($r->mudurluk, $mudurlukRaw));
-            $options = $fallbackRows
-                ->mapWithKeys(fn (ActivityCatalog $r) => [$r->id => $r->faaliyet_ailesi])
-                ->all();
-            $debug['catalog_rows_fetched'] = $fallbackRows->count();
         }
 
         if ($options === []) {
@@ -308,6 +269,142 @@ class ActivityService
         }
 
         return array_values($seen);
+    }
+
+    /**
+     * @return array{codes: list<string>, matched_rows: int, mode: 'exact'|'loose'|'none', label: ?string}
+     */
+    private function collectFaaliyetCodesFromFullJson(string $mudurlukRaw): array
+    {
+        $trimInput = trim($mudurlukRaw);
+        $rows = $this->getFaaliyetFullJsonRows();
+
+        $codes = [];
+        $matchedRows = 0;
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $mCol = trim((string) ($row['Müdürlük'] ?? ''));
+            if (! TurkishString::same($mCol, $trimInput)) {
+                continue;
+            }
+            $matchedRows++;
+            $k = trim((string) ($row['Faaliyet Kodu'] ?? ''));
+            if ($k !== '') {
+                $codes[] = $k;
+            }
+        }
+        if ($codes !== []) {
+            return [
+                'codes' => array_values(array_unique($codes)),
+                'matched_rows' => $matchedRows,
+                'mode' => 'exact',
+                'label' => null,
+            ];
+        }
+
+        $distinctLabels = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $mCol = trim((string) ($row['Müdürlük'] ?? ''));
+            if ($mCol === '' || ! $this->mudurlukLabelMatchesLoose($trimInput, $mCol)) {
+                continue;
+            }
+            $distinctLabels[$mCol] = true;
+        }
+        $labels = array_keys($distinctLabels);
+        if ($labels === []) {
+            return ['codes' => [], 'matched_rows' => 0, 'mode' => 'none', 'label' => null];
+        }
+
+        $resolved = $this->pickBestMudurlukLabel($trimInput, $labels);
+        if ($resolved === null) {
+            return ['codes' => [], 'matched_rows' => 0, 'mode' => 'none', 'label' => null];
+        }
+
+        $codes = [];
+        $matchedRows = 0;
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $mCol = trim((string) ($row['Müdürlük'] ?? ''));
+            if (! TurkishString::same($mCol, $resolved)) {
+                continue;
+            }
+            $matchedRows++;
+            $k = trim((string) ($row['Faaliyet Kodu'] ?? ''));
+            if ($k !== '') {
+                $codes[] = $k;
+            }
+        }
+
+        return [
+            'codes' => array_values(array_unique($codes)),
+            'matched_rows' => $matchedRows,
+            'mode' => 'loose',
+            'label' => $resolved,
+        ];
+    }
+
+    /**
+     * Birden fazla aday arasında tek resmi müdürlük etiketi seçer (tam eşleşme öncelikli, aksi halde en uzun unvan).
+     *
+     * @param  list<string>  $candidateLabels
+     */
+    private function pickBestMudurlukLabel(string $input, array $candidateLabels): ?string
+    {
+        $candidateLabels = array_values(array_unique(array_filter(array_map('trim', $candidateLabels))));
+        foreach ($candidateLabels as $label) {
+            if (TurkishString::same($input, $label)) {
+                return $label;
+            }
+        }
+        $loose = [];
+        foreach ($candidateLabels as $label) {
+            if ($this->mudurlukLabelMatchesLoose($input, $label)) {
+                $loose[] = $label;
+            }
+        }
+        if ($loose === []) {
+            return null;
+        }
+        if (count($loose) === 1) {
+            return $loose[0];
+        }
+        usort($loose, function (string $a, string $b): int {
+            $la = mb_strlen(TurkishString::normalizeForFuzzyMatch($a), 'UTF-8');
+            $lb = mb_strlen(TurkishString::normalizeForFuzzyMatch($b), 'UTF-8');
+
+            return $lb <=> $la;
+        });
+
+        return $loose[0];
+    }
+
+    /**
+     * Kullanıcı adı ile katalog / JSON müdürlük unvanı birebir değilse (kısaltma, "Müdürlüğü" eki vb.) eşleştirir.
+     */
+    private function mudurlukLabelMatchesLoose(string $input, string $candidate): bool
+    {
+        $input = trim($input);
+        $candidate = trim($candidate);
+        if ($input === '' || $candidate === '') {
+            return false;
+        }
+        if (TurkishString::same($input, $candidate)) {
+            return true;
+        }
+        $a = TurkishString::normalizeForFuzzyMatch($input);
+        $b = TurkishString::normalizeForFuzzyMatch($candidate);
+        if (mb_strlen($a, 'UTF-8') < 4 || mb_strlen($b, 'UTF-8') < 4) {
+            return false;
+        }
+
+        return str_contains($b, $a) || str_contains($a, $b);
     }
 
     /**

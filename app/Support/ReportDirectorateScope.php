@@ -14,7 +14,7 @@ final class ReportDirectorateScope
 {
     public static function constrain(Builder $query, string $userIdColumn = 'user_id'): Builder
     {
-        if (! $query instanceof Builder) {
+        if (! QuerySafety::shouldApplyFilters($query)) {
             return $query;
         }
 
@@ -32,6 +32,8 @@ final class ReportDirectorateScope
             return $query->whereRaw('0 = 1');
         }
 
-        return $query->whereIn($userIdColumn, $ids);
+        $column = method_exists($query, 'qualifyColumn') ? $query->qualifyColumn($userIdColumn) : $userIdColumn;
+
+        return $query->whereIn($column, $ids);
     }
 }

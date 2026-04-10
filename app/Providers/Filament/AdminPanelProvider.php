@@ -2,8 +2,10 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\AdminStatsOverview;
+use App\Filament\Widgets\AylikFaaliyetChart;
+use App\Filament\Widgets\FaaliyetIstatistikGrafik;
 use Filament\Http\Middleware\Authenticate;
-use Filament\Navigation\NavigationItem;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -11,17 +13,12 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
-use App\Filament\Widgets\GenelIstatistikWidget;
-use App\Filament\Widgets\AylikFaaliyetChart;
-use App\Filament\Widgets\AdminStatsOverview;
-use App\Filament\Widgets\FaaliyetIstatistikGrafik;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -47,7 +44,7 @@ class AdminPanelProvider extends PanelProvider
                 AdminStatsOverview::class,
                 FaaliyetIstatistikGrafik::class,
 
-])
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
@@ -59,14 +56,6 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
-
-            ->navigationItems([
-            NavigationItem::make('Talep Oluştur')
-                ->url('http://talep.belediye.local/talep/', shouldOpenInNewTab: true)
-                ->icon('heroicon-o-chat-bubble-left-right') // İsteğe bağlı ikon
-                ->group('Dış Bağlantılar') // İsterseniz bir grup altında toplayabilirsiniz
-                ->sort(10),
-        ])
 
             ->authMiddleware([
                 Authenticate::class,

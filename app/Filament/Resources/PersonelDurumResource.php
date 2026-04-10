@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PersonelDurumResource\Pages;
 use App\Models\PersonelDurum;
 use App\Models\ViceMayor;
+use App\Support\QuerySafety;
 use App\Support\ReportDirectorateScope;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -76,7 +77,12 @@ class PersonelDurumResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return ReportDirectorateScope::constrain(parent::getEloquentQuery());
+        $query = parent::getEloquentQuery();
+        if (! QuerySafety::shouldApplyFilters($query)) {
+            return $query;
+        }
+
+        return ReportDirectorateScope::constrain($query);
     }
 
     public static function canCreate(): bool

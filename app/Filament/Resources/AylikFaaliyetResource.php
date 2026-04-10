@@ -7,9 +7,10 @@ use App\Models\ActivityCatalog;
 use App\Models\AylikFaaliyet;
 use App\Models\User;
 use App\Models\ViceMayor;
-use App\Services\ActivityService;
+use App\Support\ActivityCatalogFormatter;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\CoordinationAccess;
+use App\Support\QuerySafety;
 use App\Support\ReportingModelReader;
 use App\Support\TurkishString;
 use Carbon\Carbon;
@@ -37,9 +38,11 @@ class AylikFaaliyetResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
 
-    protected static ?string $navigationLabel = 'Aylık Faaliyet';
+    protected static ?string $navigationLabel = 'Aylık Rapor';
 
     protected static ?string $navigationGroup = 'Raporlama';
+
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {
@@ -67,8 +70,6 @@ class AylikFaaliyetResource extends Resource
                                     Forms\Components\Select::make('activity_catalog_id')
                                         ->label('Faaliyet Tanımı (Katalog)')
                                         ->options(function (Forms\Components\Select $field) {
-                                            /** @var ActivityService $activities */
-                                            $activities = app(ActivityService::class);
                                             $mudurlukAdi = auth()->user()?->name ?? '';
                                             $record = $field->getRecord();
                                             if (! $record instanceof AylikFaaliyet) {
@@ -87,8 +88,9 @@ class AylikFaaliyetResource extends Resource
                                                 }
                                             }
 
-                                            return $activities->getCatalogOptionsForMudurluk($mudurlukAdi);
+                                            return ActivityCatalogFormatter::selectOptionsForMudurluk($mudurlukAdi);
                                         })
+                                        ->getOptionLabelUsing(fn ($value) => ActivityCatalogFormatter::labelForCatalogId((int) $value))
                                         ->reactive()
                                         ->afterStateUpdated(function (Set $set, $state) {
                                             $catalog = ActivityCatalog::find($state);
@@ -138,6 +140,16 @@ class AylikFaaliyetResource extends Resource
                                             ->multiple()
                                             ->searchable()
                                             ->preload()
+                                            ->disabled(function ($livewire): bool {
+                                                if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
+                                                    return false;
+                                                }
+                                                $r = $livewire->getRecord();
+
+                                                return $r instanceof AylikFaaliyet
+                                                    && auth()->user() instanceof User
+                                                    && CoordinationAccess::isIncomingPartnerOnRecord($r, (int) auth()->id());
+                                            })
                                             ->options(function () {
                                                 $viceIds = ViceMayor::query()->pluck('user_id')->all();
                                                 $uid = (int) (auth()->id() ?? 0);
@@ -162,6 +174,16 @@ class AylikFaaliyetResource extends Resource
                                             Forms\Components\Textarea::make('isbirligi_hangi_ihtiyac')
                                                 ->label('Hangi İhtiyaç')
                                                 ->rows(3)
+                                                ->disabled(function ($livewire): bool {
+                                                    if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
+                                                        return false;
+                                                    }
+                                                    $r = $livewire->getRecord();
+
+                                                    return $r instanceof AylikFaaliyet
+                                                        && auth()->user() instanceof User
+                                                        && CoordinationAccess::isIncomingPartnerOnRecord($r, (int) auth()->id());
+                                                })
                                                 ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon')
                                                 ->rules([
                                                     fn (Get $get) => Rule::when(
@@ -174,6 +196,16 @@ class AylikFaaliyetResource extends Resource
                                                 ->label('Hedef Tarih')
                                                 ->native(false)
                                                 ->displayFormat('d.m.Y')
+                                                ->disabled(function ($livewire): bool {
+                                                    if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
+                                                        return false;
+                                                    }
+                                                    $r = $livewire->getRecord();
+
+                                                    return $r instanceof AylikFaaliyet
+                                                        && auth()->user() instanceof User
+                                                        && CoordinationAccess::isIncomingPartnerOnRecord($r, (int) auth()->id());
+                                                })
                                                 ->minDate(Carbon::today()->startOfDay())
                                                 ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon')
                                                 ->rules([
@@ -186,6 +218,16 @@ class AylikFaaliyetResource extends Resource
                                             Forms\Components\TextInput::make('isbirligi_bitis_suresi')
                                                 ->label('Bitiş Süresi')
                                                 ->placeholder('Örn: 10 iş günü, 2 hafta')
+                                                ->disabled(function ($livewire): bool {
+                                                    if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
+                                                        return false;
+                                                    }
+                                                    $r = $livewire->getRecord();
+
+                                                    return $r instanceof AylikFaaliyet
+                                                        && auth()->user() instanceof User
+                                                        && CoordinationAccess::isIncomingPartnerOnRecord($r, (int) auth()->id());
+                                                })
                                                 ->maxLength(255)
                                                 ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon')
                                                 ->rules([
@@ -252,7 +294,7 @@ class AylikFaaliyetResource extends Resource
 
                                     Forms\Components\Textarea::make('vice_mayor_notu')
                                         ->label('Başkan Yardımcısı Değerlendirmesi')
-                                        ->placeholder('Başkan yardımcısı buraya görüşünü yazacak...')
+                                        ->placeholder('Başkan yardımcısı görüşü...')
                                         ->rows(2)
                                         ->disabled(function () {
                                             $u = auth()->user();
@@ -384,7 +426,7 @@ class AylikFaaliyetResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         $base = parent::getEloquentQuery();
-        if (! $base instanceof Builder) {
+        if (! QuerySafety::shouldApplyFilters($base)) {
             return $base;
         }
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -29,6 +30,7 @@ class User extends Authenticatable
         'vekalet_bitis',
         'vekalet_tam_yetki',
         'vekalet_mudurluk_user_id',
+        'role',
     ];
 
     /**
@@ -65,6 +67,16 @@ class User extends Authenticatable
     public function vekaletMudurlukUser(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(User::class, 'vekalet_mudurluk_user_id');
+    }
+
+    public function assignedDirectorates(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            User::class,
+            'control_team_user_directorate',
+            'user_id',
+            'directorate_id'
+        );
     }
 
     /**
@@ -170,5 +182,10 @@ class User extends Authenticatable
         }
 
         return ! $this->isViceMayorAccount();
+    }
+
+    public function isControlTeam(): bool
+    {
+        return trim((string) $this->role) === 'Denetim Ekibi';
     }
 }

@@ -7,6 +7,7 @@ use App\Models\AylikFaaliyet;
 use App\Models\User;
 use App\Models\ViceMayor;
 use App\Support\AylikFaaliyetEscalation;
+use App\Support\QuerySafety;
 use App\Support\ReportDirectorateScope;
 use Filament\Infolists\Components\Section as InfoSection;
 use Filament\Infolists\Components\TextEntry;
@@ -47,7 +48,12 @@ class GecikmeRaporuResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return ReportDirectorateScope::constrain(parent::getEloquentQuery());
+        $query = parent::getEloquentQuery();
+        if (! QuerySafety::shouldApplyFilters($query)) {
+            return $query;
+        }
+
+        return ReportDirectorateScope::constrain($query);
     }
 
     public static function table(Table $table): Table

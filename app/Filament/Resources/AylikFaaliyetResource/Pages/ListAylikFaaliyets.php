@@ -5,12 +5,10 @@ namespace App\Filament\Resources\AylikFaaliyetResource\Pages;
 use App\Filament\Resources\AylikFaaliyetResource;
 use App\Models\User;
 use App\Services\ActivityService;
-use App\Support\CoordinationAccess;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
-use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -45,36 +43,7 @@ class ListAylikFaaliyets extends ListRecords
 
     public function getTabs(): array
     {
-        $user = auth()->user();
-        if (! $user instanceof User || ! $user->isMudurlukReportingAccount()) {
-            return [];
-        }
-
-        $uid = (int) $user->id;
-
-        return [
-            'own' => Tab::make('Raporlarım')
-                ->icon('heroicon-o-clipboard-document-list')
-                ->query(function (Builder $query) use ($user) {
-                    $ids = $user->reportAudienceUserIds() ?? [];
-                    if ($ids === []) {
-                        return $query->whereRaw('0 = 1');
-                    }
-
-                    return $query->whereIn('user_id', $ids);
-                }),
-            'incoming' => Tab::make('Gelen Koordinasyon İşleri')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->badge(fn () => (string) count(CoordinationAccess::incomingAylikFaaliyetIdsForUser($uid)))
-                ->query(function (Builder $query) use ($uid) {
-                    $incoming = CoordinationAccess::incomingAylikFaaliyetIdsForUser($uid);
-                    if ($incoming === []) {
-                        return $query->whereRaw('0 = 1');
-                    }
-
-                    return $query->whereIn('id', $incoming);
-                }),
-        ];
+        return [];
     }
 
     protected function getHeaderActions(): array

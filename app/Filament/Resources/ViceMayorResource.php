@@ -9,16 +9,19 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 
 class ViceMayorResource extends Resource
 {
     protected static ?string $model = ViceMayor::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
+
     protected static ?string $navigationLabel = 'Başkan Yardımcıları';
+
     protected static ?string $navigationGroup = 'Yönetim';
+
     protected static ?string $pluralLabel = 'Başkan Yardımcıları';
+
     protected static ?string $modelLabel = 'Başkan Yardımcısı';
 
     /**
@@ -31,39 +34,39 @@ class ViceMayorResource extends Resource
     }
 
     public static function form(Form $form): Form
-{
-    return $form
-        ->schema([
-            Forms\Components\Section::make('Başkan Yardımcısı ve Giriş Bilgileri')
-                ->schema([
-                    Forms\Components\TextInput::make('ad_soyad')
-                        ->label('Adı Soyadı')
-                        ->required()
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(fn ($state, callable $set) => $set('name', $state)),
-                    
-                    Forms\Components\TextInput::make('unvan')
-                        ->label('Ünvanı')
-                        ->default('Belediye Başkan Yardımcısı'),
-
-                    Forms\Components\Grid::make(2)->schema([
-                        Forms\Components\TextInput::make('email')
-                            ->label('Giriş E-postası')
-                            ->email()
+    {
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Başkan Yardımcısı ve Giriş Bilgileri')
+                    ->schema([
+                        Forms\Components\TextInput::make('ad_soyad')
+                            ->label('Adı Soyadı')
                             ->required()
-                            // Mevcut kullanıcının e-postasını getir (Düzenleme modunda)
-                            ->formatStateUsing(fn ($record) => $record?->user?->email),
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(fn ($state, callable $set) => $set('name', $state)),
 
-                        Forms\Components\TextInput::make('password')
-                            ->label('Giriş Parolası')
-                            ->password()
-                            ->dehydrated(fn ($state) => filled($state))
-                            ->required(fn (string $context): bool => $context === 'create')
-                            ->helperText('Değiştirmek istemiyorsanız boş bırakın.'),
+                        Forms\Components\TextInput::make('unvan')
+                            ->label('Ünvanı')
+                            ->default('Belediye Başkan Yardımcısı'),
+
+                        Forms\Components\Grid::make(2)->schema([
+                            Forms\Components\TextInput::make('email')
+                                ->label('Giriş E-postası')
+                                ->email()
+                                ->required()
+                                // Mevcut kullanıcının e-postasını getir (Düzenleme modunda)
+                                ->formatStateUsing(fn ($record) => $record?->user?->email),
+
+                            Forms\Components\TextInput::make('password')
+                                ->label('Giriş Parolası')
+                                ->password()
+                                ->dehydrated(fn ($state) => filled($state))
+                                ->required(fn (string $context): bool => $context === 'create')
+                                ->helperText('Değiştirmek istemiyorsanız boş bırakın.'),
+                        ]),
                     ]),
-                ]),
-        ]);
-}
+            ]);
+    }
 
     public static function table(Table $table): Table
     {

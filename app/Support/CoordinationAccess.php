@@ -10,6 +10,58 @@ use App\Models\AylikFaaliyet;
 final class CoordinationAccess
 {
     /**
+     * @param  mixed  $faaliyetler
+     */
+    public static function recordHasCoordinationLine($faaliyetler): bool
+    {
+        if (! is_array($faaliyetler)) {
+            return false;
+        }
+
+        foreach ($faaliyetler as $item) {
+            if (is_array($item) && (($item['faaliyet_turu'] ?? '') === 'Koordinasyon')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<int>
+     */
+    public static function incomingAylikFaaliyetIdsForUserIds(array $userIds): array
+    {
+        $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds))));
+        if ($userIds === []) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($userIds as $uid) {
+            $out = array_merge($out, self::incomingAylikFaaliyetIdsForUser($uid));
+        }
+
+        return array_values(array_unique($out));
+    }
+
+    /**
+     * Gelen koordinasyon ortağı: rapor sahibi değil; satırda hedef müdürlük olarak seçilmiş.
+     */
+    public static function isIncomingPartnerOnRecord(AylikFaaliyet $record, int $userId): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+
+        if ((int) $record->user_id === $userId) {
+            return false;
+        }
+
+        return self::recordTargetsUserInCoordination($record->faaliyetler, $userId);
+    }
+
+    /**
      * Başka bir müdürlüğün raporunda, faaliyet türü "Koordinasyon" ve
      * isbirligi_hedef_mudurluk_user_ids içinde $userId geçen aylık faaliyet kayıt id'leri.
      *

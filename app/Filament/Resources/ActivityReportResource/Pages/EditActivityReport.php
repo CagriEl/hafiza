@@ -1,10 +1,9 @@
 <?php
 
-namespace App\Filament\Resources\AylikFaaliyetResource\Pages;
+namespace App\Filament\Resources\ActivityReportResource\Pages;
 
 use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
-use App\Filament\Resources\AylikFaaliyetResource;
 use App\Models\User;
 use App\Support\AylikFaaliyetEscalation;
 use Filament\Actions;
@@ -12,11 +11,11 @@ use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
-class EditAylikFaaliyet extends EditRecord
+class EditActivityReport extends EditRecord
 {
     use WarnsIfActivityCatalogEmpty;
 
-    protected static string $resource = AylikFaaliyetResource::class;
+    protected static string $resource = ActivityReportResource::class;
 
     public function mount(int|string $record): void
     {
@@ -30,14 +29,11 @@ class EditAylikFaaliyet extends EditRecord
     {
         return [
             Actions\DeleteAction::make()
-                ->visible(fn () => AylikFaaliyetResource::canDelete($this->getRecord())),
+                ->visible(fn () => ActivityReportResource::canDelete($this->getRecord())),
         ];
     }
 
     /**
-     * Koordinasyon alanları yalnızca müdürlük sahibi formda görür; başkan yardımcısı / admin
-     * kaydettiğinde bu alanların veritabanından silinmemesi için korunur.
-     *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */

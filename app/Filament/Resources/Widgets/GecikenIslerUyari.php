@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Filament\Resources\AylikFaaliyetResource;
+use App\Filament\Resources\ActivityReportResource;
 use App\Models\AylikFaaliyet;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\ReportDirectorateScope;
@@ -66,7 +66,7 @@ class GecikenIslerUyari extends Widget implements HasActions, HasForms
             ->label('Düzenle ve Gerekçe Yaz')
             ->color('danger')
             ->icon('heroicon-m-pencil-square')
-            ->url(fn (array $arguments): string => AylikFaaliyetResource::getUrl('edit', ['record' => $arguments['kayit_id']])
+            ->url(fn (array $arguments): string => ActivityReportResource::getUrl('edit', ['record' => $arguments['kayit_id']])
             );
     }
 }

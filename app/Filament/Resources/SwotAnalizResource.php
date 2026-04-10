@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\SwotAnalizResource\Pages;
 use App\Models\SwotAnaliz;
 use App\Models\ViceMayor;
+use App\Support\QuerySafety;
 use App\Support\ReportDirectorateScope;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Filament\Forms\Components\Grid;
@@ -169,7 +170,12 @@ class SwotAnalizResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return ReportDirectorateScope::constrain(parent::getEloquentQuery());
+        $query = parent::getEloquentQuery();
+        if (! QuerySafety::shouldApplyFilters($query)) {
+            return $query;
+        }
+
+        return ReportDirectorateScope::constrain($query);
     }
 
     public static function canCreate(): bool
