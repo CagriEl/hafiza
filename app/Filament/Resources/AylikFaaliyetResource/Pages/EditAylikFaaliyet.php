@@ -6,7 +6,9 @@ use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
 use App\Filament\Resources\AylikFaaliyetResource;
 use App\Models\User;
+use App\Support\ActivityCatalogFormatter;
 use App\Support\AylikFaaliyetEscalation;
+use App\Support\AylikFaaliyetRepeaterLock;
 use Filament\Actions;
 use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Notifications\Notification;
@@ -24,6 +26,21 @@ class EditAylikFaaliyet extends EditRecord
         $this->getRecord()->loadMissing('user');
         $mudurluk = $this->getRecord()->user?->name ?? auth()->user()?->name ?? '';
         $this->warnIfActivityCatalogEmpty($mudurluk);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        $this->getRecord()->loadMissing('user');
+        $data = AylikFaaliyetRepeaterLock::stampOrigIndexes($data);
+
+        return ActivityCatalogFormatter::hydrateActivityCatalogIdsInFaaliyetler(
+            $data,
+            $this->getRecord()->user?->name
+        );
     }
 
     protected function getHeaderActions(): array
@@ -44,12 +61,17 @@ class EditAylikFaaliyet extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $user = auth()->user();
-        if (! $user instanceof User) {
-            return $data;
+        if ($user instanceof User) {
+            $data = AylikFaaliyetRepeaterLock::enforceMudurlukLocks($this->record, $user, $data);
         }
 
-        if ((int) $this->record->user_id === (int) $user->id && $user->isMudurlukReportingAccount()) {
-            return $data;
+        if (! $user instanceof User) {
+            return AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data);
+        }
+
+        if ($user->isMudurlukReportingAccount()
+            && AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($this->record, $user)) {
+            return AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data);
         }
 
         $original = is_array($this->record->faaliyetler) ? $this->record->faaliyetler : [];
@@ -81,7 +103,7 @@ class EditAylikFaaliyet extends EditRecord
             }
         }
 
-        return $data;
+        return AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data);
     }
 
     protected function afterSave(): void

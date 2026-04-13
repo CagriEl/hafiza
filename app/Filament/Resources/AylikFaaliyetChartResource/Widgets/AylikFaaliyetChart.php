@@ -2,9 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\HaftalikRapor;
+use App\Models\AylikFaaliyet;
 use App\Support\ReportDirectorateScope;
-use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 
 class AylikFaaliyetChart extends ChartWidget
@@ -19,10 +18,10 @@ class AylikFaaliyetChart extends ChartWidget
 
     protected function getData(): array
     {
-        $yil = now()->year; // Sadece bu yılın verisi
+        $yil = now()->year;
 
         $query = ReportDirectorateScope::constrain(
-            HaftalikRapor::query()->whereYear('baslangic_tarihi', $yil)
+            AylikFaaliyet::query()->where('yil', $yil)
         );
 
         $raporlar = $query->get();
@@ -31,17 +30,15 @@ class AylikFaaliyetChart extends ChartWidget
         // Dizi indexleri 1'den 12'ye kadar olsun
         $aylikVeriler = array_fill(1, 12, 0);
 
-        // 3. Döngüyle İçerik Sayma
         foreach ($raporlar as $rapor) {
-            // Raporun ayı
-            $ay = Carbon::parse($rapor->baslangic_tarihi)->month;
-
-            // İçindeki işleri say
+            $ay = (int) ($rapor->ay ?? 0);
+            if ($ay < 1 || $ay > 12) {
+                continue;
+            }
             $isler = is_string($rapor->faaliyetler) ? json_decode($rapor->faaliyetler, true) : $rapor->faaliyetler;
 
             if (is_array($isler)) {
                 $sayi = count($isler);
-                // İlgili aya ekle
                 $aylikVeriler[$ay] += $sayi;
             }
         }

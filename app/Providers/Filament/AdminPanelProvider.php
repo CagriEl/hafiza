@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\UsageGuide;
 use App\Filament\Widgets\AdminStatsOverview;
 use App\Filament\Widgets\AylikFaaliyetChart;
 use App\Filament\Widgets\FaaliyetIstatistikGrafik;
@@ -36,6 +37,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
+                UsageGuide::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([

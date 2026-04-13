@@ -9,12 +9,14 @@ use App\Models\User;
 use App\Models\ViceMayor;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\AylikFaaliyetEscalation;
+use App\Support\AylikFaaliyetRepeaterLock;
 use App\Support\CoordinationAccess;
 use App\Support\QuerySafety;
 use App\Support\ReportingModelReader;
 use App\Support\TurkishString;
 use Carbon\Carbon;
 use Filament\Forms;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -61,15 +63,16 @@ class AylikFaaliyetResource extends Resource
                     ])->compact(),
 
                 Section::make('Faaliyet ve Performans Takip Listesi')
-                    ->description('Katalogdan faaliyet seçerek haftalık hedeflerinizi ve gerçekleşen rakamları giriniz.')
+                    ->description('Kayıtlı satırlar salt okunur. Güncelleme için yeni satır ekleyip «Gerekli Revize» işaretleyin ve revize sebebini yazın.')
                     ->schema([
                         Repeater::make('faaliyetler')
                             ->label('İş Listesi')
                             ->schema([
+                                Forms\Components\Hidden::make('_orig_index'),
                                 Grid::make(4)->schema([
                                     Forms\Components\Select::make('activity_catalog_id')
                                         ->label('Faaliyet Tanımı (Katalog)')
-                                        ->options(function (Forms\Components\Select $field) {
+                                        ->options(function (Forms\Components\Select $field, Get $get): array {
                                             $mudurlukAdi = auth()->user()?->name ?? '';
                                             $record = $field->getRecord();
                                             if (! $record instanceof AylikFaaliyet) {
@@ -88,9 +91,40 @@ class AylikFaaliyetResource extends Resource
                                                 }
                                             }
 
-                                            return ActivityCatalogFormatter::selectOptionsForMudurluk($mudurlukAdi);
+                                            $opts = ActivityCatalogFormatter::selectOptionsForMudurluk($mudurlukAdi);
+                                            $cid = (int) ($get('activity_catalog_id') ?? 0);
+                                            if ($cid > 0) {
+                                                $lbl = ActivityCatalogFormatter::labelForCatalogId($cid);
+                                                if ($lbl !== null) {
+                                                    $opts[$cid] = $lbl;
+                                                }
+                                            }
+
+                                            return $opts;
                                         })
-                                        ->getOptionLabelUsing(fn ($value) => ActivityCatalogFormatter::labelForCatalogId((int) $value))
+                                        ->preload()
+                                        ->getOptionLabelUsing(fn ($value) => ActivityCatalogFormatter::labelForCatalogId((int) $value) ?? '—')
+                                        ->helperText(function (Get $get): ?string {
+                                            $items = $get('../../faaliyetler');
+                                            if (! is_array($items)) {
+                                                return null;
+                                            }
+
+                                            $onceki = collect($items)
+                                                ->filter(fn ($item) => is_array($item) && filled($item['faaliyet_kodu'] ?? null))
+                                                ->pluck('faaliyet_kodu')
+                                                ->map(fn ($k) => trim((string) $k))
+                                                ->filter()
+                                                ->unique()
+                                                ->values()
+                                                ->all();
+
+                                            if ($onceki === []) {
+                                                return null;
+                                            }
+
+                                            return 'Daha once girilen faaliyet kodlari: '.implode(', ', $onceki);
+                                        })
                                         ->reactive()
                                         ->afterStateUpdated(function (Set $set, $state) {
                                             $catalog = ActivityCatalog::find($state);
@@ -99,17 +133,26 @@ class AylikFaaliyetResource extends Resource
                                                 $set('faaliyet_kodu', $catalog->faaliyet_kodu);
                                             }
                                         })
+                                        ->disabled(function ($state, Get $get, $livewire): bool {
+                                            if (AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)) {
+                                                return true;
+                                            }
+
+                                            return filled($state);
+                                        })
                                         ->required()
                                         ->columnSpan(2),
 
                                     Forms\Components\TextInput::make('faaliyet_kodu')
                                         ->label('Kod')
                                         ->readOnly()
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
                                         ->extraAttributes(['class' => 'bg-gray-50']),
 
                                     Forms\Components\TextInput::make('olcu_birimi')
                                         ->label('Birim')
                                         ->readOnly()
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
                                         ->extraAttributes(['class' => 'bg-gray-50']),
                                 ]),
 
@@ -122,7 +165,14 @@ class AylikFaaliyetResource extends Resource
                                     ->default('Operasyonel')
                                     ->live()
                                     ->required()
-                                    ->disabled(fn () => ! auth()->user()?->isMudurlukReportingAccount())
+                                    ->disabled(function (Get $get, $livewire): bool {
+                                        $u = auth()->user();
+                                        if (! $u instanceof User || ! $u->isMudurlukReportingAccount()) {
+                                            return true;
+                                        }
+
+                                        return AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire);
+                                    })
                                     ->afterStateUpdated(function (Set $set, $state): void {
                                         if ($state !== 'Koordinasyon') {
                                             $set('isbirligi_hangi_ihtiyac', null);
@@ -140,7 +190,10 @@ class AylikFaaliyetResource extends Resource
                                             ->multiple()
                                             ->searchable()
                                             ->preload()
-                                            ->disabled(function ($livewire): bool {
+                                            ->disabled(function (Get $get, $livewire): bool {
+                                                if (AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)) {
+                                                    return true;
+                                                }
                                                 if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
                                                     return false;
                                                 }
@@ -174,7 +227,10 @@ class AylikFaaliyetResource extends Resource
                                             Forms\Components\Textarea::make('isbirligi_hangi_ihtiyac')
                                                 ->label('Hangi İhtiyaç')
                                                 ->rows(3)
-                                                ->disabled(function ($livewire): bool {
+                                                ->disabled(function (Get $get, $livewire): bool {
+                                                    if (AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)) {
+                                                        return true;
+                                                    }
                                                     if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
                                                         return false;
                                                     }
@@ -196,7 +252,10 @@ class AylikFaaliyetResource extends Resource
                                                 ->label('Hedef Tarih')
                                                 ->native(false)
                                                 ->displayFormat('d.m.Y')
-                                                ->disabled(function ($livewire): bool {
+                                                ->disabled(function (Get $get, $livewire): bool {
+                                                    if (AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)) {
+                                                        return true;
+                                                    }
                                                     if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
                                                         return false;
                                                     }
@@ -218,7 +277,10 @@ class AylikFaaliyetResource extends Resource
                                             Forms\Components\TextInput::make('isbirligi_bitis_suresi')
                                                 ->label('Bitiş Süresi')
                                                 ->placeholder('Örn: 10 iş günü, 2 hafta')
-                                                ->disabled(function ($livewire): bool {
+                                                ->disabled(function (Get $get, $livewire): bool {
+                                                    if (AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)) {
+                                                        return true;
+                                                    }
                                                     if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
                                                         return false;
                                                     }
@@ -254,24 +316,28 @@ class AylikFaaliyetResource extends Resource
 
                                             return $hint ? 'Raporlama modeli (Destek / İç İşleyiş): '.$hint : null;
                                         })
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
                                         ->required(),
 
                                     Forms\Components\TextInput::make('hedef')
                                         ->label('Haftalık Hedef')
                                         ->numeric()
                                         ->placeholder('Örn: 450')
-                                        ->live(),
+                                        ->live()
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
 
                                     Forms\Components\TextInput::make('gerceklesen')
                                         ->label('Gerçekleşen')
                                         ->numeric()
                                         ->placeholder('Örn: 395')
-                                        ->live(),
+                                        ->live()
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
 
                                     Forms\Components\TextInput::make('bekleyen_is')
                                         ->label('Açık/Bekleyen İş')
                                         ->numeric()
-                                        ->placeholder('Örn: 18'),
+                                        ->placeholder('Örn: 18')
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
                                 ]),
 
                                 Grid::make(2)->schema([
@@ -279,35 +345,106 @@ class AylikFaaliyetResource extends Resource
                                         ->label('Sapma Nedeni')
                                         ->placeholder('Hedef gerçekleşmediyse nedenini yazınız...')
                                         ->rows(2)
-                                        ->visible(fn (Get $get) => filled($get('hedef')) && $get('gerceklesen') < $get('hedef')),
+                                        ->visible(fn (Get $get) => filled($get('hedef')) && $get('gerceklesen') < $get('hedef'))
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
 
                                     Forms\Components\Textarea::make('risk_engel')
                                         ->label('Risk / Engel')
                                         ->placeholder('İşin önündeki engelleri belirtiniz...')
-                                        ->rows(2),
+                                        ->rows(2)
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
                                 ]),
+
+                                Grid::make(2)->schema([
+                                    Forms\Components\Toggle::make('gerekli_revize')
+                                        ->label('Gerekli Revize')
+                                        ->inline(false)
+                                        ->default(false)
+                                        ->live()
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                        ->helperText('Yeni satırlarda işaretleyin; kayıtlı satırlar değiştirilemez.'),
+                                    Forms\Components\Textarea::make('revize_sebebi')
+                                        ->label('Revize Sebebi')
+                                        ->rows(2)
+                                        ->placeholder('Revize neden gerekli? Kisa aciklama yaziniz...')
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                        ->required(fn (Get $get): bool => (bool) $get('gerekli_revize'))
+                                        ->visible(fn (Get $get): bool => (bool) $get('gerekli_revize'))
+                                        ->extraAttributes(fn (Get $get): array => (bool) $get('gerekli_revize')
+                                            ? ['class' => 'bg-amber-50 border-l-4 border-amber-500']
+                                            : []),
+                                ])
+                                    ->extraAttributes(fn (Get $get): array => (bool) $get('gerekli_revize')
+                                        ? ['class' => 'bg-amber-50 p-2 rounded-md']
+                                        : []),
 
                                 Grid::make(1)->schema([
                                     Forms\Components\TextInput::make('karar_ihtiyaci')
                                         ->label('📌 Üst Yönetim Karar İhtiyacı')
-                                        ->placeholder('Başkanlık makamından beklenen karar veya destek nedir?'),
+                                        ->placeholder('Başkanlık makamından beklenen karar veya destek nedir?')
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
 
                                     Forms\Components\Textarea::make('vice_mayor_notu')
                                         ->label('Başkan Yardımcısı Değerlendirmesi')
                                         ->placeholder('Başkan yardımcısı görüşü...')
                                         ->rows(2)
-                                        ->disabled(function () {
+                                        ->disabled(function (Get $get, $livewire): bool {
                                             $u = auth()->user();
+                                            if (! $u instanceof User) {
+                                                return true;
+                                            }
+                                            if ($u->isReportingSuperAdmin() || $u->isViceMayorAccount()) {
+                                                return AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire);
+                                            }
 
-                                            return $u instanceof User
-                                                && ! $u->isReportingSuperAdmin()
-                                                && ! $u->isViceMayorAccount();
+                                            return true;
                                         })
                                         ->extraAttributes(['class' => 'bg-green-50 border-l-4 border-green-500']),
                                 ]),
                             ])
-                            ->itemLabel(fn (array $state): ?string => $state['faaliyet_kodu'] ?? 'Yeni Faaliyet Girişi')
+                            ->itemLabel(function (array $state): ?string {
+                                $label = $state['faaliyet_kodu'] ?? 'Yeni Faaliyet Girisi';
+                                if ((bool) ($state['gerekli_revize'] ?? false)) {
+                                    return '[REVIZE] '.$label;
+                                }
+
+                                return $label;
+                            })
                             ->collapsible()
+                            ->reorderable(false)
+                            ->deleteAction(function (FormAction $action) {
+                                return $action->visible(function (array $arguments, Repeater $component): bool {
+                                    if (! $component->isDeletable()) {
+                                        return false;
+                                    }
+
+                                    $user = auth()->user();
+                                    if (! $user instanceof User || ! $user->isMudurlukReportingAccount()) {
+                                        return true;
+                                    }
+
+                                    $livewire = $component->getLivewire();
+                                    if (! $livewire instanceof \Filament\Resources\Pages\EditRecord) {
+                                        return true;
+                                    }
+
+                                    $record = $livewire->getRecord();
+                                    if (! $record instanceof AylikFaaliyet || ! AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($record, $user)) {
+                                        return true;
+                                    }
+
+                                    $items = $component->getState();
+                                    $key = $arguments['item'] ?? null;
+                                    if ($key === null || ! isset($items[$key]) || ! is_array($items[$key])) {
+                                        return true;
+                                    }
+
+                                    $row = $items[$key];
+                                    $v = $row['_orig_index'] ?? null;
+
+                                    return $v === null || $v === '';
+                                });
+                            })
                             ->defaultItems(1),
                     ]),
             ]);
@@ -416,6 +553,10 @@ class AylikFaaliyetResource extends Resource
                                 TextEntry::make('hedef')->label('Hedef'),
                                 TextEntry::make('gerceklesen')->label('Gerçekleşen'),
                                 TextEntry::make('sapma_nedeni')->label('Sapma')->placeholder('—'),
+                                TextEntry::make('gerekli_revize')
+                                    ->label('Revize')
+                                    ->formatStateUsing(fn ($state): string => (bool) $state ? 'Evet' : 'Hayir'),
+                                TextEntry::make('revize_sebebi')->label('Revize sebebi')->placeholder('—'),
                                 TextEntry::make('karar_ihtiyaci')->label('Karar ihtiyacı')->placeholder('—'),
                             ])
                             ->columns(2),

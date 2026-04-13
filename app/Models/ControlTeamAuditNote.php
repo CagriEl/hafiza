@@ -10,6 +10,9 @@ class ControlTeamAuditNote extends Model
     protected $fillable = [
         'user_id',
         'directorate_user_id',
+        'aylik_faaliyet_id',
+        'yil',
+        'ay',
         'activity_catalog_id',
         'note',
         'audit_date',
@@ -32,5 +35,10 @@ class ControlTeamAuditNote extends Model
     public function activityCatalog(): BelongsTo
     {
         return $this->belongsTo(ActivityCatalog::class, 'activity_catalog_id');
+    }
+
+    public function aylikFaaliyet(): BelongsTo
+    {
+        return $this->belongsTo(AylikFaaliyet::class, 'aylik_faaliyet_id');
     }
 }

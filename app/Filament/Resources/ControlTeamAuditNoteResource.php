@@ -3,28 +3,33 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ControlTeamAuditNoteResource\Pages;
+use App\Models\ActivityCatalog;
+use App\Models\AylikFaaliyet;
 use App\Models\ControlTeamAuditNote;
 use App\Models\User;
 use App\Models\ViceMayor;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\QuerySafety;
 use Filament\Forms;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class ControlTeamAuditNoteResource extends Resource
 {
     protected static ?string $model = ControlTeamAuditNote::class;
 
-    protected static ?string $navigationLabel = 'Denetim Notları';
+    protected static ?string $navigationLabel = 'Analiz Notları';
 
-    protected static ?string $pluralModelLabel = 'Denetim Notları';
+    protected static ?string $pluralModelLabel = 'Analiz Notları';
 
-    protected static ?string $modelLabel = 'Denetim Notu';
+    protected static ?string $modelLabel = 'Analiz Notu';
 
     protected static ?string $navigationGroup = null;
 
@@ -37,7 +42,7 @@ class ControlTeamAuditNoteResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('directorate_user_id')
-                    ->label('Denetlenecek Birim')
+                    ->label('Koordiansyon Notu Eklenecek Birim')
                     ->options(function (): array {
                         $u = auth()->user();
                         if (! $u instanceof User) {
@@ -65,32 +70,73 @@ class ControlTeamAuditNoteResource extends Resource
                     ->required()
                     ->searchable()
                     ->preload()
-                    ->live(),
+                    ->live()
+                    ->afterStateUpdated(function (Set $set, $state): void {
+                        if ((int) $state > 0) {
+                            $latest = static::latestReportPeriodForDirectorate((int) $state);
+                            $set('yil', $latest['yil']);
+                            $set('ay', $latest['ay']);
+                            $set('activity_catalog_id', null);
+                        }
+                    }),
+                Section::make('Rapor dönemi')
+                    ->description('Önce içinde bulunulan ay varsayılır; faaliyet listesi yalnızca bu dönemdeki aylık rapor satırlarından gelir.')
+                    ->schema([
+                        Forms\Components\Select::make('yil')
+                            ->label('Yıl')
+                            ->options(fn (): array => static::reportYearOptions())
+                            ->default(now()->year)
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('activity_catalog_id', null)),
+                        Forms\Components\Select::make('ay')
+                            ->label('Ay')
+                            ->options([
+                                '01' => 'Ocak', '02' => 'Şubat', '03' => 'Mart', '04' => 'Nisan',
+                                '05' => 'Mayıs', '06' => 'Haziran', '07' => 'Temmuz', '08' => 'Ağustos',
+                                '09' => 'Eylül', '10' => 'Ekim', '11' => 'Kasım', '12' => 'Aralık',
+                            ])
+                            ->default(now()->format('m'))
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(fn (Set $set) => $set('activity_catalog_id', null)),
+                    ])
+                    ->columns(2),
                 Forms\Components\Select::make('activity_catalog_id')
                     ->label('İlgili Faaliyet')
-                    ->options(function (Get $get): array {
-                        $directorateId = (int) ($get('directorate_user_id') ?? 0);
-                        if ($directorateId <= 0) {
-                            return [];
-                        }
-
-                        $directorate = User::query()->find($directorateId);
-                        if (! $directorate) {
-                            return [];
-                        }
-
-                        return ActivityCatalogFormatter::selectOptionsForMudurluk($directorate->name);
-                    })
+                    ->options(fn (Get $get, ?ControlTeamAuditNote $record): array => static::activitySelectOptions($get, $record))
                     ->searchable()
-                    ->preload()
+                    ->live()
+                    ->helperText(function (Get $get, ?ControlTeamAuditNote $record): ?string {
+                        if ((int) ($get('directorate_user_id') ?? 0) <= 0) {
+                            return null;
+                        }
+
+                        return static::activitySelectOptions($get, $record) === []
+                            ? 'Bu müdürlük ve dönem için aylık raporda faaliyet satırı yok; önce ilgili aylık raporu girin veya dönemi değiştirin.'
+                            : null;
+                    })
                     ->getOptionLabelUsing(fn ($value) => ActivityCatalogFormatter::labelForCatalogId((int) $value))
                     ->required(),
+                Section::make('Seçili faaliyet özeti')
+                    ->schema([
+                        Forms\Components\Placeholder::make('activity_hedef')
+                            ->label('Hedeflenen')
+                            ->content(fn (Get $get): string => (string) static::activityProgressSummary($get)['hedef']),
+                        Forms\Components\Placeholder::make('activity_gerceklesen')
+                            ->label('Gerçekleşen')
+                            ->content(fn (Get $get): string => (string) static::activityProgressSummary($get)['gerceklesen']),
+                        Forms\Components\Placeholder::make('activity_kalan')
+                            ->label('Kalan')
+                            ->content(fn (Get $get): string => (string) static::activityProgressSummary($get)['kalan']),
+                    ])
+                    ->columns(3),
                 Forms\Components\Textarea::make('note')
-                    ->label('Denetim Notu ve Bulgular')
+                    ->label('Analiz Notu ve Bulgular')
                     ->rows(8)
                     ->required(),
                 Forms\Components\DatePicker::make('audit_date')
-                    ->label('Denetim Tarihi')
+                    ->label('Analiz Tarihi')
                     ->default(now()->toDateString())
                     ->native(false)
                     ->displayFormat('d.m.Y')
@@ -103,8 +149,17 @@ class ControlTeamAuditNoteResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('directorate.name')
-                    ->label('Denetlenen Birim')
+                    ->label('Analiz Birim')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('rapor_donemi')
+                    ->label('Rapor dönemi')
+                    ->getStateUsing(function (ControlTeamAuditNote $record): string {
+                        if ($record->yil === null || $record->ay === null || $record->ay === '') {
+                            return '—';
+                        }
+
+                        return (string) $record->yil.' / '.$record->ay;
+                    }),
                 Tables\Columns\TextColumn::make('activity_catalog_id')
                     ->label('İlgili Faaliyet')
                     ->wrap()
@@ -113,20 +168,14 @@ class ControlTeamAuditNoteResource extends Resource
                     ->label('Tarih')
                     ->date('d.m.Y'),
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Denetim Ekibi')
+                    ->label('Analiz Ekibi')
                     ->toggleable(),
             ])
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ->actions([])
+            ->bulkActions([]);
     }
 
     public static function getRelations(): array
@@ -178,12 +227,256 @@ class ControlTeamAuditNoteResource extends Resource
         return static::canViewAny();
     }
 
+    public static function canEdit(Model $record): bool
+    {
+        return false;
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return false;
+    }
+
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListControlTeamAuditNotes::route('/'),
             'create' => Pages\CreateControlTeamAuditNote::route('/create'),
-            'edit' => Pages\EditControlTeamAuditNote::route('/{record}/edit'),
+        ];
+    }
+
+    /**
+     * Seçilen müdürlük ve rapor ayındaki aylık faaliyet satırlarına göre katalog seçenekleri (tam katalog değil).
+     *
+     * @return array<int, string>
+     */
+    protected static function activityOptionsForDirectoratePeriod(int $directorateUserId, mixed $yil, mixed $ay): array
+    {
+        if ($directorateUserId <= 0 || $yil === null || $yil === '' || $ay === null || $ay === '') {
+            return [];
+        }
+
+        $yilInt = (int) $yil;
+        $ayNorm = str_pad(preg_replace('/\D/', '', (string) $ay) ?: '', 2, '0', STR_PAD_LEFT);
+        if (strlen($ayNorm) !== 2) {
+            return [];
+        }
+
+        $rapor = AylikFaaliyet::query()
+            ->where('user_id', $directorateUserId)
+            ->where('yil', $yilInt)
+            ->where('ay', $ayNorm)
+            ->first();
+
+        if (! $rapor) {
+            $fallback = AylikFaaliyet::query()
+                ->where('user_id', $directorateUserId)
+                ->orderByDesc('yil')
+                ->orderByDesc('ay')
+                ->first();
+            if ($fallback instanceof AylikFaaliyet) {
+                $rapor = $fallback;
+            }
+        }
+
+        if (! $rapor || ! is_array($rapor->faaliyetler)) {
+            return [];
+        }
+
+        $ids = [];
+        $codes = [];
+        foreach ($rapor->faaliyetler as $satir) {
+            if (! is_array($satir)) {
+                continue;
+            }
+            $cid = (int) ($satir['activity_catalog_id'] ?? 0);
+            if ($cid > 0) {
+                $ids[$cid] = true;
+            }
+            $kod = trim((string) ($satir['faaliyet_kodu'] ?? ''));
+            if ($kod !== '') {
+                $codes[$kod] = true;
+            }
+        }
+
+        if ($codes !== []) {
+            $matchedByCode = ActivityCatalog::query()
+                ->whereIn('faaliyet_kodu', array_keys($codes))
+                ->get(['id'])
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->filter(fn (int $id) => $id > 0)
+                ->all();
+            foreach ($matchedByCode as $id) {
+                $ids[$id] = true;
+            }
+        }
+
+        $options = [];
+        foreach (array_keys($ids) as $id) {
+            $label = ActivityCatalogFormatter::labelForCatalogId($id);
+            if ($label !== null) {
+                $options[$id] = $label;
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected static function activitySelectOptions(Get $get, ?ControlTeamAuditNote $record): array
+    {
+        $opts = static::activityOptionsForDirectoratePeriod(
+            (int) ($get('directorate_user_id') ?? 0),
+            $get('yil'),
+            $get('ay')
+        );
+
+        $savedId = $record ? (int) $record->activity_catalog_id : 0;
+        if ($savedId > 0 && ! array_key_exists($savedId, $opts)) {
+            $label = ActivityCatalogFormatter::labelForCatalogId($savedId);
+            if ($label !== null) {
+                $opts[$savedId] = $label;
+            }
+        }
+
+        natcasesort($opts);
+
+        return $opts;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected static function reportYearOptions(): array
+    {
+        $years = AylikFaaliyet::query()
+            ->select('yil')
+            ->whereNotNull('yil')
+            ->distinct()
+            ->orderBy('yil')
+            ->pluck('yil')
+            ->map(fn ($y) => (int) $y)
+            ->filter(fn (int $y) => $y > 0)
+            ->all();
+
+        $years[] = (int) now()->year;
+        $years = array_values(array_unique($years));
+        sort($years);
+
+        $options = [];
+        foreach ($years as $year) {
+            $options[$year] = (string) $year;
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array{yil:int, ay:string}
+     */
+    protected static function latestReportPeriodForDirectorate(int $directorateUserId): array
+    {
+        $fallback = ['yil' => (int) now()->year, 'ay' => now()->format('m')];
+        if ($directorateUserId <= 0) {
+            return $fallback;
+        }
+
+        $rapor = AylikFaaliyet::query()
+            ->where('user_id', $directorateUserId)
+            ->orderByDesc('yil')
+            ->orderByDesc('ay')
+            ->first();
+
+        if (! $rapor) {
+            return $fallback;
+        }
+
+        return [
+            'yil' => (int) ($rapor->yil ?: $fallback['yil']),
+            'ay' => str_pad((string) ($rapor->ay ?: $fallback['ay']), 2, '0', STR_PAD_LEFT),
+        ];
+    }
+
+    /**
+     * @return array{hedef:int, gerceklesen:int, kalan:int}
+     */
+    protected static function activityProgressSummary(Get $get): array
+    {
+        $directorateUserId = (int) ($get('directorate_user_id') ?? 0);
+        $activityCatalogId = (int) ($get('activity_catalog_id') ?? 0);
+        $yil = $get('yil');
+        $ay = $get('ay');
+
+        if ($directorateUserId <= 0 || $activityCatalogId <= 0 || blank($yil) || blank($ay)) {
+            return ['hedef' => 0, 'gerceklesen' => 0, 'kalan' => 0];
+        }
+
+        $yilInt = (int) $yil;
+        $ayNorm = str_pad(preg_replace('/\D/', '', (string) $ay) ?: '', 2, '0', STR_PAD_LEFT);
+        if (strlen($ayNorm) !== 2) {
+            return ['hedef' => 0, 'gerceklesen' => 0, 'kalan' => 0];
+        }
+
+        $rapor = AylikFaaliyet::query()
+            ->where('user_id', $directorateUserId)
+            ->where('yil', $yilInt)
+            ->where('ay', $ayNorm)
+            ->first();
+
+        if (! $rapor) {
+            $rapor = AylikFaaliyet::query()
+                ->where('user_id', $directorateUserId)
+                ->orderByDesc('yil')
+                ->orderByDesc('ay')
+                ->first();
+        }
+
+        if (! $rapor || ! is_array($rapor->faaliyetler)) {
+            return ['hedef' => 0, 'gerceklesen' => 0, 'kalan' => 0];
+        }
+
+        $selectedCatalog = ActivityCatalog::query()
+            ->find($activityCatalogId, ['id', 'faaliyet_kodu']);
+        $selectedCode = trim((string) ($selectedCatalog?->faaliyet_kodu ?? ''));
+
+        $hedef = 0;
+        $gerceklesen = 0;
+        $bekleyen = 0;
+
+        foreach ($rapor->faaliyetler as $satir) {
+            if (! is_array($satir)) {
+                continue;
+            }
+
+            $rowCatalogId = (int) ($satir['activity_catalog_id'] ?? 0);
+            $rowCode = trim((string) ($satir['faaliyet_kodu'] ?? ''));
+            $matchesById = $rowCatalogId > 0 && $rowCatalogId === $activityCatalogId;
+            $matchesByCode = $selectedCode !== '' && $rowCode !== '' && strcasecmp($rowCode, $selectedCode) === 0;
+            if (! $matchesById && ! $matchesByCode) {
+                continue;
+            }
+
+            $hedef += (int) ($satir['hedef'] ?? 0);
+            $gerceklesen += (int) ($satir['gerceklesen'] ?? 0);
+            $bekleyen += (int) ($satir['bekleyen_is'] ?? 0);
+        }
+
+        if ($hedef === 0 && $gerceklesen > 0) {
+            $kalan = max(0, $bekleyen);
+        } else {
+            $kalan = max(0, $hedef - $gerceklesen);
+            if ($bekleyen > 0) {
+                $kalan = max($kalan, $bekleyen);
+            }
+        }
+
+        return [
+            'hedef' => $hedef,
+            'gerceklesen' => $gerceklesen,
+            'kalan' => $kalan,
         ];
     }
 }
