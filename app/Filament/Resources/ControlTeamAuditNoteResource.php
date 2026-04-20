@@ -7,7 +7,6 @@ use App\Models\ActivityCatalog;
 use App\Models\AylikFaaliyet;
 use App\Models\ControlTeamAuditNote;
 use App\Models\User;
-use App\Models\ViceMayor;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\QuerySafety;
 use Filament\Forms;
@@ -50,10 +49,7 @@ class ControlTeamAuditNoteResource extends Resource
                         }
 
                         if ($u->isReportingSuperAdmin()) {
-                            return User::query()
-                                ->where('id', '!=', 1)
-                                ->whereNotIn('id', ViceMayor::query()->pluck('user_id'))
-                                ->orderBy('name')
+                            return User::queryMudurlukReportingAccounts()
                                 ->pluck('name', 'id')
                                 ->all();
                         }
@@ -246,6 +242,32 @@ class ControlTeamAuditNoteResource extends Resource
     }
 
     /**
+     * Aylık rapor kaydı: önce seçilen yıl/ay (ay değeri DB'de "04" veya "4" olabilir), yoksa takvim sırasına göre en güncel dönem.
+     */
+    public static function resolveAylikFaaliyetForDirectoratePeriod(int $directorateUserId, int $yil, string $ayRaw): ?AylikFaaliyet
+    {
+        if ($directorateUserId <= 0) {
+            return null;
+        }
+
+        $ayNorm = str_pad(preg_replace('/\D/', '', $ayRaw) ?: '', 2, '0', STR_PAD_LEFT);
+
+        if ($yil > 0 && strlen($ayNorm) === 2) {
+            $variants = static::normalizeAyQueryVariants($ayNorm);
+            $exact = AylikFaaliyet::query()
+                ->where('user_id', $directorateUserId)
+                ->where('yil', $yil)
+                ->whereIn('ay', $variants)
+                ->first();
+            if ($exact instanceof AylikFaaliyet) {
+                return $exact;
+            }
+        }
+
+        return static::latestAylikFaaliyetForDirectorateUser($directorateUserId);
+    }
+
+    /**
      * Seçilen müdürlük ve rapor ayındaki aylık faaliyet satırlarına göre katalog seçenekleri (tam katalog değil).
      *
      * @return array<int, string>
@@ -262,30 +284,30 @@ class ControlTeamAuditNoteResource extends Resource
             return [];
         }
 
+        $variants = static::normalizeAyQueryVariants($ayNorm);
+
         $rapor = AylikFaaliyet::query()
             ->where('user_id', $directorateUserId)
             ->where('yil', $yilInt)
-            ->where('ay', $ayNorm)
+            ->whereIn('ay', $variants)
             ->first();
 
         if (! $rapor) {
-            $fallback = AylikFaaliyet::query()
-                ->where('user_id', $directorateUserId)
-                ->orderByDesc('yil')
-                ->orderByDesc('ay')
-                ->first();
-            if ($fallback instanceof AylikFaaliyet) {
-                $rapor = $fallback;
-            }
+            $rapor = static::latestAylikFaaliyetForDirectorateUser($directorateUserId);
         }
 
-        if (! $rapor || ! is_array($rapor->faaliyetler)) {
+        if (! $rapor) {
+            return [];
+        }
+
+        $rows = static::faaliyetlerRowsWithHydratedCatalogIds($rapor, $directorateUserId);
+        if ($rows === []) {
             return [];
         }
 
         $ids = [];
         $codes = [];
-        foreach ($rapor->faaliyetler as $satir) {
+        foreach ($rows as $satir) {
             if (! is_array($satir)) {
                 continue;
             }
@@ -384,11 +406,7 @@ class ControlTeamAuditNoteResource extends Resource
             return $fallback;
         }
 
-        $rapor = AylikFaaliyet::query()
-            ->where('user_id', $directorateUserId)
-            ->orderByDesc('yil')
-            ->orderByDesc('ay')
-            ->first();
+        $rapor = static::latestAylikFaaliyetForDirectorateUser($directorateUserId);
 
         if (! $rapor) {
             return $fallback;
@@ -420,21 +438,24 @@ class ControlTeamAuditNoteResource extends Resource
             return ['hedef' => 0, 'gerceklesen' => 0, 'kalan' => 0];
         }
 
+        $variants = static::normalizeAyQueryVariants($ayNorm);
+
         $rapor = AylikFaaliyet::query()
             ->where('user_id', $directorateUserId)
             ->where('yil', $yilInt)
-            ->where('ay', $ayNorm)
+            ->whereIn('ay', $variants)
             ->first();
 
         if (! $rapor) {
-            $rapor = AylikFaaliyet::query()
-                ->where('user_id', $directorateUserId)
-                ->orderByDesc('yil')
-                ->orderByDesc('ay')
-                ->first();
+            $rapor = static::latestAylikFaaliyetForDirectorateUser($directorateUserId);
         }
 
-        if (! $rapor || ! is_array($rapor->faaliyetler)) {
+        if (! $rapor) {
+            return ['hedef' => 0, 'gerceklesen' => 0, 'kalan' => 0];
+        }
+
+        $faaliyetler = static::faaliyetlerRowsWithHydratedCatalogIds($rapor, $directorateUserId);
+        if ($faaliyetler === []) {
             return ['hedef' => 0, 'gerceklesen' => 0, 'kalan' => 0];
         }
 
@@ -446,7 +467,7 @@ class ControlTeamAuditNoteResource extends Resource
         $gerceklesen = 0;
         $bekleyen = 0;
 
-        foreach ($rapor->faaliyetler as $satir) {
+        foreach ($faaliyetler as $satir) {
             if (! is_array($satir)) {
                 continue;
             }
@@ -478,5 +499,108 @@ class ControlTeamAuditNoteResource extends Resource
             'gerceklesen' => $gerceklesen,
             'kalan' => $kalan,
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function normalizeAyQueryVariants(string $ayNorm): array
+    {
+        if (strlen($ayNorm) !== 2) {
+            return [$ayNorm];
+        }
+
+        $unpadded = (string) (int) $ayNorm;
+
+        return array_values(array_unique([$ayNorm, $unpadded]));
+    }
+
+    private static function reportPeriodSortKey(AylikFaaliyet $r): int
+    {
+        $y = (int) ($r->yil ?? 0);
+        $m = (int) (preg_replace('/\D/', '', (string) ($r->ay ?? '')) ?: 0);
+
+        return $y * 100 + $m;
+    }
+
+    private static function latestAylikFaaliyetForDirectorateUser(int $directorateUserId): ?AylikFaaliyet
+    {
+        if ($directorateUserId <= 0) {
+            return null;
+        }
+
+        $candidates = AylikFaaliyet::query()
+            ->where('user_id', $directorateUserId)
+            ->get()
+            ->sortByDesc(fn (AylikFaaliyet $r): int => static::reportPeriodSortKey($r))
+            ->values();
+
+        foreach ($candidates as $r) {
+            $rows = static::normalizeFaaliyetlerRows($r->faaliyetler);
+            if ($rows === []) {
+                continue;
+            }
+            foreach ($rows as $satir) {
+                if (! is_array($satir)) {
+                    continue;
+                }
+                if ((int) ($satir['activity_catalog_id'] ?? 0) > 0) {
+                    return $r;
+                }
+                if (trim((string) ($satir['faaliyet_kodu'] ?? '')) !== '') {
+                    return $r;
+                }
+            }
+        }
+
+        return $candidates->first();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private static function faaliyetlerRowsWithHydratedCatalogIds(AylikFaaliyet $rapor, int $directorateUserId): array
+    {
+        $rows = static::normalizeFaaliyetlerRows($rapor->faaliyetler);
+        if ($rows === []) {
+            return [];
+        }
+
+        $mudurlukAdi = null;
+        if ($directorateUserId > 0) {
+            $dir = User::query()->find($directorateUserId);
+            if ($dir !== null && filled($dir->name)) {
+                $mudurlukAdi = trim((string) $dir->name);
+            }
+        }
+
+        $hydrated = ActivityCatalogFormatter::hydrateActivityCatalogIdsInFaaliyetler(
+            ['faaliyetler' => $rows],
+            $mudurlukAdi
+        );
+
+        $out = $hydrated['faaliyetler'] ?? [];
+
+        return is_array($out) ? $out : [];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private static function normalizeFaaliyetlerRows(mixed $value): array
+    {
+        if ($value instanceof \Illuminate\Contracts\Support\Arrayable) {
+            $value = $value->toArray();
+        }
+        if (is_array($value)) {
+            return $value;
+        }
+        if (is_string($value) && $value !== '') {
+            $decoded = json_decode($value, true);
+
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
     }
 }

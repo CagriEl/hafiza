@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GecikmeRaporuResource\Pages;
 use App\Models\AylikFaaliyet;
-use App\Models\User;
 use App\Models\ViceMayor;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\QuerySafety;
@@ -94,7 +93,11 @@ class GecikmeRaporuResource extends Resource
                 // MÜDÜRLÜK SEÇME FİLTRESİ
                 SelectFilter::make('user_id')
                     ->label('Müdürlük Seç')
-                    ->relationship('user', 'name') // User modeliyle olan ilişkiden isimleri çeker
+                    ->relationship(
+                        name: 'user',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn (Builder $query) => $query->onlyMudurlukReportingAccounts(),
+                    )
                     ->searchable()
                     ->preload(),
 

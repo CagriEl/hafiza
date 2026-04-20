@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -12,6 +13,10 @@ class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
+
+    public const ROLE_MUDURLUK = 'Müdürlük';
+
+    public const ROLE_DENETIM_EKIBI = 'Denetim Ekibi';
 
     /**
      * The attributes that are mass assignable.
@@ -31,6 +36,7 @@ class User extends Authenticatable
         'vekalet_tam_yetki',
         'vekalet_mudurluk_user_id',
         'role',
+        'include_in_performance_charts',
     ];
 
     /**
@@ -56,6 +62,7 @@ class User extends Authenticatable
             'vekalet_baslangic' => 'date',
             'vekalet_bitis' => 'date',
             'vekalet_tam_yetki' => 'boolean',
+            'include_in_performance_charts' => 'boolean',
         ];
     }
 
@@ -77,6 +84,64 @@ class User extends Authenticatable
             'user_id',
             'directorate_id'
         );
+    }
+
+    /**
+     * Rapor ve müdürlük seçicilerinde listelenecek hesaplar: yalnızca müdürlük rolü;
+     * sistem yöneticisi, başkan yardımcılığı ve denetim ekibi hariç.
+     *
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    public function scopeOnlyMudurlukReportingAccounts(Builder $query): Builder
+    {
+        $viceIds = ViceMayor::query()->pluck('user_id');
+        $roleColumn = $query->qualifyColumn('role');
+
+        $query
+            ->whereKeyNot(1)
+            ->whereIn($roleColumn, [
+                self::ROLE_MUDURLUK,
+                'mudurluk',
+                'MUDURLUK',
+                'Mudurluk',
+                'müdürlük',
+                'MÜDÜRLÜK',
+            ]);
+
+        if ($viceIds->isNotEmpty()) {
+            $query->whereNotIn($query->qualifyColumn('id'), $viceIds->all());
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return Builder<User>
+     */
+    public static function queryMudurlukReportingAccounts(): Builder
+    {
+        return static::query()->onlyMudurlukReportingAccounts()->orderBy('name');
+    }
+
+    /**
+     * Performans / iş yükü grafiklerinde y ekseninde gösterilecek müdürlük hesapları.
+     *
+     * @return Builder<User>
+     */
+    public static function queryPerformanceChartDirectorates(): Builder
+    {
+        $q = static::query()->onlyMudurlukReportingAccounts();
+        $includeColumn = $q->qualifyColumn('include_in_performance_charts');
+
+        return $q
+            ->where(function (Builder $query) use ($includeColumn): void {
+                // Eski kayitlarda NULL gelebilecegi icin NULL'u da "dahil" kabul ediyoruz.
+                $query
+                    ->where($includeColumn, true)
+                    ->orWhereNull($includeColumn);
+            })
+            ->orderBy($q->qualifyColumn('name'));
     }
 
     /**
@@ -181,11 +246,15 @@ class User extends Authenticatable
             return false;
         }
 
-        return ! $this->isViceMayorAccount();
+        if ($this->isViceMayorAccount()) {
+            return false;
+        }
+
+        return trim((string) $this->role) === self::ROLE_MUDURLUK;
     }
 
     public function isControlTeam(): bool
     {
-        return trim((string) $this->role) === 'Denetim Ekibi';
+        return trim((string) $this->role) === self::ROLE_DENETIM_EKIBI;
     }
 }

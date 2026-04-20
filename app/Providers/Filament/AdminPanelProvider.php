@@ -6,6 +6,7 @@ use App\Filament\Pages\UsageGuide;
 use App\Filament\Widgets\AdminStatsOverview;
 use App\Filament\Widgets\AylikFaaliyetChart;
 use App\Filament\Widgets\FaaliyetIstatistikGrafik;
+use App\Filament\Widgets\GecikenIslerUyari;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -39,13 +40,11 @@ class AdminPanelProvider extends PanelProvider
                 Pages\Dashboard::class,
                 UsageGuide::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                \App\Filament\Widgets\GecikenIslerUyari::class,
+                GecikenIslerUyari::class,
                 AylikFaaliyetChart::class,
                 AdminStatsOverview::class,
                 FaaliyetIstatistikGrafik::class,
-
             ])
             ->middleware([
                 EncryptCookies::class,

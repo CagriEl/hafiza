@@ -12,6 +12,12 @@ use Filament\Resources\Pages\EditRecord;
  */
 final class AylikFaaliyetRepeaterLock
 {
+    /** @var list<string> */
+    private const LOCKED_ROW_EDITABLE_KEYS = [
+        'gerceklesen',
+        'bekleyen_is',
+    ];
+
     /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -67,7 +73,7 @@ final class AylikFaaliyetRepeaterLock
             if ($rawIdx !== null && $rawIdx !== '' && is_numeric((string) $rawIdx)) {
                 $idx = (int) $rawIdx;
                 if (array_key_exists($idx, $orig)) {
-                    $out[] = $orig[$idx];
+                    $out[] = self::mergeLockedRowWithAllowedInputs($orig[$idx], $row);
 
                     continue;
                 }
@@ -80,6 +86,24 @@ final class AylikFaaliyetRepeaterLock
         $data['faaliyetler'] = $out;
 
         return $data;
+    }
+
+    /**
+     * Kayıtlı satırlarda yalnızca sınırlı alanların güncellenmesine izin ver.
+     *
+     * @param  array<string, mixed>  $original
+     * @param  array<string, mixed>  $incoming
+     * @return array<string, mixed>
+     */
+    private static function mergeLockedRowWithAllowedInputs(array $original, array $incoming): array
+    {
+        foreach (self::LOCKED_ROW_EDITABLE_KEYS as $key) {
+            if (array_key_exists($key, $incoming)) {
+                $original[$key] = $incoming[$key];
+            }
+        }
+
+        return $original;
     }
 
     /**

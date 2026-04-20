@@ -6,7 +6,6 @@ use App\Filament\Resources\AylikFaaliyetResource\Pages;
 use App\Models\ActivityCatalog;
 use App\Models\AylikFaaliyet;
 use App\Models\User;
-use App\Models\ViceMayor;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\AylikFaaliyetRepeaterLock;
@@ -126,11 +125,43 @@ class AylikFaaliyetResource extends Resource
                                             return 'Daha once girilen faaliyet kodlari: '.implode(', ', $onceki);
                                         })
                                         ->reactive()
-                                        ->afterStateUpdated(function (Set $set, $state) {
+                                        ->afterStateHydrated(function (Set $set, Get $get, $state): void {
+                                            $catalog = ActivityCatalog::find($state);
+                                            if (! $catalog) {
+                                                return;
+                                            }
+
+                                            if (! filled($get('olcu_birimi'))) {
+                                                $set('olcu_birimi', $catalog->olcu_birimi);
+                                            }
+                                            if (! filled($get('faaliyet_kodu'))) {
+                                                $set('faaliyet_kodu', $catalog->faaliyet_kodu);
+                                            }
+                                            if (! filled($get('kapsam_icerigi'))) {
+                                                $set('kapsam_icerigi', $catalog->kapsam);
+                                            }
+
+                                            $set(
+                                                'kapsam_verileri',
+                                                static::syncKapsamVerileri(
+                                                    static::parseKapsamKalemleri((string) ($catalog->kapsam ?? '')),
+                                                    $get('kapsam_verileri')
+                                                )
+                                            );
+                                        })
+                                        ->afterStateUpdated(function (Set $set, Get $get, $state) {
                                             $catalog = ActivityCatalog::find($state);
                                             if ($catalog) {
                                                 $set('olcu_birimi', $catalog->olcu_birimi);
                                                 $set('faaliyet_kodu', $catalog->faaliyet_kodu);
+                                                $set('kapsam_icerigi', $catalog->kapsam);
+                                                $set(
+                                                    'kapsam_verileri',
+                                                    static::syncKapsamVerileri(
+                                                        static::parseKapsamKalemleri((string) ($catalog->kapsam ?? '')),
+                                                        $get('kapsam_verileri')
+                                                    )
+                                                );
                                             }
                                         })
                                         ->disabled(function ($state, Get $get, $livewire): bool {
@@ -155,6 +186,37 @@ class AylikFaaliyetResource extends Resource
                                         ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
                                         ->extraAttributes(['class' => 'bg-gray-50']),
                                 ]),
+
+                                Forms\Components\Textarea::make('kapsam_icerigi')
+                                    ->label('Kapsam İçeriği')
+                                    ->rows(2)
+                                    ->readOnly()
+                                    ->dehydrated()
+                                    ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                    ->extraAttributes(['class' => 'bg-gray-50']),
+
+                                Repeater::make('kapsam_verileri')
+                                    ->label('Kapsam Kalem Veri Girişi')
+                                    ->dehydrated()
+                                    ->schema([
+                                        Forms\Components\Grid::make(2)->schema([
+                                            Forms\Components\TextInput::make('kalem')
+                                                ->label('Kapsam Kalemi')
+                                                ->readOnly()
+                                                ->dehydrated()
+                                                ->extraAttributes(['class' => 'bg-gray-50']),
+                                            Forms\Components\TextInput::make('deger')
+                                                ->label('Veri Girişi')
+                                                ->numeric()
+                                                ->required(),
+                                        ]),
+                                    ])
+                                    ->addable(false)
+                                    ->deletable(false)
+                                    ->reorderable(false)
+                                    ->defaultItems(0)
+                                    ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                    ->visible(fn (Get $get): bool => is_array($get('kapsam_verileri')) && count($get('kapsam_verileri')) > 0),
 
                                 Forms\Components\Select::make('faaliyet_turu')
                                     ->label('Faaliyet Türü')
@@ -204,14 +266,10 @@ class AylikFaaliyetResource extends Resource
                                                     && CoordinationAccess::isIncomingPartnerOnRecord($r, (int) auth()->id());
                                             })
                                             ->options(function () {
-                                                $viceIds = ViceMayor::query()->pluck('user_id')->all();
                                                 $uid = (int) (auth()->id() ?? 0);
 
-                                                return User::query()
-                                                    ->where('id', '!=', 1)
-                                                    ->whereNotIn('id', $viceIds)
-                                                    ->when($uid > 0, fn (Builder $q) => $q->where('id', '!=', $uid))
-                                                    ->orderBy('name')
+                                                return User::queryMudurlukReportingAccounts()
+                                                    ->when($uid > 0, fn (Builder $q) => $q->where($q->qualifyColumn('id'), '!=', $uid))
                                                     ->pluck('name', 'id')
                                                     ->all();
                                             })
@@ -302,10 +360,12 @@ class AylikFaaliyetResource extends Resource
                                     ])
                                     ->visible(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon'),
 
-                                Grid::make(4)->schema([
-                                    Forms\Components\Select::make('hafta')
-                                        ->label('Rapor Haftası')
-                                        ->options([1 => '1. Hafta', 2 => '2. Hafta', 3 => '3. Hafta', 4 => '4. Hafta'])
+                                Grid::make(5)->schema([
+                                    Forms\Components\TextInput::make('hedef')
+                                        ->label('Aylık Öngörülen Hedef')
+                                        ->numeric()
+                                        ->placeholder('Örn: 450')
+                                        ->live()
                                         ->helperText(function (Get $get) {
                                             $catalog = ActivityCatalog::find($get('activity_catalog_id'));
                                             $kat = $catalog?->kategori ?? '';
@@ -316,28 +376,24 @@ class AylikFaaliyetResource extends Resource
 
                                             return $hint ? 'Raporlama modeli (Destek / İç İşleyiş): '.$hint : null;
                                         })
-                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
-                                        ->required(),
-
-                                    Forms\Components\TextInput::make('hedef')
-                                        ->label('Haftalık Hedef')
-                                        ->numeric()
-                                        ->placeholder('Örn: 450')
-                                        ->live()
                                         ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
 
                                     Forms\Components\TextInput::make('gerceklesen')
                                         ->label('Gerçekleşen')
                                         ->numeric()
                                         ->placeholder('Örn: 395')
-                                        ->live()
-                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
+                                        ->live(),
 
                                     Forms\Components\TextInput::make('bekleyen_is')
                                         ->label('Açık/Bekleyen İş')
                                         ->numeric()
-                                        ->placeholder('Örn: 18')
-                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
+                                        ->placeholder('Örn: 18'),
+                                    Forms\Components\TextInput::make('miktar')
+                                        ->label('Miktar')
+                                        ->numeric()
+                                        ->placeholder('Örn: 120')
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                        ->required(),
                                 ]),
 
                                 Grid::make(2)->schema([
@@ -676,6 +732,55 @@ class AylikFaaliyetResource extends Resource
         }
 
         return true;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function parseKapsamKalemleri(string $kapsam): array
+    {
+        $kapsam = trim($kapsam);
+        if ($kapsam === '') {
+            return [];
+        }
+
+        return collect(explode(',', $kapsam))
+            ->map(fn (string $parca): string => trim($parca))
+            ->filter(fn (string $parca): bool => $parca !== '')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $kalemler
+     * @param  mixed  $mevcut
+     * @return list<array{kalem: string, deger: mixed}>
+     */
+    private static function syncKapsamVerileri(array $kalemler, mixed $mevcut): array
+    {
+        $degerHaritasi = [];
+        if (is_array($mevcut)) {
+            foreach ($mevcut as $satir) {
+                if (! is_array($satir)) {
+                    continue;
+                }
+                $kalem = trim((string) ($satir['kalem'] ?? ''));
+                if ($kalem === '') {
+                    continue;
+                }
+                $degerHaritasi[$kalem] = $satir['deger'] ?? null;
+            }
+        }
+
+        $out = [];
+        foreach ($kalemler as $kalem) {
+            $out[] = [
+                'kalem' => $kalem,
+                'deger' => $degerHaritasi[$kalem] ?? null,
+            ];
+        }
+
+        return $out;
     }
 
     public static function getPages(): array

@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\ControlTeamAuditNoteResource\Pages;
 
 use App\Filament\Resources\ControlTeamAuditNoteResource;
-use App\Models\AylikFaaliyet;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -46,28 +45,13 @@ class CreateControlTeamAuditNote extends CreateRecord
         $directorateUserId = (int) ($data['directorate_user_id'] ?? 0);
         $yil = (int) ($data['yil'] ?? 0);
         $ayRaw = trim((string) ($data['ay'] ?? ''));
-        $ay = str_pad(preg_replace('/\D/', '', $ayRaw) ?: '', 2, '0', STR_PAD_LEFT);
 
-        if ($directorateUserId <= 0) {
-            return 0;
-        }
+        $rapor = ControlTeamAuditNoteResource::resolveAylikFaaliyetForDirectoratePeriod(
+            $directorateUserId,
+            $yil,
+            $ayRaw
+        );
 
-        $query = AylikFaaliyet::query()->where('user_id', $directorateUserId);
-        if ($yil > 0 && strlen($ay) === 2) {
-            $match = (clone $query)
-                ->where('yil', $yil)
-                ->where('ay', $ay)
-                ->value('id');
-            if ($match) {
-                return (int) $match;
-            }
-        }
-
-        $fallback = (clone $query)
-            ->orderByDesc('yil')
-            ->orderByDesc('ay')
-            ->value('id');
-
-        return (int) ($fallback ?? 0);
+        return $rapor ? (int) $rapor->id : 0;
     }
 }

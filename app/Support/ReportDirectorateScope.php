@@ -32,7 +32,11 @@ final class ReportDirectorateScope
             return $query->whereRaw('0 = 1');
         }
 
-        $column = method_exists($query, 'qualifyColumn') ? $query->qualifyColumn($userIdColumn) : $userIdColumn;
+        // qualifyColumn() Eloquent Builder'da modele delege edilir; model yoksa null üzerinde çağrı hatası oluşur.
+        $column = $userIdColumn;
+        if ($query instanceof Builder && $query->getModel() !== null) {
+            $column = $query->qualifyColumn($userIdColumn);
+        }
 
         return $query->whereIn($column, $ids);
     }

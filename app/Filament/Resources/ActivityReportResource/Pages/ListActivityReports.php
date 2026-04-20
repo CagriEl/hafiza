@@ -4,7 +4,6 @@ namespace App\Filament\Resources\ActivityReportResource\Pages;
 
 use App\Filament\Resources\ActivityReportResource;
 use App\Models\User;
-use App\Models\ViceMayor;
 use App\Services\ActivityService;
 use App\Support\CoordinationAccess;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -172,10 +171,7 @@ class ListActivityReports extends ListRecords
      */
     private function mudurlukCandidateUserIds(): array
     {
-        return User::query()
-            ->where('id', '!=', 1)
-            ->whereNotIn('id', ViceMayor::query()->pluck('user_id'))
-            ->orderBy('name')
+        return User::queryMudurlukReportingAccounts()
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
             ->all();

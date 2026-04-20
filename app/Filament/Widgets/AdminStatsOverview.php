@@ -3,9 +3,10 @@
 namespace App\Filament\Widgets;
 
 use App\Models\AylikFaaliyet;
+use App\Models\User;
+use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
-use Carbon\Carbon;
 
 class AdminStatsOverview extends BaseWidget
 {
@@ -17,22 +18,25 @@ class AdminStatsOverview extends BaseWidget
 
     protected function getStats(): array
     {
-        $kayitlar = AylikFaaliyet::all();
-        
+        $ownerIds = User::queryPerformanceChartDirectorates()->pluck('id');
+        $kayitlar = AylikFaaliyet::query()
+            ->whereIn('user_id', $ownerIds)
+            ->get();
+
         $toplamIs = 0;
         $gecikenIs = 0;
 
         foreach ($kayitlar as $kayit) {
             $isler = is_string($kayit->faaliyetler) ? json_decode($kayit->faaliyetler, true) : $kayit->faaliyetler;
-            
+
             if (is_array($isler)) {
                 foreach ($isler as $is) {
                     $toplamIs++;
-                    
+
                     // Gecikme kontrolü: Tarih geçmiş ve tamamlanmamış
                     if (
-                        isset($is['son_tarih']) && 
-                        Carbon::parse($is['son_tarih'])->isPast() && 
+                        isset($is['son_tarih']) &&
+                        Carbon::parse($is['son_tarih'])->isPast() &&
                         ($is['durum'] ?? '') !== 'tamam'
                     ) {
                         $gecikenIs++;

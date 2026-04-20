@@ -4,14 +4,14 @@ namespace App\Filament\Widgets;
 
 use App\Models\AylikFaaliyet;
 use App\Models\User;
-use Filament\Widgets\ChartWidget;
 use Carbon\Carbon;
+use Filament\Widgets\ChartWidget;
 
 class FaaliyetIstatistikGrafik extends ChartWidget
 {
     protected static ?string $heading = 'Müdürlük Performans ve İş Yükü Analizi';
-    
-    protected int | string | array $columnSpan = 'full';
+
+    protected int|string|array $columnSpan = 'full';
 
     // Başlangıçta mevcut ayı (2026-02) otomatik seçer
     public ?string $filter = null;
@@ -34,7 +34,7 @@ class FaaliyetIstatistikGrafik extends ChartWidget
             $filters[$key] = $label;
         }
 
-        return array_reverse($filters); 
+        return array_reverse($filters);
     }
 
     public static function canView(): bool
@@ -45,13 +45,15 @@ class FaaliyetIstatistikGrafik extends ChartWidget
     protected function getData(): array
     {
         $activeFilter = $this->filter ?? now()->format('Y-m');
-        
+
         $filterParts = explode('-', $activeFilter);
         $yil = $filterParts[0];
-        $ay = $filterParts[1];
+        $ayRaw = $filterParts[1] ?? '01';
+        $ayNorm = str_pad(preg_replace('/\D/', '', (string) $ayRaw) ?: '1', 2, '0', STR_PAD_LEFT);
+        $ayVariants = array_values(array_unique([$ayNorm, (string) (int) $ayNorm]));
 
-        $mudurlukler = User::where('id', '!=', 1)->get();
-        
+        $mudurlukler = User::queryPerformanceChartDirectorates()->get();
+
         $labels = [];
         $tamamlananVerisi = [];
         $gecikmeVerisi = [];
@@ -59,13 +61,16 @@ class FaaliyetIstatistikGrafik extends ChartWidget
 
         foreach ($mudurlukler as $mudurluk) {
             $labels[] = $mudurluk->name;
-            
-            $kayitlar = AylikFaaliyet::where('user_id', $mudurluk->id)
+
+            $kayitlar = AylikFaaliyet::query()
+                ->where('user_id', $mudurluk->id)
                 ->where('yil', $yil)
-                ->where('ay', $ay)
+                ->whereIn('ay', $ayVariants)
                 ->get();
 
-            $tamam = 0; $gecikme = 0; $bekleyen = 0;
+            $tamam = 0;
+            $gecikme = 0;
+            $bekleyen = 0;
 
             foreach ($kayitlar as $kayit) {
                 $isler = is_string($kayit->faaliyetler) ? json_decode($kayit->faaliyetler, true) : $kayit->faaliyetler;
@@ -74,9 +79,13 @@ class FaaliyetIstatistikGrafik extends ChartWidget
                         $isTamam = ($is['durum'] ?? '') === 'tamam';
                         $sonTarih = isset($is['son_tarih']) ? Carbon::parse($is['son_tarih']) : null;
 
-                        if ($isTamam) $tamam++;
-                        elseif ($sonTarih && $sonTarih->isPast()) $gecikme++;
-                        else $bekleyen++;
+                        if ($isTamam) {
+                            $tamam++;
+                        } elseif ($sonTarih && $sonTarih->isPast()) {
+                            $gecikme++;
+                        } else {
+                            $bekleyen++;
+                        }
                     }
                 }
             }

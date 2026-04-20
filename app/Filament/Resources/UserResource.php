@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
-use App\Models\ViceMayor;
 use App\Support\QuerySafety;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
@@ -56,29 +55,39 @@ class UserResource extends Resource
                                     ->relationship('viceMayor', 'ad_soyad')
                                     ->label('Bağlı Olduğu Başkan Yardımcısı')
                                     ->placeholder('Başkan Yardımcısı Seçiniz...')
-                                    ->required(fn (Forms\Get $get): bool => $get('role') !== 'Denetim Ekibi'),
+                                    ->required(fn (Forms\Get $get): bool => $get('role') !== User::ROLE_DENETIM_EKIBI),
                                 Forms\Components\Select::make('role')
                                     ->label('Rol')
                                     ->options([
-                                        'Müdürlük' => 'Müdürlük',
-                                        'Denetim Ekibi' => 'Denetim Ekibi',
+                                        User::ROLE_MUDURLUK => User::ROLE_MUDURLUK,
+                                        User::ROLE_DENETIM_EKIBI => User::ROLE_DENETIM_EKIBI,
                                     ])
-                                    ->default('Müdürlük')
-                                    ->live(),
+                                    ->default(User::ROLE_MUDURLUK)
+                                    ->required()
+                                    ->live()
+                                    ->afterStateUpdated(function (Forms\Set $set, ?string $state): void {
+                                        if ($state === User::ROLE_MUDURLUK) {
+                                            $set('include_in_performance_charts', true);
+                                        }
+                                    }),
+                                Forms\Components\Toggle::make('include_in_performance_charts')
+                                    ->label('Performans grafiğine dahil et')
+                                    ->helperText('Açıksa bu müdürlük "Müdürlük Performans ve İş Yükü Analizi" grafiğinde görünür.')
+                                    ->default(true)
+                                    ->visible(fn (Forms\Get $get): bool => $get('role') === User::ROLE_MUDURLUK),
                                 Forms\Components\Select::make('assignedDirectorates')
                                     ->label('Atanan Müdürlükler')
                                     ->relationship(
                                         name: 'assignedDirectorates',
                                         titleAttribute: 'name',
-                                        modifyQueryUsing: fn (Builder $q) => $q
-                                            ->where('id', '!=', 1)
-                                            ->whereNotIn('id', ViceMayor::query()->pluck('user_id'))
-                                            ->orderBy('name')
+                                        modifyQueryUsing: fn (Builder $query) => $query
+                                            ->onlyMudurlukReportingAccounts()
+                                            ->orderBy($query->qualifyColumn('name'))
                                     )
                                     ->multiple()
                                     ->searchable()
                                     ->preload()
-                                    ->visible(fn (Forms\Get $get): bool => $get('role') === 'Denetim Ekibi'),
+                                    ->visible(fn (Forms\Get $get): bool => $get('role') === User::ROLE_DENETIM_EKIBI),
                                 Forms\Components\TextInput::make('sorumlu_ad_soyad')
                                     ->label('Sorumlu Adı Soyadı')
                                     ->placeholder('Örn: Ahmet Yılmaz'),
@@ -110,7 +119,9 @@ class UserResource extends Resource
                             ->relationship(
                                 name: 'vekaletMudurlukUser',
                                 titleAttribute: 'name',
-                                modifyQueryUsing: fn (Builder $q) => $q->where('id', '!=', 1)->orderBy('name')
+                                modifyQueryUsing: fn (Builder $query) => $query
+                                    ->where($query->qualifyColumn('id'), '!=', 1)
+                                    ->orderBy($query->qualifyColumn('name'))
                             )
                             ->searchable()
                             ->preload(),
@@ -148,7 +159,22 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')->label('Müdürlük')->searchable(),
+                TextColumn::make('name')->label('Birim / Kullanıcı Adı')->searchable(),
+                TextColumn::make('role')
+                    ->label('Rol')
+                    ->badge()
+                    ->color(fn ($state): string => match ((string) $state) {
+                        User::ROLE_MUDURLUK => 'info',
+                        User::ROLE_DENETIM_EKIBI => 'warning',
+                        default => 'gray',
+                    }),
+                \Filament\Tables\Columns\IconColumn::make('include_in_performance_charts')
+                    ->label('Performans Grafiği')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-chart-bar')
+                    ->falseIcon('heroicon-o-x-circle')
+                    ->trueColor('success')
+                    ->falseColor('gray'),
                 TextColumn::make('email')->label('E-Posta'),
                 TextColumn::make('created_at')->label('Kayıt Tarihi')->date(),
             ])
