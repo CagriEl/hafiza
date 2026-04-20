@@ -121,8 +121,44 @@ class ListAylikFaaliyets extends ListRecords
                     };
 
                     $sonTarih = isset($is['son_tarih']) ? Carbon::parse($is['son_tarih'])->format('d.m.Y') : '-';
+                    $baslik = trim((string) ($is['konu'] ?? ''));
+                    if ($baslik === '') {
+                        $baslik = trim((string) ($is['faaliyet_kodu'] ?? 'Faaliyet'));
+                    }
+
+                    $kapsamIcerigi = trim((string) ($is['kapsam_icerigi'] ?? ''));
+                    $olcuBirimi = trim((string) ($is['olcu_birimi'] ?? ''));
+                    $hedef = $is['hedef'] ?? '-';
+                    $gerceklesen = $is['gerceklesen'] ?? '-';
+                    $bekleyen = $is['bekleyen_is'] ?? '-';
+                    $miktar = $is['miktar'] ?? '-';
+
+                    $kapsamKalemleri = '';
+                    $satirlar = $is['kapsam_verileri'] ?? [];
+                    if (is_array($satirlar) && $satirlar !== []) {
+                        $pairs = [];
+                        foreach ($satirlar as $satir) {
+                            if (! is_array($satir)) {
+                                continue;
+                            }
+                            $kalem = trim((string) ($satir['kalem'] ?? ''));
+                            if ($kalem === '') {
+                                continue;
+                            }
+                            $deger = $satir['deger'] ?? null;
+                            $pairs[] = e($kalem).': '.e(filled($deger) ? (string) $deger : '-');
+                        }
+                        if ($pairs !== []) {
+                            $kapsamKalemleri = '<br><b>Kapsam Kalemleri:</b> '.implode(' | ', $pairs);
+                        }
+                    }
+
                     $isDetaylari .= "<div style='margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;'>
-                                        <b>[".e($durum).']</b> '.e($is['konu']).' 
+                                        <b>[".e($durum).']</b> '.e($baslik).'
+                                        <br><b>Hedef/Gerçekleşen/Bekleyen:</b> '.e((string) $hedef).' / '.e((string) $gerceklesen).' / '.e((string) $bekleyen).'
+                                        <br><b>Miktar:</b> '.e((string) $miktar).($olcuBirimi !== '' ? ' '.e($olcuBirimi) : '').'
+                                        '.($kapsamIcerigi !== '' ? '<br><b>Kapsam:</b> '.e($kapsamIcerigi) : '').'
+                                        '.$kapsamKalemleri.'
                                         <br><b>Bitiş:</b> '.$sonTarih.'
                                      </div>';
                 }

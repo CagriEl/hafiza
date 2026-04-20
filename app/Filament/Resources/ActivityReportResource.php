@@ -129,28 +129,8 @@ class ActivityReportResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        $u = auth()->user();
-        if (! $u instanceof User) {
-            return false;
-        }
-
-        if ($u->isControlTeam()) {
-            return false;
-        }
-
-        if (CoordinationAccess::isIncomingPartnerOnRecord($record, (int) $u->id)) {
-            return true;
-        }
-
-        if ($u->isReportingSuperAdmin()) {
-            return true;
-        }
-
-        if ($u->isViceMayorAccount()) {
-            return $u->canViewReportDataForOwnerId((int) $record->user_id);
-        }
-
-        return (int) $record->user_id === (int) $u->id;
+        // Kayıt oluşturulduktan sonra düzenleme kapalı (salt rapor görünümü).
+        return false;
     }
 
     public static function canDelete(Model $record): bool

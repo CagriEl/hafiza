@@ -588,7 +588,7 @@ class AylikFaaliyetResource extends Resource
                         TextEntry::make('ay')->label('Ay'),
                     ])
                     ->columns(3),
-                InfolistSection::make('Faaliyet satırları')
+                InfolistSection::make('Raporlanan Faaliyetler')
                     ->schema([
                         RepeatableEntry::make('faaliyetler')
                             ->schema([
@@ -605,9 +605,35 @@ class AylikFaaliyetResource extends Resource
 
                                         return User::query()->whereIn('id', $ids)->pluck('name')->implode(', ') ?: '-';
                                     }),
-                                TextEntry::make('hafta')->label('Hafta'),
-                                TextEntry::make('hedef')->label('Hedef'),
+                                TextEntry::make('hedef')->label('Aylık Öngörülen Hedef'),
                                 TextEntry::make('gerceklesen')->label('Gerçekleşen'),
+                                TextEntry::make('bekleyen_is')->label('Açık/Bekleyen İş'),
+                                TextEntry::make('miktar')->label('Miktar'),
+                                TextEntry::make('olcu_birimi')->label('Ölçü Birimi')->placeholder('—'),
+                                TextEntry::make('kapsam_icerigi')->label('Kapsam İçeriği')->placeholder('—'),
+                                TextEntry::make('kapsam_verileri')
+                                    ->label('Kapsam Kalem Girdileri')
+                                    ->placeholder('—')
+                                    ->formatStateUsing(function ($state): string {
+                                        if (! is_array($state) || $state === []) {
+                                            return '—';
+                                        }
+
+                                        $parts = [];
+                                        foreach ($state as $satir) {
+                                            if (! is_array($satir)) {
+                                                continue;
+                                            }
+                                            $kalem = trim((string) ($satir['kalem'] ?? ''));
+                                            if ($kalem === '') {
+                                                continue;
+                                            }
+                                            $deger = $satir['deger'] ?? null;
+                                            $parts[] = $kalem.': '.(filled($deger) ? (string) $deger : '-');
+                                        }
+
+                                        return $parts === [] ? '—' : implode(' | ', $parts);
+                                    }),
                                 TextEntry::make('sapma_nedeni')->label('Sapma')->placeholder('—'),
                                 TextEntry::make('gerekli_revize')
                                     ->label('Revize')
@@ -688,20 +714,8 @@ class AylikFaaliyetResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        $u = auth()->user();
-        if (! $u instanceof User) {
-            return false;
-        }
-
-        if ($u->isReportingSuperAdmin()) {
-            return true;
-        }
-
-        if ($u->isViceMayorAccount()) {
-            return $u->canViewReportDataForOwnerId((int) $record->user_id);
-        }
-
-        return (int) $record->user_id === (int) $u->id;
+        // Kayıt oluşturulduktan sonra veriler immutable: düzenleme kapalı.
+        return false;
     }
 
     public static function canDelete(Model $record): bool
@@ -724,14 +738,9 @@ class AylikFaaliyetResource extends Resource
         if (! $u instanceof User) {
             return false;
         }
-        if ($u->isReportingSuperAdmin()) {
-            return false;
-        }
-        if ($u->isViceMayorAccount()) {
-            return false;
-        }
 
-        return true;
+        // Yalnızca müdürlük raporlayan hesap yeni rapor oluşturabilir.
+        return $u->isMudurlukReportingAccount();
     }
 
     /**
