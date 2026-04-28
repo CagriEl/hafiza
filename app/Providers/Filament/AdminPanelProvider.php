@@ -5,7 +5,6 @@ namespace App\Providers\Filament;
 use App\Filament\Pages\UsageGuide;
 use App\Filament\Widgets\AdminStatsOverview;
 use App\Filament\Widgets\AnnouncementWidget;
-use App\Filament\Widgets\AylikFaaliyetChart;
 use App\Filament\Widgets\FaaliyetIstatistikGrafik;
 use App\Filament\Widgets\GecikenIslerUyari;
 use Filament\Http\Middleware\Authenticate;
@@ -45,7 +44,6 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AnnouncementWidget::class,
                 GecikenIslerUyari::class,
-                AylikFaaliyetChart::class,
                 AdminStatsOverview::class,
                 FaaliyetIstatistikGrafik::class,
             ])

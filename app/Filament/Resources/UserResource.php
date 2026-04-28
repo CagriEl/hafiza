@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Exports\UserExporter;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use App\Support\QuerySafety;
@@ -180,6 +181,11 @@ class UserResource extends Resource
             ])
             ->filters([
                 //
+            ])
+            ->bulkActions([
+                \Filament\Tables\Actions\ExportBulkAction::make()
+                    ->label('Seçilenleri Dışa Aktar')
+                    ->exporter(UserExporter::class),
             ]);
     }
 

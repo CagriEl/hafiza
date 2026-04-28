@@ -4,17 +4,19 @@ namespace App\Filament\Widgets;
 
 use App\Models\AylikFaaliyet;
 use App\Models\User;
+use Carbon\Carbon;
 use Filament\Support\RawJs;
 use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Str;
 
 class FaaliyetIstatistikGrafik extends ChartWidget
 {
-    protected static ?string $heading = 'Müdürlük Performans ve İş Yükü Analizi';
+    protected static string $view = 'filament.widgets.faaliyet-istatistik-grafik';
 
-    protected int|string|array $columnSpan = 'full';
+    protected static ?string $heading = 'Müdürlük İş Yükü Dağılımı';
 
-    protected static ?string $maxHeight = '800px';
+    protected string|int|array $columnSpan = 'full';
+
+    protected static ?string $maxHeight = '500px';
 
     public ?string $filter = 'all';
 
@@ -79,7 +81,6 @@ class FaaliyetIstatistikGrafik extends ChartWidget
 
             $rows[] = [
                 'full_name' => (string) $mudurluk->name,
-                'short_name' => $this->shortDirectorateName((string) $mudurluk->name),
                 'tamam' => $tamam,
                 'gecikme' => $gecikme,
                 'bekleyen' => $bekleyen,
@@ -97,19 +98,22 @@ class FaaliyetIstatistikGrafik extends ChartWidget
             usort($rows, fn (array $a, array $b): int => strcasecmp($a['full_name'], $b['full_name']));
         }
 
-        $labels = array_column($rows, 'short_name');
+        $labels = array_column($rows, 'full_name');
         $fullLabels = array_column($rows, 'full_name');
-        $tamamlananVerisi = array_column($rows, 'tamam');
-        $gecikmeVerisi = array_column($rows, 'gecikme');
-        $bekleyenVerisi = array_column($rows, 'bekleyen');
-
-        static::$maxHeight = max(600, (count($rows) * 34) + 120).'px';
+        $performansVerisi = array_column($rows, 'performans');
 
         return [
             'datasets' => [
-                ['label' => 'Tamamlanan', 'data' => $tamamlananVerisi, 'backgroundColor' => '#22c55e', 'barThickness' => 14],
-                ['label' => 'Bekleyen / Planlanan', 'data' => $bekleyenVerisi, 'backgroundColor' => '#3b82f6', 'barThickness' => 14],
-                ['label' => 'Geciken', 'data' => $gecikmeVerisi, 'backgroundColor' => '#ef4444', 'barThickness' => 14],
+                [
+                    'label' => 'İş Yükü Skoru (%)',
+                    'data' => $performansVerisi,
+                    'backgroundColor' => '#60a5fa',
+                    'borderColor' => '#3b82f6',
+                    'borderWidth' => 1,
+                    'barThickness' => 5,
+                    'barPercentage' => 1,
+                    'categoryPercentage' => 1,
+                ],
             ],
             'labels' => $labels,
             'fullLabels' => $fullLabels,
@@ -127,14 +131,16 @@ class FaaliyetIstatistikGrafik extends ChartWidget
             'indexAxis' => 'y',
             'responsive' => true,
             'scales' => [
-                'x' => ['stacked' => true],
+                'x' => [
+                    'beginAtZero' => true,
+                    'max' => 100,
+                ],
                 'y' => [
-                    'stacked' => true,
                     'ticks' => ['autoSkip' => false, 'font' => ['size' => 10]],
                 ],
             ],
             'plugins' => [
-                'legend' => ['position' => 'top'],
+                'legend' => ['display' => false],
                 'tooltip' => [
                     'callbacks' => [
                         'title' => RawJs::make('function (items) {
@@ -143,6 +149,9 @@ class FaaliyetIstatistikGrafik extends ChartWidget
                             const idx = items[0].dataIndex;
                             const full = chart?.data?.fullLabels?.[idx];
                             return full ?? items[0].label;
+                        }'),
+                        'label' => RawJs::make('function (item) {
+                            return "Performans Skoru: " + item.formattedValue + "%";
                         }'),
                     ],
                 ],
@@ -154,18 +163,8 @@ class FaaliyetIstatistikGrafik extends ChartWidget
     protected function getExtraAttributes(): array
     {
         return [
-            'class' => 'max-h-[600px] overflow-y-auto',
+            'class' => 'overflow-y-auto',
+            'style' => 'height: 500px; min-height: 500px;',
         ];
-    }
-
-    private function shortDirectorateName(string $name): string
-    {
-        $normalized = trim(Str::of($name)->replace(' Müdürlüğü', '')->toString());
-
-        if (Str::length($normalized) <= 24) {
-            return $normalized;
-        }
-
-        return Str::of($normalized)->limit(24, '...')->toString();
     }
 }
