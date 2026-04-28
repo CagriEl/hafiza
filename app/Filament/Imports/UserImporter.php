@@ -69,4 +69,10 @@ class UserImporter extends Importer
 
         return $body;
     }
+
+    public function getJobConnection(): ?string
+    {
+        // Sunucuda queue worker olmasa bile kullanıcı importu anında işlenir.
+        return 'sync';
+    }
 }
