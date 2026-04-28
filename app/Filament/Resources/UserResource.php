@@ -55,12 +55,12 @@ class UserResource extends Resource
                                     ->relationship('viceMayor', 'ad_soyad')
                                     ->label('Bağlı Olduğu Başkan Yardımcısı')
                                     ->placeholder('Başkan Yardımcısı Seçiniz...')
-                                    ->required(fn (Forms\Get $get): bool => $get('role') !== User::ROLE_DENETIM_EKIBI),
+                                    ->required(fn (Forms\Get $get): bool => $get('role') !== User::ROLE_ANALIZ_EKIBI),
                                 Forms\Components\Select::make('role')
                                     ->label('Rol')
                                     ->options([
                                         User::ROLE_MUDURLUK => User::ROLE_MUDURLUK,
-                                        User::ROLE_DENETIM_EKIBI => User::ROLE_DENETIM_EKIBI,
+                                        User::ROLE_ANALIZ_EKIBI => User::ROLE_ANALIZ_EKIBI,
                                     ])
                                     ->default(User::ROLE_MUDURLUK)
                                     ->required()
@@ -87,7 +87,7 @@ class UserResource extends Resource
                                     ->multiple()
                                     ->searchable()
                                     ->preload()
-                                    ->visible(fn (Forms\Get $get): bool => $get('role') === User::ROLE_DENETIM_EKIBI),
+                                    ->visible(fn (Forms\Get $get): bool => $get('role') === User::ROLE_ANALIZ_EKIBI),
                                 Forms\Components\TextInput::make('sorumlu_ad_soyad')
                                     ->label('Sorumlu Adı Soyadı')
                                     ->placeholder('Örn: Ahmet Yılmaz'),
@@ -165,7 +165,7 @@ class UserResource extends Resource
                     ->badge()
                     ->color(fn ($state): string => match ((string) $state) {
                         User::ROLE_MUDURLUK => 'info',
-                        User::ROLE_DENETIM_EKIBI => 'warning',
+                        User::ROLE_ANALIZ_EKIBI => 'warning',
                         default => 'gray',
                     }),
                 \Filament\Tables\Columns\IconColumn::make('include_in_performance_charts')

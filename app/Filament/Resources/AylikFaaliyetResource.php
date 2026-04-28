@@ -37,6 +37,8 @@ class AylikFaaliyetResource extends Resource
 {
     protected static ?string $model = AylikFaaliyet::class;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
 
     protected static ?string $navigationLabel = 'Aylık Rapor';
@@ -572,7 +574,7 @@ class AylikFaaliyetResource extends Resource
                     ->label('Görüntüle')
                     ->visible(fn (AylikFaaliyet $record) => static::canView($record) && ! static::canEdit($record)),
                 Tables\Actions\EditAction::make()
-                    ->label('Detay / Denetim')
+                    ->label('Detay / Analiz')
                     ->visible(fn (AylikFaaliyet $record) => static::canEdit($record)),
             ]);
     }

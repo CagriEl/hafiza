@@ -16,7 +16,7 @@ class User extends Authenticatable
 
     public const ROLE_MUDURLUK = 'Müdürlük';
 
-    public const ROLE_DENETIM_EKIBI = 'Denetim Ekibi';
+    public const ROLE_ANALIZ_EKIBI = 'Analiz Ekibi';
 
     /**
      * The attributes that are mass assignable.
@@ -35,6 +35,7 @@ class User extends Authenticatable
         'vekalet_bitis',
         'vekalet_tam_yetki',
         'vekalet_mudurluk_user_id',
+        'directorate_id',
         'role',
         'include_in_performance_charts',
     ];
@@ -255,6 +256,6 @@ class User extends Authenticatable
 
     public function isControlTeam(): bool
     {
-        return trim((string) $this->role) === self::ROLE_DENETIM_EKIBI;
+        return trim((string) $this->role) === self::ROLE_ANALIZ_EKIBI;
     }
 }

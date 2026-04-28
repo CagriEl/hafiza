@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\UsageGuide;
 use App\Filament\Widgets\AdminStatsOverview;
+use App\Filament\Widgets\AnnouncementWidget;
 use App\Filament\Widgets\AylikFaaliyetChart;
 use App\Filament\Widgets\FaaliyetIstatistikGrafik;
 use App\Filament\Widgets\GecikenIslerUyari;
@@ -11,6 +12,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -41,10 +43,19 @@ class AdminPanelProvider extends PanelProvider
                 UsageGuide::class,
             ])
             ->widgets([
+                AnnouncementWidget::class,
                 GecikenIslerUyari::class,
                 AylikFaaliyetChart::class,
                 AdminStatsOverview::class,
                 FaaliyetIstatistikGrafik::class,
+            ])
+            ->navigationGroups([
+                NavigationGroup::make()->label('Raporlama'),
+                NavigationGroup::make()->label('Yönetim'),
+                NavigationGroup::make()->label('Tanımlamalar'),
+                NavigationGroup::make()->label('Kurumsal Hafıza'),
+                NavigationGroup::make()->label('İletişim'),
+                NavigationGroup::make()->label('Yardım'),
             ])
             ->middleware([
                 EncryptCookies::class,

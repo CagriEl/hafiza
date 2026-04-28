@@ -23,7 +23,7 @@ class ActivityReportResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
 
-    protected static ?string $navigationGroup = null;
+    protected static ?string $navigationGroup = 'Raporlama';
 
     protected static ?int $navigationSort = 1;
 
@@ -51,7 +51,7 @@ class ActivityReportResource extends Resource
                     ]))
                     ->visible(fn (AylikFaaliyet $record) => static::canView($record) && ! static::canEdit($record)),
                 Tables\Actions\EditAction::make()
-                    ->label('Detay / Denetim')
+                    ->label('Detay / Analiz')
                     ->url(fn (AylikFaaliyet $record): string => static::getUrl('edit', [
                         'record' => $record,
                         'tab' => $tabFromSession(),

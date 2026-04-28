@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\AylikFaaliyet;
+use App\Models\Feedback;
 use App\Models\User;
 use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
@@ -45,6 +46,10 @@ class AdminStatsOverview extends BaseWidget
             }
         }
 
+        $bekleyenGeriBildirim = Feedback::query()
+            ->where('status', Feedback::STATUS_NEW)
+            ->count();
+
         return [
             Stat::make('Sistemdeki Toplam İş Sayısı', $toplamIs)
                 ->description('Tüm müdürlüklerin girdiği toplam faaliyet')
@@ -55,6 +60,10 @@ class AdminStatsOverview extends BaseWidget
                 ->description('Süresi dolmuş ama tamamlanmamış işler')
                 ->icon('heroicon-m-exclamation-circle')
                 ->color('danger'),
+            Stat::make('Bekleyen Geri Bildirimler', $bekleyenGeriBildirim)
+                ->description('IT ekibinin incelemesini bekleyen kayıtlar')
+                ->icon('heroicon-m-chat-bubble-left-right')
+                ->color('warning'),
         ];
     }
 }
