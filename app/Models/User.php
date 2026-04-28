@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -70,6 +71,11 @@ class User extends Authenticatable
     public function viceMayor(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(ViceMayor::class);
+    }
+
+    public function directorate(): BelongsTo
+    {
+        return $this->belongsTo(Directorate::class);
     }
 
     public function vekaletMudurlukUser(): \Illuminate\Database\Eloquent\Relations\BelongsTo
