@@ -14,6 +14,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class FeedbackResource extends Resource
 {
@@ -201,11 +202,25 @@ class FeedbackResource extends Resource
             return null;
         }
 
-        $byMapping = Directorate::query()
-            ->where('mudurluk_user_id', $user->id)
-            ->value('id');
-        if ($byMapping) {
-            return (int) $byMapping;
+        // Yeni şemada müdürlük ilişkisi users.directorate_id üzerinden gelir.
+        $directDirectorateId = (int) ($user->directorate_id ?? 0);
+        if ($directDirectorateId > 0) {
+            $exists = Directorate::query()->whereKey($directDirectorateId)->exists();
+
+            if ($exists) {
+                return $directDirectorateId;
+            }
+        }
+
+        // Eski şema desteği: bazı ortamlarda directorates.mudurluk_user_id bulunabilir.
+        if (Schema::hasColumn('directorates', 'mudurluk_user_id')) {
+            $byMapping = Directorate::query()
+                ->where('mudurluk_user_id', $user->id)
+                ->value('id');
+
+            if ($byMapping) {
+                return (int) $byMapping;
+            }
         }
 
         $name = trim((string) $user->name);
