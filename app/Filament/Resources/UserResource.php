@@ -61,7 +61,6 @@ class UserResource extends Resource
                                     ->label('Rol')
                                     ->options([
                                         User::ROLE_MUDURLUK => User::ROLE_MUDURLUK,
-                                        User::ROLE_ANALIZ_EKIBI => User::ROLE_ANALIZ_EKIBI,
                                     ])
                                     ->default(User::ROLE_MUDURLUK)
                                     ->required()
@@ -76,19 +75,6 @@ class UserResource extends Resource
                                     ->helperText('Açıksa bu müdürlük "Müdürlük Performans ve İş Yükü Analizi" grafiğinde görünür.')
                                     ->default(true)
                                     ->visible(fn (Forms\Get $get): bool => $get('role') === User::ROLE_MUDURLUK),
-                                Forms\Components\Select::make('assignedDirectorates')
-                                    ->label('Atanan Müdürlükler')
-                                    ->relationship(
-                                        name: 'assignedDirectorates',
-                                        titleAttribute: 'name',
-                                        modifyQueryUsing: fn (Builder $query) => $query
-                                            ->onlyMudurlukReportingAccounts()
-                                            ->orderBy($query->qualifyColumn('name'))
-                                    )
-                                    ->multiple()
-                                    ->searchable()
-                                    ->preload()
-                                    ->visible(fn (Forms\Get $get): bool => $get('role') === User::ROLE_ANALIZ_EKIBI),
                                 Forms\Components\TextInput::make('sorumlu_ad_soyad')
                                     ->label('Sorumlu Adı Soyadı')
                                     ->placeholder('Örn: Ahmet Yılmaz'),
@@ -216,7 +202,7 @@ class UserResource extends Resource
             return $query;
         }
 
-        return $query;
+        return $query->where($query->qualifyColumn('role'), User::ROLE_MUDURLUK);
     }
 
     public static function getPages(): array
