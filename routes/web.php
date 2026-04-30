@@ -7,6 +7,10 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
+// Backward-compatible auth entrypoints for old bookmarks/links.
+Route::redirect('/login', '/admin/login')->name('login');
+Route::redirect('/dashboard', '/admin')->name('dashboard');
+
 Route::middleware(['web', 'auth'])->group(function () {
     Route::get('/aylik-faaliyet-pdf/{id}', function ($id) {
         $rapor = AylikFaaliyet::with('user')->findOrFail($id);
