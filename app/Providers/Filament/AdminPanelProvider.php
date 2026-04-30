@@ -7,7 +7,6 @@ use App\Filament\Widgets\AnalizEkibiMudurlukChart;
 use App\Filament\Widgets\AdminStatsOverview;
 use App\Filament\Widgets\AnnouncementWidget;
 use App\Filament\Widgets\FaaliyetIstatistikGrafik;
-use App\Filament\Widgets\GecikenIslerUyari;
 use App\Filament\Widgets\MudurlukAylikFaaliyetChart;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -45,7 +44,6 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->widgets([
                 AnnouncementWidget::class,
-                GecikenIslerUyari::class,
                 MudurlukAylikFaaliyetChart::class,
                 AnalizEkibiMudurlukChart::class,
                 AdminStatsOverview::class,

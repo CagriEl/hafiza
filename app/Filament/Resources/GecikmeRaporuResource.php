@@ -4,7 +4,6 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\GecikmeRaporuResource\Pages;
 use App\Models\AylikFaaliyet;
-use App\Models\ViceMayor;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\QuerySafety;
 use App\Support\ReportDirectorateScope;
@@ -22,6 +21,8 @@ class GecikmeRaporuResource extends Resource
 {
     protected static ?string $model = AylikFaaliyet::class;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $navigationIcon = 'heroicon-o-document-chart-bar';
 
     protected static ?string $navigationLabel = 'Gecikme Raporu';
@@ -34,15 +35,7 @@ class GecikmeRaporuResource extends Resource
 
     public static function canViewAny(): bool
     {
-        $u = auth()->user();
-        if (! $u instanceof User) {
-            return false;
-        }
-        if ($u->isReportingSuperAdmin()) {
-            return true;
-        }
-
-        return ViceMayor::query()->where('user_id', $u->id)->exists();
+        return false;
     }
 
     public static function getEloquentQuery(): Builder

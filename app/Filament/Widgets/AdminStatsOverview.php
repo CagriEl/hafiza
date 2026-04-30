@@ -24,7 +24,6 @@ class AdminStatsOverview extends BaseWidget
             ->get();
 
         $toplamIs = 0;
-        $gecikenIs = 0;
 
         foreach ($kayitlar as $kayit) {
             $isler = is_string($kayit->faaliyetler) ? json_decode($kayit->faaliyetler, true) : $kayit->faaliyetler;
@@ -45,11 +44,6 @@ class AdminStatsOverview extends BaseWidget
                 ->description('Tüm müdürlüklerin girdiği toplam faaliyet')
                 ->icon('heroicon-m-clipboard-document-list')
                 ->color('info'),
-
-            Stat::make('Toplam Geciken İş Sayısı', $gecikenIs)
-                ->description('Son tarih takibi kapalı olduğu için 0 gösterilir')
-                ->icon('heroicon-m-exclamation-circle')
-                ->color('danger'),
             Stat::make('Bekleyen Geri Bildirimler', $bekleyenGeriBildirim)
                 ->description('IT ekibinin incelemesini bekleyen kayıtlar')
                 ->icon('heroicon-m-chat-bubble-left-right')
