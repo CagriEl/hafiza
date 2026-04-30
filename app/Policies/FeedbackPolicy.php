@@ -22,11 +22,13 @@ class FeedbackPolicy
 
         if ($this->isControlTeam($user)) {
             $directorateId = (int) ($feedback->directorate_id ?? 0);
-            if ($directorateId <= 0) {
-                return false;
+            $feedbackUserId = (int) ($feedback->user_id ?? 0);
+
+            if ($directorateId > 0 && in_array($directorateId, $this->resolveDirectorateIdsForControlTeam($user), true)) {
+                return true;
             }
 
-            return in_array($directorateId, $this->resolveDirectorateIdsForControlTeam($user), true);
+            return $feedbackUserId > 0 && in_array($feedbackUserId, $this->resolveMudurlukUserIdsForControlTeam($user), true);
         }
 
         return (int) $feedback->user_id === (int) $user->id;
@@ -109,6 +111,26 @@ class FeedbackPolicy
 
         /** @var list<int> $result */
         $result = array_values(array_unique(array_merge($directDirectorateIds, $mappedDirectorateIds)));
+
+        return $result;
+    }
+
+    /**
+     * @return list<int>
+     */
+    protected function resolveMudurlukUserIdsForControlTeam(User $user): array
+    {
+        if (! $this->isControlTeam($user)) {
+            return [];
+        }
+
+        /** @var list<int> $result */
+        $result = $user->assignedDirectorates()
+            ->pluck('users.id')
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->values()
+            ->all();
 
         return $result;
     }

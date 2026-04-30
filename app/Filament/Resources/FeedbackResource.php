@@ -128,11 +128,20 @@ class FeedbackResource extends Resource
 
         if (static::isControlTeamUser()) {
             $directorateIds = static::resolveDirectorateIdsForControlTeam();
-            if ($directorateIds === []) {
+            $mudurlukUserIds = static::resolveMudurlukUserIdsForControlTeam();
+            if ($directorateIds === [] && $mudurlukUserIds === []) {
                 return $query->whereRaw('0 = 1');
             }
 
-            return $query->whereIn($query->qualifyColumn('directorate_id'), $directorateIds);
+            return $query->where(function (Builder $q) use ($directorateIds, $mudurlukUserIds): void {
+                if ($directorateIds !== []) {
+                    $q->whereIn($q->qualifyColumn('directorate_id'), $directorateIds);
+                }
+
+                if ($mudurlukUserIds !== []) {
+                    $q->orWhereIn($q->qualifyColumn('user_id'), $mudurlukUserIds);
+                }
+            });
         }
 
         $userId = auth()->id();
@@ -161,11 +170,13 @@ class FeedbackResource extends Resource
 
         if (static::isControlTeamUser()) {
             $directorateId = (int) ($record->getAttribute('directorate_id') ?? 0);
-            if ($directorateId <= 0) {
-                return false;
+            $feedbackUserId = (int) ($record->getAttribute('user_id') ?? 0);
+
+            if ($directorateId > 0 && in_array($directorateId, static::resolveDirectorateIdsForControlTeam(), true)) {
+                return true;
             }
 
-            return in_array($directorateId, static::resolveDirectorateIdsForControlTeam(), true);
+            return $feedbackUserId > 0 && in_array($feedbackUserId, static::resolveMudurlukUserIdsForControlTeam(), true);
         }
 
         return (int) $record->getAttribute('user_id') === (int) auth()->id();
@@ -313,6 +324,27 @@ class FeedbackResource extends Resource
 
         /** @var list<int> $result */
         $result = array_values(array_unique(array_merge($directDirectorateIds, $mappedDirectorateIds)));
+
+        return $result;
+    }
+
+    /**
+     * @return list<int>
+     */
+    protected static function resolveMudurlukUserIdsForControlTeam(): array
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! static::isControlTeamUser()) {
+            return [];
+        }
+
+        /** @var list<int> $result */
+        $result = $user->assignedDirectorates()
+            ->pluck('users.id')
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->values()
+            ->all();
 
         return $result;
     }
