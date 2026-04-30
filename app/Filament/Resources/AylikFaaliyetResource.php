@@ -585,17 +585,22 @@ class AylikFaaliyetResource extends Resource
             ->schema([
                 InfolistSection::make('Rapor')
                     ->schema([
-                        TextEntry::make('user.name')->label('Müdürlük'),
-                        TextEntry::make('yil')->label('Yıl'),
-                        TextEntry::make('ay')->label('Ay'),
+                        TextEntry::make('user.name')->label('Müdürlük')
+                            ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
+                        TextEntry::make('yil')->label('Yıl')
+                            ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
+                        TextEntry::make('ay')->label('Ay')
+                            ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                     ])
                     ->columns(3),
                 InfolistSection::make('Raporlanan Faaliyetler')
                     ->schema([
                         RepeatableEntry::make('faaliyetler')
                             ->schema([
-                                TextEntry::make('faaliyet_kodu')->label('Kod'),
-                                TextEntry::make('faaliyet_turu')->label('Tür'),
+                                TextEntry::make('faaliyet_kodu')->label('Kod')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
+                                TextEntry::make('faaliyet_turu')->label('Tür')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('isbirligi_hedef_mudurluk_user_ids')
                                     ->label('İşbirliği müdürlükleri')
                                     ->default('-')
@@ -607,41 +612,31 @@ class AylikFaaliyetResource extends Resource
 
                                         return User::query()->whereIn('id', $ids)->pluck('name')->implode(', ') ?: '-';
                                     }),
-                                TextEntry::make('hedef')->label('Aylık Öngörülen Hedef'),
-                                TextEntry::make('gerceklesen')->label('Gerçekleşen'),
-                                TextEntry::make('bekleyen_is')->label('Açık/Bekleyen İş'),
-                                TextEntry::make('miktar')->label('Miktar'),
-                                TextEntry::make('olcu_birimi')->label('Ölçü Birimi')->placeholder('—'),
-                                TextEntry::make('kapsam_icerigi')->label('Kapsam İçeriği')->placeholder('—'),
+                                TextEntry::make('hedef')->label('Aylık Öngörülen Hedef')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
+                                TextEntry::make('gerceklesen')->label('Gerçekleşen')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
+                                TextEntry::make('bekleyen_is')->label('Açık/Bekleyen İş')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
+                                TextEntry::make('miktar')->label('Miktar')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
+                                TextEntry::make('olcu_birimi')->label('Ölçü Birimi')->placeholder('—')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
+                                TextEntry::make('kapsam_icerigi')->label('Kapsam İçeriği')->placeholder('—')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('kapsam_verileri')
                                     ->label('Kapsam Kalem Girdileri')
                                     ->placeholder('—')
-                                    ->formatStateUsing(function ($state): string {
-                                        if (! is_array($state) || $state === []) {
-                                            return '—';
-                                        }
-
-                                        $parts = [];
-                                        foreach ($state as $satir) {
-                                            if (! is_array($satir)) {
-                                                continue;
-                                            }
-                                            $kalem = trim((string) ($satir['kalem'] ?? ''));
-                                            if ($kalem === '') {
-                                                continue;
-                                            }
-                                            $deger = $satir['deger'] ?? null;
-                                            $parts[] = $kalem.': '.(filled($deger) ? (string) $deger : '-');
-                                        }
-
-                                        return $parts === [] ? '—' : implode(' | ', $parts);
-                                    }),
-                                TextEntry::make('sapma_nedeni')->label('Sapma')->placeholder('—'),
+                                    ->state(fn ($record): string => static::normalizeKapsamVerileriText(data_get($record, 'kapsam_verileri'))),
+                                TextEntry::make('sapma_nedeni')->label('Sapma')->placeholder('—')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('gerekli_revize')
                                     ->label('Revize')
                                     ->formatStateUsing(fn ($state): string => (bool) $state ? 'Evet' : 'Hayir'),
-                                TextEntry::make('revize_sebebi')->label('Revize sebebi')->placeholder('—'),
-                                TextEntry::make('karar_ihtiyaci')->label('Karar ihtiyacı')->placeholder('—'),
+                                TextEntry::make('revize_sebebi')->label('Revize sebebi')->placeholder('—')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
+                                TextEntry::make('karar_ihtiyaci')->label('Karar ihtiyacı')->placeholder('—')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                             ])
                             ->columns(2),
                     ]),
@@ -760,6 +755,88 @@ class AylikFaaliyetResource extends Resource
             ->filter(fn (string $parca): bool => $parca !== '')
             ->values()
             ->all();
+    }
+
+    private static function normalizeInfolistTextState(mixed $state): string
+    {
+        if (is_array($state)) {
+            $items = [];
+
+            foreach ($state as $item) {
+                if ($item === null) {
+                    continue;
+                }
+
+                if (is_scalar($item)) {
+                    $text = trim((string) $item);
+                    if ($text !== '') {
+                        $items[] = $text;
+                    }
+
+                    continue;
+                }
+
+                if (is_array($item)) {
+                    $json = json_encode($item, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    if (is_string($json) && $json !== '') {
+                        $items[] = $json;
+                    }
+
+                    continue;
+                }
+
+                if (is_object($item) && method_exists($item, '__toString')) {
+                    $text = trim((string) $item);
+                    if ($text !== '') {
+                        $items[] = $text;
+                    }
+                }
+            }
+
+            if ($items === []) {
+                return '—';
+            }
+
+            return implode(', ', array_slice($items, 0, 20));
+        }
+
+        if ($state === null) {
+            return '—';
+        }
+
+        $text = trim((string) $state);
+
+        return $text === '' ? '—' : $text;
+    }
+
+    private static function normalizeKapsamVerileriText(mixed $state): string
+    {
+        if (! is_array($state) || $state === []) {
+            return '—';
+        }
+
+        // Tek satir yapida gelebilir.
+        if (array_key_exists('kalem', $state) || array_key_exists('deger', $state)) {
+            $state = [$state];
+        }
+
+        $parts = [];
+
+        foreach ($state as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $kalem = trim((string) ($row['kalem'] ?? ''));
+            if ($kalem === '') {
+                continue;
+            }
+
+            $deger = $row['deger'] ?? null;
+            $parts[] = $kalem.': '.(filled($deger) ? (string) $deger : '-');
+        }
+
+        return $parts === [] ? '—' : implode(' | ', $parts);
     }
 
     /**

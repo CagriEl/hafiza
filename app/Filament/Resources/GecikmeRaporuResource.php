@@ -121,7 +121,9 @@ class GecikmeRaporuResource extends Resource
         // ... (Önceki infolist kodun aynı kalacak)
         return $infolist->schema([
             InfoSection::make('Detaylar')->schema([
-                TextEntry::make('user.name')->label('Müdürlük'),
+                TextEntry::make('user.name')
+                    ->label('Müdürlük')
+                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                 TextEntry::make('geciken_detaylari')
                     ->label('Üst yönetim / Gecikme / Sapma')
                     ->html()
@@ -144,6 +146,58 @@ class GecikmeRaporuResource extends Resource
                     })->columnSpanFull(),
             ]),
         ]);
+    }
+
+    private static function normalizeInfolistTextState(mixed $state): string
+    {
+        if (is_array($state)) {
+            $items = [];
+
+            foreach ($state as $item) {
+                if ($item === null) {
+                    continue;
+                }
+
+                if (is_scalar($item)) {
+                    $text = trim((string) $item);
+                    if ($text !== '') {
+                        $items[] = $text;
+                    }
+
+                    continue;
+                }
+
+                if (is_array($item)) {
+                    $json = json_encode($item, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    if (is_string($json) && $json !== '') {
+                        $items[] = $json;
+                    }
+
+                    continue;
+                }
+
+                if (is_object($item) && method_exists($item, '__toString')) {
+                    $text = trim((string) $item);
+                    if ($text !== '') {
+                        $items[] = $text;
+                    }
+                }
+            }
+
+            if ($items === []) {
+                return '—';
+            }
+
+            return implode(', ', array_slice($items, 0, 20));
+        }
+
+        if ($state === null) {
+            return '—';
+        }
+
+        $text = trim((string) $state);
+
+        return $text === '' ? '—' : $text;
     }
 
     public static function getPages(): array
