@@ -301,7 +301,7 @@ class FeedbackResource extends Resource
             ->all();
 
         $mappedDirectorateIds = [];
-        if ($mudurlukUserIds !== []) {
+        if ($mudurlukUserIds !== [] && Schema::hasColumn('directorates', 'mudurluk_user_id')) {
             $mappedDirectorateIds = Directorate::query()
                 ->whereIn('mudurluk_user_id', $mudurlukUserIds)
                 ->pluck('id')

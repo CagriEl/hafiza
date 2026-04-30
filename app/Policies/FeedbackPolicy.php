@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Directorate;
 use App\Models\Feedback;
 use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 
 class FeedbackPolicy
 {
@@ -96,7 +97,7 @@ class FeedbackPolicy
             ->all();
 
         $mappedDirectorateIds = [];
-        if ($mudurlukUserIds !== []) {
+        if ($mudurlukUserIds !== [] && Schema::hasColumn('directorates', 'mudurluk_user_id')) {
             $mappedDirectorateIds = Directorate::query()
                 ->whereIn('mudurluk_user_id', $mudurlukUserIds)
                 ->pluck('id')
