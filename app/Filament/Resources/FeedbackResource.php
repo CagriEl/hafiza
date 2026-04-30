@@ -61,18 +61,6 @@ class FeedbackResource extends Resource
                     ->rows(8)
                     ->columnSpanFull()
                     ->disabled(fn (string $operation): bool => $operation === 'edit'),
-                Forms\Components\Select::make('status')
-                    ->label('Durum')
-                    ->options([
-                        Feedback::STATUS_NEW => Feedback::STATUS_NEW,
-                        Feedback::STATUS_REVIEWING => Feedback::STATUS_REVIEWING,
-                        Feedback::STATUS_RESOLVED => Feedback::STATUS_RESOLVED,
-                        Feedback::STATUS_REJECTED => Feedback::STATUS_REJECTED,
-                    ])
-                    ->default(Feedback::STATUS_NEW)
-                    ->required()
-                    ->visible(fn (string $operation): bool => static::isAdmin() || $operation === 'create')
-                    ->disabled(fn (string $operation): bool => ! static::isAdmin() && $operation !== 'create'),
                 Forms\Components\Textarea::make('admin_note')
                     ->label('IT Ekibi Notu / Yanıtı')
                     ->rows(6)
@@ -95,16 +83,6 @@ class FeedbackResource extends Resource
                     ->label('Kategori')
                     ->badge()
                     ->color('info'),
-                Tables\Columns\TextColumn::make('status')
-                    ->label('Durum')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        Feedback::STATUS_NEW => 'warning',
-                        Feedback::STATUS_REVIEWING => 'info',
-                        Feedback::STATUS_RESOLVED => 'success',
-                        Feedback::STATUS_REJECTED => 'danger',
-                        default => 'gray',
-                    }),
                 Tables\Columns\TextColumn::make('directorate.name')
                     ->label('Müdürlük')
                     ->placeholder('Belirlenemedi')
@@ -131,7 +109,7 @@ class FeedbackResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Görüntüle'),
                 Tables\Actions\EditAction::make()
-                    ->label('Durum Güncelle')
+                    ->label('Düzenle')
                     ->visible(fn (): bool => static::isAdmin()),
             ])
             ->bulkActions([]);
@@ -148,6 +126,15 @@ class FeedbackResource extends Resource
             return $query;
         }
 
+        if (static::isControlTeamUser()) {
+            $directorateIds = static::resolveDirectorateIdsForControlTeam();
+            if ($directorateIds === []) {
+                return $query->whereRaw('0 = 1');
+            }
+
+            return $query->whereIn($query->qualifyColumn('directorate_id'), $directorateIds);
+        }
+
         $userId = auth()->id();
         if (! $userId) {
             return $query->whereRaw('0 = 1');
@@ -158,7 +145,7 @@ class FeedbackResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return static::isAdmin() || static::isMudurlukUser();
+        return static::isAdmin() || static::isMudurlukUser() || static::isControlTeamUser();
     }
 
     public static function canCreate(): bool
@@ -170,6 +157,15 @@ class FeedbackResource extends Resource
     {
         if (static::isAdmin()) {
             return true;
+        }
+
+        if (static::isControlTeamUser()) {
+            $directorateId = (int) ($record->getAttribute('directorate_id') ?? 0);
+            if ($directorateId <= 0) {
+                return false;
+            }
+
+            return in_array($directorateId, static::resolveDirectorateIdsForControlTeam(), true);
         }
 
         return (int) $record->getAttribute('user_id') === (int) auth()->id();
@@ -268,5 +264,56 @@ class FeedbackResource extends Resource
         $user = auth()->user();
 
         return $user instanceof User && trim((string) $user->role) === User::ROLE_MUDURLUK;
+    }
+
+    protected static function isControlTeamUser(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && trim((string) $user->role) === User::ROLE_ANALIZ_EKIBI;
+    }
+
+    /**
+     * @return list<int>
+     */
+    protected static function resolveDirectorateIdsForControlTeam(): array
+    {
+        $user = auth()->user();
+        if (! $user instanceof User || ! static::isControlTeamUser()) {
+            return [];
+        }
+
+        $assignedDirectorates = $user->assignedDirectorates()
+            ->get(['users.id', 'users.directorate_id']);
+
+        $mudurlukUserIds = $assignedDirectorates
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->values()
+            ->all();
+
+        $directDirectorateIds = $assignedDirectorates
+            ->pluck('directorate_id')
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->values()
+            ->all();
+
+        $mappedDirectorateIds = [];
+        if ($mudurlukUserIds !== []) {
+            $mappedDirectorateIds = Directorate::query()
+                ->whereIn('mudurluk_user_id', $mudurlukUserIds)
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->filter(fn (int $id): bool => $id > 0)
+                ->values()
+                ->all();
+        }
+
+        /** @var list<int> $result */
+        $result = array_values(array_unique(array_merge($directDirectorateIds, $mappedDirectorateIds)));
+
+        return $result;
     }
 }

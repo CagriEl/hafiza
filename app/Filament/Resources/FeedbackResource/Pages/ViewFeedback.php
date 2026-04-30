@@ -14,7 +14,7 @@ class ViewFeedback extends ViewRecord
     {
         return [
             Actions\EditAction::make()
-                ->label('Durum Güncelle')
+                ->label('Düzenle')
                 ->visible(fn (): bool => FeedbackResource::canEdit($this->getRecord())),
         ];
     }

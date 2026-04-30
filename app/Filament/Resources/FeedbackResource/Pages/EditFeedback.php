@@ -11,6 +11,6 @@ class EditFeedback extends EditRecord
 
     protected function getSavedNotificationTitle(): ?string
     {
-        return 'Geri bildirim durumu güncellendi.';
+        return 'Geri bildirim kaydı güncellendi.';
     }
 }
