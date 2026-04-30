@@ -54,6 +54,13 @@ class AnnouncementResource extends Resource
                 ->seconds(false)
                 ->native(false)
                 ->default(now()),
+            Forms\Components\DateTimePicker::make('expires_at')
+                ->label('Yayından Kalkış Tarihi')
+                ->seconds(false)
+                ->native(false)
+                ->helperText('Boş bırakılırsa duyuru süresiz yayında kalır.')
+                ->after('published_at')
+                ->rule('nullable|after:published_at'),
             Forms\Components\Toggle::make('is_active')
                 ->label('Aktif mi?')
                 ->default(true),
@@ -95,6 +102,11 @@ class AnnouncementResource extends Resource
                     ->boolean(),
                 Tables\Columns\TextColumn::make('published_at')
                     ->label('Yayın Tarihi')
+                    ->dateTime('d.m.Y H:i')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('expires_at')
+                    ->label('Yayından Kalkış')
+                    ->placeholder('Süresiz')
                     ->dateTime('d.m.Y H:i')
                     ->sortable(),
             ])

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 class Announcement extends Model
 {
@@ -20,6 +21,7 @@ class Announcement extends Model
         'is_active',
         'is_popup',
         'published_at',
+        'expires_at',
     ];
 
     protected function casts(): array
@@ -28,6 +30,7 @@ class Announcement extends Model
             'is_active' => 'boolean',
             'is_popup' => 'boolean',
             'published_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
     }
 
@@ -43,14 +46,24 @@ class Announcement extends Model
 
         $isActiveColumn = $query->qualifyColumn('is_active');
         $publishedAtColumn = $query->qualifyColumn('published_at');
-
-        return $query
+        $query = $query
             ->where($isActiveColumn, true)
             ->where(function (Builder $inner) use ($publishedAtColumn): void {
                 $inner
                     ->whereNull($publishedAtColumn)
                     ->orWhere($publishedAtColumn, '<=', now());
             });
+
+        if (Schema::hasColumn($query->getModel()->getTable(), 'expires_at')) {
+            $expiresAtColumn = $query->qualifyColumn('expires_at');
+            $query->where(function (Builder $inner) use ($expiresAtColumn): void {
+                $inner
+                    ->whereNull($expiresAtColumn)
+                    ->orWhere($expiresAtColumn, '>', now());
+            });
+        }
+
+        return $query;
     }
 
     /**

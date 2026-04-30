@@ -21,24 +21,29 @@
                     };
                 @endphp
 
-                <div class="rounded-xl border p-4 shadow-sm {{ $typeStyles }}">
-                    <div class="flex items-center justify-between gap-3">
-                        <div class="text-sm font-semibold uppercase tracking-wide">
+                <div class="overflow-hidden rounded-xl border p-3 shadow-sm sm:p-4 {{ $typeStyles }}">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                        <div class="text-xs font-semibold uppercase tracking-wide sm:text-sm">
                             {{ $typeLabel }}
                         </div>
-                        @if ($announcement->published_at)
-                            <div class="text-xs opacity-75">
-                                {{ $announcement->published_at->format('d.m.Y H:i') }}
-                            </div>
-                        @endif
+                        <div class="text-xs opacity-75">
+                            @if ($announcement->published_at)
+                                <div>Yayın: {{ $announcement->published_at->format('d.m.Y H:i') }}</div>
+                            @endif
+                            @if ($announcement->expires_at)
+                                <div>Bitiş: {{ $announcement->expires_at->format('d.m.Y H:i') }}</div>
+                            @endif
+                        </div>
                     </div>
 
-                    <h3 class="mt-2 text-base font-bold">
+                    <h3 class="mt-2 break-words text-sm font-bold sm:text-base">
                         {{ $announcement->title }}
                     </h3>
 
-                    <div class="prose prose-sm mt-2 max-w-none">
-                        {!! $announcement->content !!}
+                    <div class="prose prose-sm mt-2 max-w-none break-words">
+                        <div class="[&_*]:max-w-full [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto">
+                            {!! $announcement->content !!}
+                        </div>
                     </div>
                 </div>
             @endforeach
@@ -73,13 +78,14 @@
                         if (this.kalanSure <= 1) {
                             this.kalanSure = 0;
                             clearInterval(this.sayac);
+                            this.kapat(true);
                             return;
                         }
                         this.kalanSure--;
                     }, 1000);
                 },
-                kapat() {
-                    if (this.kalanSure > 0) {
+                kapat(otomatik = false) {
+                    if (!otomatik && this.kalanSure > 0) {
                         return;
                     }
                     const storageKey = `duyuru-popup-kapandi-${this.kullaniciId}-${this.duyuruId}`;
@@ -92,16 +98,16 @@
         >
             <div
                 x-show="acik"
-                class="fixed inset-0 z-[60] flex items-center justify-center bg-gray-900/70 p-4"
+                class="fixed inset-0 z-[60] flex items-end justify-center bg-gray-900/70 p-2 sm:items-center sm:p-4"
             >
                 <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
-                    <div class="border-b border-gray-200 px-6 py-4">
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
+                    <div class="border-b border-gray-200 px-4 py-3 sm:px-6 sm:py-4">
+                        <div class="flex items-start justify-between gap-3 sm:gap-4">
+                            <div class="min-w-0">
                                 <p class="text-xs font-semibold uppercase tracking-wide text-primary-600">
                                     {{ $popupTypeLabel }}
                                 </p>
-                                <h2 class="mt-1 text-lg font-bold text-gray-900">
+                                <h2 class="mt-1 break-words text-base font-bold text-gray-900 sm:text-lg">
                                     {{ $popupAnnouncement->title }}
                                 </h2>
                             </div>
@@ -118,27 +124,28 @@
                         </div>
                     </div>
 
-                    <div class="max-h-[55vh] overflow-y-auto px-6 py-5">
-                        <div class="prose prose-sm max-w-none text-gray-700">
-                            {!! $popupAnnouncement->content !!}
+                    <div class="max-h-[60vh] overflow-y-auto px-4 py-4 sm:max-h-[55vh] sm:px-6 sm:py-5">
+                        <div class="prose prose-sm max-w-none break-words text-gray-700">
+                            <div class="[&_*]:max-w-full [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto">
+                                {!! $popupAnnouncement->content !!}
+                            </div>
                         </div>
                     </div>
 
-                    <div class="border-t border-gray-200 px-6 py-4">
-                        <div class="flex items-center justify-between gap-3">
+                    <div class="border-t border-gray-200 px-4 py-3 sm:px-6 sm:py-4">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <p class="text-sm text-gray-600" x-show="kalanSure > 0">
-                                Kapatmak için <span class="font-semibold" x-text="kalanSure"></span> saniye bekleyin.
+                                Duyuru <span class="font-semibold" x-text="kalanSure"></span> saniye sonra otomatik kapanır.
                             </p>
                             <p class="text-sm font-medium text-success-600" x-show="kalanSure === 0">
-                                Süre doldu. Duyuruyu kapatabilirsiniz.
+                                Duyuru otomatik kapatıldı.
                             </p>
 
                             <x-filament::button
                                 color="danger"
-                                x-bind:disabled="kalanSure > 0"
                                 @click="kapat()"
                             >
-                                Kapat
+                                Hemen Kapat
                             </x-filament::button>
                         </div>
                     </div>
