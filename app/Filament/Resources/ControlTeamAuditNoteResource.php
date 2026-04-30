@@ -208,6 +208,18 @@ class ControlTeamAuditNoteResource extends Resource
                 ->where('user_id', $u->id);
         }
 
+        if ($u->isViceMayorAccount()) {
+            $audience = $u->reportAudienceUserIds();
+            if ($audience === null) {
+                return $query;
+            }
+            if ($audience === []) {
+                return $query->whereRaw('0=1');
+            }
+
+            return $query->whereIn('directorate_user_id', $audience);
+        }
+
         return $query->whereRaw('0=1');
     }
 
@@ -215,12 +227,14 @@ class ControlTeamAuditNoteResource extends Resource
     {
         $u = auth()->user();
 
-        return $u instanceof User && ($u->isReportingSuperAdmin() || $u->isControlTeam());
+        return $u instanceof User && ($u->isReportingSuperAdmin() || $u->isControlTeam() || $u->isViceMayorAccount());
     }
 
     public static function canCreate(): bool
     {
-        return static::canViewAny();
+        $u = auth()->user();
+
+        return $u instanceof User && ($u->isReportingSuperAdmin() || $u->isControlTeam());
     }
 
     public static function canEdit(Model $record): bool

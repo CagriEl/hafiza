@@ -4,7 +4,6 @@ namespace App\Filament\Widgets;
 
 use App\Models\AylikFaaliyet;
 use App\Models\User;
-use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 
 class AnalizEkibiMudurlukChart extends ChartWidget
@@ -61,7 +60,6 @@ class AnalizEkibiMudurlukChart extends ChartWidget
         $labels = [];
         $completed = [];
         $inProgress = [];
-        $delayed = [];
 
         foreach ($directorates as $directorateUser) {
             $records = AylikFaaliyet::query()
@@ -72,7 +70,6 @@ class AnalizEkibiMudurlukChart extends ChartWidget
 
             $doneCount = 0;
             $progressCount = 0;
-            $delayCount = 0;
 
             foreach ($records as $record) {
                 $rows = is_array($record->faaliyetler) ? $record->faaliyetler : [];
@@ -91,19 +88,6 @@ class AnalizEkibiMudurlukChart extends ChartWidget
                         continue;
                     }
 
-                    $deadline = trim((string) ($row['son_tarih'] ?? ''));
-                    if ($deadline !== '') {
-                        try {
-                            if (Carbon::parse($deadline)->isPast()) {
-                                $delayCount++;
-
-                                continue;
-                            }
-                        } catch (\Throwable) {
-                            // Geçersiz tarih değeri varsa devam eden olarak değerlendirilir.
-                        }
-                    }
-
                     $progressCount++;
                 }
             }
@@ -111,7 +95,6 @@ class AnalizEkibiMudurlukChart extends ChartWidget
             $labels[] = (string) $directorateUser->name;
             $completed[] = $doneCount;
             $inProgress[] = $progressCount;
-            $delayed[] = $delayCount;
         }
 
         return [
@@ -127,12 +110,6 @@ class AnalizEkibiMudurlukChart extends ChartWidget
                     'data' => $inProgress,
                     'backgroundColor' => '#3b82f6',
                     'borderColor' => '#2563eb',
-                ],
-                [
-                    'label' => 'Geciken',
-                    'data' => $delayed,
-                    'backgroundColor' => '#ef4444',
-                    'borderColor' => '#dc2626',
                 ],
             ],
             'labels' => $labels,

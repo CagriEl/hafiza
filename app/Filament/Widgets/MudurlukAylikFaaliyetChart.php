@@ -4,7 +4,6 @@ namespace App\Filament\Widgets;
 
 use App\Models\AylikFaaliyet;
 use App\Models\User;
-use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 
 class MudurlukAylikFaaliyetChart extends ChartWidget
@@ -40,7 +39,6 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
         $labels = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
         $completed = array_fill(0, 12, 0);
         $inProgress = array_fill(0, 12, 0);
-        $delayed = array_fill(0, 12, 0);
 
         $user = auth()->user();
         if (! $user instanceof User || ! $user->isMudurlukReportingAccount()) {
@@ -75,19 +73,6 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
                     continue;
                 }
 
-                $sonTarih = trim((string) ($row['son_tarih'] ?? ''));
-                if ($sonTarih !== '') {
-                    try {
-                        if (Carbon::parse($sonTarih)->isPast()) {
-                            $delayed[$monthIndex]++;
-
-                            continue;
-                        }
-                    } catch (\Throwable) {
-                        // Geçersiz tarih değeri varsa "devam eden" kabul edilir.
-                    }
-                }
-
                 $inProgress[$monthIndex]++;
             }
         }
@@ -105,12 +90,6 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
                     'data' => $inProgress,
                     'backgroundColor' => '#3b82f6',
                     'borderColor' => '#2563eb',
-                ],
-                [
-                    'label' => 'Geciken',
-                    'data' => $delayed,
-                    'backgroundColor' => '#ef4444',
-                    'borderColor' => '#dc2626',
                 ],
             ],
             'labels' => $labels,

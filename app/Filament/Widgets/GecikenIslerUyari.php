@@ -6,7 +6,6 @@ use App\Filament\Resources\ActivityReportResource;
 use App\Models\AylikFaaliyet;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\ReportDirectorateScope;
-use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -36,20 +35,16 @@ class GecikenIslerUyari extends Widget implements HasActions, HasForms
             $isler = is_string($kayit->faaliyetler) ? json_decode($kayit->faaliyetler, true) : $kayit->faaliyetler;
 
             if (is_array($isler)) {
-                foreach ($isler as $index => $is) {
-                    $legacyUyari = isset($is['son_tarih'])
-                        && Carbon::parse($is['son_tarih'])->isPast()
-                        && ($is['durum'] ?? '') !== 'tamam'
-                        && empty($is['gecikme_gerekcesi']);
+                foreach ($isler as $is) {
                     $hedefAltiSapmasiz = AylikFaaliyetEscalation::kpiUnderTarget($is)
                         && ! AylikFaaliyetEscalation::sapmaNedeniFilled($is);
 
-                    if ($legacyUyari || $hedefAltiSapmasiz) {
+                    if ($hedefAltiSapmasiz) {
                         $baslik = $is['konu'] ?? ($is['faaliyet_kodu'] ?? 'Faaliyet');
                         $gecikenler[] = [
                             'kayit_id' => $kayit->id,
-                            'konu' => $baslik.($hedefAltiSapmasiz && ! $legacyUyari ? ' (hedef altı — sapma nedeni giriniz)' : ''),
-                            'tarih' => $is['son_tarih'] ?? null,
+                            'konu' => $baslik.' (hedef altı — sapma nedeni giriniz)',
+                            'tarih' => null,
                         ];
                     }
                 }

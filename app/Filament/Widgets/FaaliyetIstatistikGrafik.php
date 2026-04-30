@@ -4,7 +4,6 @@ namespace App\Filament\Widgets;
 
 use App\Models\AylikFaaliyet;
 use App\Models\User;
-use Carbon\Carbon;
 use Filament\Support\RawJs;
 use Filament\Widgets\ChartWidget;
 
@@ -55,7 +54,6 @@ class FaaliyetIstatistikGrafik extends ChartWidget
                 ->get();
 
             $tamam = 0;
-            $gecikme = 0;
             $bekleyen = 0;
 
             foreach ($kayitlar as $kayit) {
@@ -63,12 +61,9 @@ class FaaliyetIstatistikGrafik extends ChartWidget
                 if (is_array($isler)) {
                     foreach ($isler as $is) {
                         $isTamam = ($is['durum'] ?? '') === 'tamam';
-                        $sonTarih = isset($is['son_tarih']) ? Carbon::parse($is['son_tarih']) : null;
 
                         if ($isTamam) {
                             $tamam++;
-                        } elseif ($sonTarih && $sonTarih->isPast()) {
-                            $gecikme++;
                         } else {
                             $bekleyen++;
                         }
@@ -76,13 +71,12 @@ class FaaliyetIstatistikGrafik extends ChartWidget
                 }
             }
 
-            $toplam = $tamam + $gecikme + $bekleyen;
+            $toplam = $tamam + $bekleyen;
             $performansOrani = $toplam > 0 ? round(($tamam / $toplam) * 100, 2) : 0.0;
 
             $rows[] = [
                 'full_name' => (string) $mudurluk->name,
                 'tamam' => $tamam,
-                'gecikme' => $gecikme,
                 'bekleyen' => $bekleyen,
                 'performans' => $performansOrani,
             ];

@@ -2,8 +2,6 @@
 
 namespace App\Support;
 
-use Carbon\Carbon;
-
 /**
  * Haftalık operasyonel rapor satırlarında üst yönetimin bilgilendirilmesi gereken durumlar.
  * Eski şema (son_tarih / durum / konu) ile yeni şema (hedef / gerceklesen / sapma_nedeni) birlikte değerlendirilir.
@@ -55,19 +53,8 @@ final class AylikFaaliyetEscalation
      */
     public static function legacyItemIsDelayed(array $item): bool
     {
-        if (empty($item['son_tarih'])) {
-            return false;
-        }
-        try {
-            $due = Carbon::parse($item['son_tarih']);
-        } catch (\Throwable) {
-            return false;
-        }
-        if (! $due->isPast()) {
-            return false;
-        }
-
-        return ($item['durum'] ?? '') !== 'tamam';
+        // Son tarih takibi kullanım dışı: gecikme yalnızca bu alana göre hesaplanmaz.
+        return false;
     }
 
     /**

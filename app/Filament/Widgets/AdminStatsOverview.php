@@ -5,7 +5,6 @@ namespace App\Filament\Widgets;
 use App\Models\AylikFaaliyet;
 use App\Models\Feedback;
 use App\Models\User;
-use Carbon\Carbon;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -33,15 +32,6 @@ class AdminStatsOverview extends BaseWidget
             if (is_array($isler)) {
                 foreach ($isler as $is) {
                     $toplamIs++;
-
-                    // Gecikme kontrolü: Tarih geçmiş ve tamamlanmamış
-                    if (
-                        isset($is['son_tarih']) &&
-                        Carbon::parse($is['son_tarih'])->isPast() &&
-                        ($is['durum'] ?? '') !== 'tamam'
-                    ) {
-                        $gecikenIs++;
-                    }
                 }
             }
         }
@@ -57,7 +47,7 @@ class AdminStatsOverview extends BaseWidget
                 ->color('info'),
 
             Stat::make('Toplam Geciken İş Sayısı', $gecikenIs)
-                ->description('Süresi dolmuş ama tamamlanmamış işler')
+                ->description('Son tarih takibi kapalı olduğu için 0 gösterilir')
                 ->icon('heroicon-m-exclamation-circle')
                 ->color('danger'),
             Stat::make('Bekleyen Geri Bildirimler', $bekleyenGeriBildirim)
