@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\UsageGuide;
+use App\Filament\Widgets\AnalizEkibiMudurlukChart;
 use App\Filament\Widgets\AdminStatsOverview;
 use App\Filament\Widgets\AnnouncementWidget;
 use App\Filament\Widgets\FaaliyetIstatistikGrafik;
@@ -46,6 +47,7 @@ class AdminPanelProvider extends PanelProvider
                 AnnouncementWidget::class,
                 GecikenIslerUyari::class,
                 MudurlukAylikFaaliyetChart::class,
+                AnalizEkibiMudurlukChart::class,
                 AdminStatsOverview::class,
                 FaaliyetIstatistikGrafik::class,
             ])
