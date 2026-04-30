@@ -9,6 +9,9 @@ use App\Models\ControlTeamAuditNote;
 use App\Models\User;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\QuerySafety;
+use Filament\Infolists\Components\Section as InfolistSection;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Forms;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
@@ -170,8 +173,40 @@ class ControlTeamAuditNoteResource extends Resource
             ->filters([
                 //
             ])
-            ->actions([])
+            ->actions([
+                Tables\Actions\ViewAction::make()->label('Analiz Notunu Görüntüle'),
+            ])
             ->bulkActions([]);
+    }
+
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            InfolistSection::make('Analiz Notu Detayı')
+                ->schema([
+                    TextEntry::make('directorate.name')->label('Müdürlük'),
+                    TextEntry::make('user.name')->label('Analiz Ekibi'),
+                    TextEntry::make('rapor_donemi')
+                        ->label('Rapor Dönemi')
+                        ->getStateUsing(function (ControlTeamAuditNote $record): string {
+                            if ($record->yil === null || $record->ay === null || $record->ay === '') {
+                                return '—';
+                            }
+
+                            return (string) $record->yil.' / '.$record->ay;
+                        }),
+                    TextEntry::make('activity_catalog_id')
+                        ->label('İlgili Faaliyet')
+                        ->getStateUsing(fn (ControlTeamAuditNote $record): string => ActivityCatalogFormatter::labelForCatalogId((int) $record->activity_catalog_id) ?? '—'),
+                    TextEntry::make('audit_date')
+                        ->label('Analiz Tarihi')
+                        ->date('d.m.Y'),
+                    TextEntry::make('note')
+                        ->label('Analiz Notu')
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
+        ]);
     }
 
     public static function getRelations(): array
@@ -237,6 +272,11 @@ class ControlTeamAuditNoteResource extends Resource
         return $u instanceof User && ($u->isReportingSuperAdmin() || $u->isControlTeam());
     }
 
+    public static function canView(Model $record): bool
+    {
+        return static::getEloquentQuery()->whereKey($record->getKey())->exists();
+    }
+
     public static function canEdit(Model $record): bool
     {
         return false;
@@ -252,6 +292,7 @@ class ControlTeamAuditNoteResource extends Resource
         return [
             'index' => Pages\ListControlTeamAuditNotes::route('/'),
             'create' => Pages\CreateControlTeamAuditNote::route('/create'),
+            'view' => Pages\ViewControlTeamAuditNote::route('/{record}'),
         ];
     }
 
