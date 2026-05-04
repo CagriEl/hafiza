@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ActivityReportResource\Pages;
 use App\Models\AylikFaaliyet;
 use App\Models\User;
+use App\Support\AylikFaaliyetRepeaterLock;
 use App\Support\CoordinationAccess;
 use App\Support\QuerySafety;
 use Filament\Forms\Form;
@@ -51,7 +52,7 @@ class ActivityReportResource extends Resource
                     ]))
                     ->visible(fn (AylikFaaliyet $record) => static::canView($record) && ! static::canEdit($record)),
                 Tables\Actions\EditAction::make()
-                    ->label('Detay / Analiz')
+                    ->label('Raporu düzenle')
                     ->url(fn (AylikFaaliyet $record): string => static::getUrl('edit', [
                         'record' => $record,
                         'tab' => $tabFromSession(),
@@ -129,8 +130,25 @@ class ActivityReportResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        // Kayıt oluşturulduktan sonra düzenleme kapalı (salt rapor görünümü).
-        return false;
+        if (! $record instanceof AylikFaaliyet) {
+            return false;
+        }
+
+        if (! static::canView($record)) {
+            return false;
+        }
+
+        $u = auth()->user();
+        if (! $u instanceof User) {
+            return false;
+        }
+
+        if ($u->isReportingSuperAdmin()) {
+            return true;
+        }
+
+        return $u->isMudurlukReportingAccount()
+            && AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($record, $u);
     }
 
     public static function canDelete(Model $record): bool

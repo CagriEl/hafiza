@@ -103,6 +103,19 @@ final class AylikFaaliyetRepeaterLock
             }
         }
 
+        $incomingKv = $incoming['kapsam_verileri'] ?? null;
+        $originalKv = $original['kapsam_verileri'] ?? null;
+        if (is_array($incomingKv) && is_array($originalKv)) {
+            foreach (array_keys($originalKv) as $idx) {
+                if (! isset($incomingKv[$idx], $originalKv[$idx]) || ! is_array($incomingKv[$idx]) || ! is_array($originalKv[$idx])) {
+                    continue;
+                }
+                if (array_key_exists('gerceklesen', $incomingKv[$idx])) {
+                    $original['kapsam_verileri'][$idx]['gerceklesen'] = $incomingKv[$idx]['gerceklesen'];
+                }
+            }
+        }
+
         return $original;
     }
 
@@ -121,6 +134,129 @@ final class AylikFaaliyetRepeaterLock
         foreach ($data['faaliyetler'] as $i => $row) {
             if (is_array($row)) {
                 unset($data['faaliyetler'][$i]['_orig_index'], $data['faaliyetler'][$i]['miktar']);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Eski şema: kapsam satırında yalnızca "deger" vardı → "ongorulen" olarak taşınır.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function migrateLegacyKapsamVerileriKeys(array $data): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row) || ! isset($row['kapsam_verileri']) || ! is_array($row['kapsam_verileri'])) {
+                continue;
+            }
+            foreach ($row['kapsam_verileri'] as $j => $kv) {
+                if (! is_array($kv)) {
+                    continue;
+                }
+                if (! array_key_exists('ongorulen', $kv) && array_key_exists('deger', $kv)) {
+                    $data['faaliyetler'][$i]['kapsam_verileri'][$j]['ongorulen'] = $kv['deger'];
+                    unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['deger']);
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private static function stripNestedKapsamGerceklesenFromFaaliyetRows(array $data): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row) || ! isset($row['kapsam_verileri']) || ! is_array($row['kapsam_verileri'])) {
+                continue;
+            }
+            foreach (array_keys($row['kapsam_verileri']) as $j) {
+                if (! is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
+                    continue;
+                }
+                unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['gerceklesen']);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * İlk plan kaydında ay sonu performans alanları tutulmaz; sonradan düzenlemede girilir.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function stripAySonuFieldsFromPlanOnlySave(array $data): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            unset(
+                $data['faaliyetler'][$i]['gerceklesen'],
+                $data['faaliyetler'][$i]['bekleyen_is'],
+                $data['faaliyetler'][$i]['sapma_nedeni'],
+            );
+        }
+
+        return self::stripNestedKapsamGerceklesenFromFaaliyetRows($data);
+    }
+
+    /**
+     * Müdürlük sahibi yeni (revize) satırda plan dışı alanları gönderemesin.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function stripAySonuFieldsFromUnpersistedMudurlukRows(AylikFaaliyet $record, User $user, array $data): array
+    {
+        if (! $user->isMudurlukReportingAccount() || ! self::actorOwnsAylikFaaliyetRecord($record, $user)) {
+            return $data;
+        }
+
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $v = $row['_orig_index'] ?? null;
+            if ($v !== null && $v !== '') {
+                continue;
+            }
+            unset(
+                $data['faaliyetler'][$i]['gerceklesen'],
+                $data['faaliyetler'][$i]['bekleyen_is'],
+                $data['faaliyetler'][$i]['sapma_nedeni'],
+            );
+            if (isset($data['faaliyetler'][$i]['kapsam_verileri']) && is_array($data['faaliyetler'][$i]['kapsam_verileri'])) {
+                foreach (array_keys($data['faaliyetler'][$i]['kapsam_verileri']) as $j) {
+                    if (! is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
+                        continue;
+                    }
+                    unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['gerceklesen']);
+                }
             }
         }
 

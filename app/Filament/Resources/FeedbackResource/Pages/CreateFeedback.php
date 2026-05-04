@@ -12,8 +12,12 @@ class CreateFeedback extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['user_id'] = auth()->id();
-        $data['directorate_id'] = FeedbackResource::resolveDirectorateIdForAuthUser();
+        $user = auth()->user();
+        $data['user_id'] = $user?->id;
+        $directorateFromUser = (int) ($user?->directorate_id ?? 0);
+        $data['directorate_id'] = $directorateFromUser > 0
+            ? $directorateFromUser
+            : FeedbackResource::resolveDirectorateIdForAuthUser();
         $data['status'] = Feedback::STATUS_NEW;
 
         return $data;

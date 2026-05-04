@@ -144,8 +144,9 @@ class ListAylikFaaliyets extends ListRecords
                             if ($kalem === '') {
                                 continue;
                             }
-                            $deger = $satir['deger'] ?? null;
-                            $pairs[] = e($kalem).': '.e(filled($deger) ? (string) $deger : '-');
+                            $ong = $satir['ongorulen'] ?? $satir['deger'] ?? null;
+                            $ger = $satir['gerceklesen'] ?? null;
+                            $pairs[] = e($kalem).': öngörülen '.e(filled($ong) ? (string) $ong : '-').' / gerçekleşen '.e(filled($ger) ? (string) $ger : '-');
                         }
                         if ($pairs !== []) {
                             $kapsamKalemleri = '<br><b>Kapsam Kalemleri:</b> '.implode(' | ', $pairs);
@@ -154,7 +155,7 @@ class ListAylikFaaliyets extends ListRecords
 
                     $isDetaylari .= "<div style='margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;'>
                                         <b>[".e($durum).']</b> '.e($baslik).'
-                                        <br><b>Hedef/Gerçekleşen/Bekleyen:</b> '.e((string) $hedef).' / '.e((string) $gerceklesen).' / '.e((string) $bekleyen).'
+                                        <br><b>Plan hedefi / Ay sonu gerçekleşen / Ay sonu bekleyen:</b> '.e((string) $hedef).' / '.e((string) $gerceklesen).' / '.e((string) $bekleyen).'
                                         '.($olcuBirimi !== '' ? '<br><b>Ölçü birimi:</b> '.e($olcuBirimi) : '').'
                                         '.($kapsamIcerigi !== '' ? '<br><b>Kapsam:</b> '.e($kapsamIcerigi) : '').'
                                         '.$kapsamKalemleri.'

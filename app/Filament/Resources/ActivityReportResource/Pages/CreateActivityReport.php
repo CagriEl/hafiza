@@ -6,6 +6,7 @@ use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
 use App\Models\User;
 use App\Support\AylikFaaliyetEscalation;
+use App\Support\AylikFaaliyetRepeaterLock;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -25,6 +26,15 @@ class CreateActivityReport extends CreateRecord
     protected function getRedirectUrl(): string
     {
         return $this->getResource()::getUrl('index');
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        return AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data);
     }
 
     protected function afterCreate(): void

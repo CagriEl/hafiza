@@ -9,6 +9,9 @@ use App\Models\User;
 use App\Support\QuerySafety;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists\Components\Section as InfolistSection;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -70,6 +73,37 @@ class FeedbackResource extends Resource
             ->columns(2);
     }
 
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist
+            ->schema([
+                InfolistSection::make('Geri bildirim')
+                    ->schema([
+                        TextEntry::make('user.name')
+                            ->label('Gönderen (Müdürlük)')
+                            ->placeholder('—'),
+                        TextEntry::make('subject')
+                            ->label('Konu'),
+                        TextEntry::make('category')
+                            ->label('Kategori'),
+                        TextEntry::make('message')
+                            ->label('Mesaj')
+                            ->columnSpanFull(),
+                        TextEntry::make('status')
+                            ->label('Durum'),
+                        TextEntry::make('admin_note')
+                            ->label('IT ekibi notu / yanıtı')
+                            ->columnSpanFull()
+                            ->placeholder('—')
+                            ->visible(fn (): bool => static::isAdmin()),
+                        TextEntry::make('created_at')
+                            ->label('Gönderim tarihi')
+                            ->dateTime('d.m.Y H:i'),
+                    ])
+                    ->columns(2),
+            ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -83,13 +117,9 @@ class FeedbackResource extends Resource
                     ->label('Kategori')
                     ->badge()
                     ->color('info'),
-                Tables\Columns\TextColumn::make('directorate.name')
-                    ->label('Müdürlük')
-                    ->placeholder('Belirlenemedi')
-                    ->searchable()
-                    ->toggleable(),
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Gönderen')
+                    ->label('Gönderen (Müdürlük)')
+                    ->searchable()
                     ->toggleable(isToggledHiddenByDefault: ! static::isAdmin()),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Tarih')
