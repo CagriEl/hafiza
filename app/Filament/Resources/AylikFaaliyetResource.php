@@ -627,7 +627,7 @@ class AylikFaaliyetResource extends Resource
                                 TextEntry::make('kapsam_verileri')
                                     ->label('Kapsam Kalem Girdileri')
                                     ->placeholder('—')
-                                    ->state(fn ($record): string => static::normalizeKapsamVerileriText(data_get($record, 'kapsam_verileri'))),
+                                    ->formatStateUsing(fn ($state): string => static::normalizeKapsamVerileriText($state)),
                                 TextEntry::make('sapma_nedeni')->label('Sapma')->placeholder('—')
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('gerekli_revize')
@@ -841,7 +841,6 @@ class AylikFaaliyetResource extends Resource
 
     /**
      * @param  list<string>  $kalemler
-     * @param  mixed  $mevcut
      * @return list<array{kalem: string, deger: mixed}>
      */
     private static function syncKapsamVerileri(array $kalemler, mixed $mevcut): array
