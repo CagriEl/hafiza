@@ -22,6 +22,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Infolists\Components\Component as InfolistComponent;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
@@ -627,7 +628,13 @@ class AylikFaaliyetResource extends Resource
                                 TextEntry::make('kapsam_verileri')
                                     ->label('Kapsam Kalem Girdileri')
                                     ->placeholder('—')
-                                    ->formatStateUsing(fn ($state): string => static::normalizeKapsamVerileriText($state)),
+                                    ->getStateUsing(function (InfolistComponent $component): string {
+                                        $row = $component->getContainer()->getState();
+
+                                        return static::normalizeKapsamVerileriText(
+                                            is_array($row) ? ($row['kapsam_verileri'] ?? null) : null
+                                        );
+                                    }),
                                 TextEntry::make('sapma_nedeni')->label('Sapma')->placeholder('—')
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('gerekli_revize')
