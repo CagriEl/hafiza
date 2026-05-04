@@ -97,15 +97,19 @@ final class AylikFaaliyetRepeaterLock
      */
     private static function mergeLockedRowWithAllowedInputs(array $original, array $incoming): array
     {
-        foreach (self::LOCKED_ROW_EDITABLE_KEYS as $key) {
-            if (array_key_exists($key, $incoming)) {
-                $original[$key] = $incoming[$key];
+        $performansKilitli = (bool) ($original['ay_sonu_performans_kilitli'] ?? false);
+
+        if (! $performansKilitli) {
+            foreach (self::LOCKED_ROW_EDITABLE_KEYS as $key) {
+                if (array_key_exists($key, $incoming)) {
+                    $original[$key] = $incoming[$key];
+                }
             }
         }
 
         $incomingKv = $incoming['kapsam_verileri'] ?? null;
         $originalKv = $original['kapsam_verileri'] ?? null;
-        if (is_array($incomingKv) && is_array($originalKv)) {
+        if (! $performansKilitli && is_array($incomingKv) && is_array($originalKv)) {
             foreach (array_keys($originalKv) as $idx) {
                 if (! isset($incomingKv[$idx], $originalKv[$idx]) || ! is_array($incomingKv[$idx]) || ! is_array($originalKv[$idx])) {
                     continue;
@@ -113,10 +117,128 @@ final class AylikFaaliyetRepeaterLock
                 if (array_key_exists('gerceklesen', $incomingKv[$idx])) {
                     $original['kapsam_verileri'][$idx]['gerceklesen'] = $incomingKv[$idx]['gerceklesen'];
                 }
+                if (array_key_exists('acikta_kalan', $incomingKv[$idx])) {
+                    $original['kapsam_verileri'][$idx]['acikta_kalan'] = $incomingKv[$idx]['acikta_kalan'];
+                }
             }
         }
 
+        $original['ay_sonu_performans_kilitli'] = (bool) ($original['ay_sonu_performans_kilitli'] ?? false)
+            || (bool) ($incoming['ay_sonu_performans_kilitli'] ?? false);
+
+        if (array_key_exists('_orig_index', $incoming)) {
+            $original['_orig_index'] = $incoming['_orig_index'];
+        }
+
         return $original;
+    }
+
+    /**
+     * Müdürlük ilk kez satır ay sonu (gerçekleşen + bekleyen) ve varsa her kapsam satırı (gerçekleşen + açıkta kalan)
+     * doldurulduktan sonra bir daha değiştiremesin.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function applyAySonuPerformansKilitAfterMudurlukSave(AylikFaaliyet $record, User $user, array $data): array
+    {
+        if (! $user->isMudurlukReportingAccount() || ! self::actorOwnsAylikFaaliyetRecord($record, $user)) {
+            return $data;
+        }
+
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        $origRows = is_array($record->faaliyetler) ? array_values($record->faaliyetler) : [];
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $rawIdx = $row['_orig_index'] ?? null;
+            if ($rawIdx === null || $rawIdx === '' || ! is_numeric((string) $rawIdx)) {
+                continue;
+            }
+            $idx = (int) $rawIdx;
+            if (! array_key_exists($idx, $origRows)) {
+                continue;
+            }
+            $wasLocked = (bool) (($origRows[$idx]['ay_sonu_performans_kilitli'] ?? false));
+            if ($wasLocked) {
+                continue;
+            }
+            $g = $row['gerceklesen'] ?? null;
+            $b = $row['bekleyen_is'] ?? null;
+            if (! filled($g) || ! filled($b)) {
+                continue;
+            }
+
+            $kapsamOk = true;
+            $kv = $row['kapsam_verileri'] ?? null;
+            if (is_array($kv) && $kv !== []) {
+                foreach ($kv as $line) {
+                    if (! is_array($line)) {
+                        continue;
+                    }
+                    if (! filled($line['gerceklesen'] ?? null) || ! filled($line['acikta_kalan'] ?? null)) {
+                        $kapsamOk = false;
+                        break;
+                    }
+                }
+            }
+
+            if ($kapsamOk) {
+                $data['faaliyetler'][$i]['ay_sonu_performans_kilitli'] = true;
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Eski kayıtlar: değerler var ama kilit bayrağı yoksa kilitli kabul et (tek seferlik model).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function hydrateAySonuPerformansKilitFromLegacy(array $data): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if (($row['ay_sonu_performans_kilitli'] ?? false)) {
+                continue;
+            }
+            if (! filled($row['gerceklesen'] ?? null) || ! filled($row['bekleyen_is'] ?? null)) {
+                continue;
+            }
+
+            $kapsamOk = true;
+            $kv = $row['kapsam_verileri'] ?? null;
+            if (is_array($kv) && $kv !== []) {
+                foreach ($kv as $line) {
+                    if (! is_array($line)) {
+                        continue;
+                    }
+                    if (! filled($line['gerceklesen'] ?? null) || ! filled($line['acikta_kalan'] ?? null)) {
+                        $kapsamOk = false;
+                        break;
+                    }
+                }
+            }
+
+            if ($kapsamOk) {
+                $data['faaliyetler'][$i]['ay_sonu_performans_kilitli'] = true;
+            }
+        }
+
+        return $data;
     }
 
     /**
@@ -134,6 +256,58 @@ final class AylikFaaliyetRepeaterLock
         foreach ($data['faaliyetler'] as $i => $row) {
             if (is_array($row)) {
                 unset($data['faaliyetler'][$i]['_orig_index'], $data['faaliyetler'][$i]['miktar']);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Kapsam kalemleri tanımlıysa satır düzeyindeki gerçekleşen / açıkta bekleyen, kalemlerdeki
+     * gerçekleşen ve açıkta kalan değerlerinin toplamı olarak yazılır (formda bu alanlar gösterilmez).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function syncRowAySonuTotalsFromKapsamVerileri(array $data): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $kv = $row['kapsam_verileri'] ?? null;
+            if (! is_array($kv) || $kv === []) {
+                continue;
+            }
+
+            $sumG = 0.0;
+            $sumB = 0.0;
+            $anyAySonu = false;
+
+            foreach ($kv as $line) {
+                if (! is_array($line)) {
+                    continue;
+                }
+                $g = $line['gerceklesen'] ?? null;
+                $b = $line['acikta_kalan'] ?? null;
+                if (filled($g) || filled($b)) {
+                    $anyAySonu = true;
+                }
+                if (filled($g) && is_numeric($g)) {
+                    $sumG += (float) $g;
+                }
+                if (filled($b) && is_numeric($b)) {
+                    $sumB += (float) $b;
+                }
+            }
+
+            if ($anyAySonu) {
+                $data['faaliyetler'][$i]['gerceklesen'] = $sumG;
+                $data['faaliyetler'][$i]['bekleyen_is'] = $sumB;
             }
         }
 
@@ -188,7 +362,10 @@ final class AylikFaaliyetRepeaterLock
                 if (! is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
                     continue;
                 }
-                unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['gerceklesen']);
+                unset(
+                    $data['faaliyetler'][$i]['kapsam_verileri'][$j]['gerceklesen'],
+                    $data['faaliyetler'][$i]['kapsam_verileri'][$j]['acikta_kalan'],
+                );
             }
         }
 
@@ -255,12 +432,36 @@ final class AylikFaaliyetRepeaterLock
                     if (! is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
                         continue;
                     }
-                    unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['gerceklesen']);
+                    unset(
+                        $data['faaliyetler'][$i]['kapsam_verileri'][$j]['gerceklesen'],
+                        $data['faaliyetler'][$i]['kapsam_verileri'][$j]['acikta_kalan'],
+                    );
                 }
             }
         }
 
         return $data;
+    }
+
+    /**
+     * faaliyetler.* satırındaki _orig_index; kapsam_verileri.* alt alanındayken üst faaliyet satırına çıkılır.
+     */
+    public static function resolveFaaliyetRowOrigIndex(Get $get): mixed
+    {
+        $v = $get('_orig_index');
+        if ($v !== null && $v !== '') {
+            return $v;
+        }
+
+        return $get('../../_orig_index');
+    }
+
+    /**
+     * Ay sonu performans kilidi: iç içe repeater içinde üst satırdaki bayrak.
+     */
+    public static function resolveFaaliyetRowAySonuPerformansKilitli(Get $get): bool
+    {
+        return (bool) ($get('ay_sonu_performans_kilitli') ?? $get('../../ay_sonu_performans_kilitli') ?? false);
     }
 
     public static function mudurlukOwnsRecordAndRowIsLocked(Get $get, mixed $livewire): bool
@@ -283,7 +484,7 @@ final class AylikFaaliyetRepeaterLock
             return false;
         }
 
-        $v = $get('_orig_index');
+        $v = self::resolveFaaliyetRowOrigIndex($get);
 
         return ! ($v === null || $v === '');
     }

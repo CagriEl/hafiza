@@ -271,7 +271,8 @@ class ListActivityReports extends ListRecords
                             }
                             $ong = $satir['ongorulen'] ?? $satir['deger'] ?? null;
                             $ger = $satir['gerceklesen'] ?? null;
-                            $pairs[] = e($kalem).': öngörülen '.e(filled($ong) ? (string) $ong : '-').' / gerçekleşen '.e(filled($ger) ? (string) $ger : '-');
+                            $acik = $satir['acikta_kalan'] ?? null;
+                            $pairs[] = e($kalem).': öngörülen '.e(filled($ong) ? (string) $ong : '-').' / gerçekleşen '.e(filled($ger) ? (string) $ger : '-').' / açıkta kalan '.e(filled($acik) ? (string) $acik : '-');
                         }
                         if ($pairs !== []) {
                             $kapsamKalemleri = '<br><b>Kapsam Kalemleri:</b> '.implode(' | ', $pairs);

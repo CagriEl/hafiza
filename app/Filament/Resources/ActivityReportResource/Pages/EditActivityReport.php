@@ -36,6 +36,8 @@ class EditActivityReport extends EditRecord
         $this->getRecord()->loadMissing('user');
         $data = AylikFaaliyetRepeaterLock::stampOrigIndexes($data);
         $data = AylikFaaliyetRepeaterLock::migrateLegacyKapsamVerileriKeys($data);
+        $data = AylikFaaliyetRepeaterLock::hydrateAySonuPerformansKilitFromLegacy($data);
+        $data = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
 
         return ActivityCatalogFormatter::hydrateActivityCatalogIdsInFaaliyetler(
             $data,
@@ -60,7 +62,13 @@ class EditActivityReport extends EditRecord
         $user = auth()->user();
         if ($user instanceof User) {
             $data = AylikFaaliyetRepeaterLock::stripAySonuFieldsFromUnpersistedMudurlukRows($this->record, $user, $data);
+        }
+
+        $data = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
+
+        if ($user instanceof User) {
             $data = AylikFaaliyetRepeaterLock::enforceMudurlukLocks($this->record, $user, $data);
+            $data = AylikFaaliyetRepeaterLock::applyAySonuPerformansKilitAfterMudurlukSave($this->record, $user, $data);
         }
 
         if (! $user instanceof User) {
