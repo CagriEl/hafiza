@@ -131,7 +131,6 @@ class ListAylikFaaliyets extends ListRecords
                     $hedef = $is['hedef'] ?? '-';
                     $gerceklesen = $is['gerceklesen'] ?? '-';
                     $bekleyen = $is['bekleyen_is'] ?? '-';
-                    $miktar = $is['miktar'] ?? '-';
 
                     $kapsamKalemleri = '';
                     $satirlar = $is['kapsam_verileri'] ?? [];
@@ -156,7 +155,7 @@ class ListAylikFaaliyets extends ListRecords
                     $isDetaylari .= "<div style='margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;'>
                                         <b>[".e($durum).']</b> '.e($baslik).'
                                         <br><b>Hedef/Gerçekleşen/Bekleyen:</b> '.e((string) $hedef).' / '.e((string) $gerceklesen).' / '.e((string) $bekleyen).'
-                                        <br><b>Miktar:</b> '.e((string) $miktar).($olcuBirimi !== '' ? ' '.e($olcuBirimi) : '').'
+                                        '.($olcuBirimi !== '' ? '<br><b>Ölçü birimi:</b> '.e($olcuBirimi) : '').'
                                         '.($kapsamIcerigi !== '' ? '<br><b>Kapsam:</b> '.e($kapsamIcerigi) : '').'
                                         '.$kapsamKalemleri.'
                                         <br><b>Bitiş:</b> '.$sonTarih.'

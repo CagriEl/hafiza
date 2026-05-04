@@ -120,7 +120,7 @@ final class AylikFaaliyetRepeaterLock
 
         foreach ($data['faaliyetler'] as $i => $row) {
             if (is_array($row)) {
-                unset($data['faaliyetler'][$i]['_orig_index']);
+                unset($data['faaliyetler'][$i]['_orig_index'], $data['faaliyetler'][$i]['miktar']);
             }
         }
 

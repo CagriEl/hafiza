@@ -363,10 +363,11 @@ class AylikFaaliyetResource extends Resource
                                     ])
                                     ->visible(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon'),
 
-                                Grid::make(5)->schema([
+                                Grid::make(3)->schema([
                                     Forms\Components\TextInput::make('hedef')
                                         ->label('Aylık Öngörülen Hedef')
                                         ->numeric()
+                                        ->required()
                                         ->placeholder('Örn: 450')
                                         ->live()
                                         ->helperText(function (Get $get) {
@@ -379,24 +380,21 @@ class AylikFaaliyetResource extends Resource
 
                                             return $hint ? 'Raporlama modeli (Destek / İç İşleyiş): '.$hint : null;
                                         })
-                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                        ->dehydrated(true),
 
                                     Forms\Components\TextInput::make('gerceklesen')
                                         ->label('Gerçekleşen')
                                         ->numeric()
+                                        ->required()
                                         ->placeholder('Örn: 395')
                                         ->live(),
 
                                     Forms\Components\TextInput::make('bekleyen_is')
                                         ->label('Açık/Bekleyen İş')
                                         ->numeric()
+                                        ->required()
                                         ->placeholder('Örn: 18'),
-                                    Forms\Components\TextInput::make('miktar')
-                                        ->label('Miktar')
-                                        ->numeric()
-                                        ->placeholder('Örn: 120')
-                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
-                                        ->required(),
                                 ]),
 
                                 Grid::make(2)->schema([
@@ -404,7 +402,8 @@ class AylikFaaliyetResource extends Resource
                                         ->label('Sapma Nedeni')
                                         ->placeholder('Hedef gerçekleşmediyse nedenini yazınız...')
                                         ->rows(2)
-                                        ->visible(fn (Get $get) => filled($get('hedef')) && $get('gerceklesen') < $get('hedef'))
+                                        ->visible(fn (Get $get) => filled($get('hedef')) && filled($get('gerceklesen'))
+                                            && (float) $get('gerceklesen') < (float) $get('hedef'))
                                         ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
 
                                     Forms\Components\Textarea::make('risk_engel')
@@ -618,8 +617,6 @@ class AylikFaaliyetResource extends Resource
                                 TextEntry::make('gerceklesen')->label('Gerçekleşen')
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('bekleyen_is')->label('Açık/Bekleyen İş')
-                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
-                                TextEntry::make('miktar')->label('Miktar')
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('olcu_birimi')->label('Ölçü Birimi')->placeholder('—')
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
