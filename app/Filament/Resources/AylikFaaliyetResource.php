@@ -18,6 +18,7 @@ use Carbon\Carbon;
 use Filament\Forms;
 use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
@@ -151,6 +152,19 @@ class AylikFaaliyetResource extends Resource
             'deger' => $get('deger'),
             'gerceklesen' => $get('gerceklesen'),
         ]));
+    }
+
+    private static function isGerekliRevizeEnabled(Get $get): bool
+    {
+        $v = $get('gerekli_revize');
+        if ($v === true || $v === 1) {
+            return true;
+        }
+        if ($v === '1' || $v === 'true' || $v === 'on') {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -661,28 +675,33 @@ class AylikFaaliyetResource extends Resource
                                         ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowAySonuSerbestMetinAlaniDisabled($get, $livewire)),
                                 ]),
 
-                                Grid::make(2)->schema([
-                                    Forms\Components\Toggle::make('gerekli_revize')
-                                        ->label('Gerekli Revize')
-                                        ->inline(false)
-                                        ->default(false)
-                                        ->live()
-                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
-                                        ->helperText('Yeni satırlarda işaretleyin; kayıtlı satırlar değiştirilemez.'),
-                                    Forms\Components\Textarea::make('revize_sebebi')
-                                        ->label('Revize Sebebi')
-                                        ->rows(2)
-                                        ->placeholder('Revize neden gerekli? Kisa aciklama yaziniz...')
-                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
-                                        ->required(fn (Get $get): bool => (bool) $get('gerekli_revize'))
-                                        ->visible(fn (Get $get): bool => (bool) $get('gerekli_revize'))
-                                        ->extraAttributes(fn (Get $get): array => (bool) $get('gerekli_revize')
-                                            ? ['class' => 'bg-amber-50 border-l-4 border-amber-500']
-                                            : []),
-                                ])
-                                    ->extraAttributes(fn (Get $get): array => (bool) $get('gerekli_revize')
+                                Group::make()
+                                    ->live()
+                                    ->extraAttributes(fn (Get $get): array => static::isGerekliRevizeEnabled($get)
                                         ? ['class' => 'bg-amber-50 p-2 rounded-md']
-                                        : []),
+                                        : [])
+                                    ->schema([
+                                        Grid::make(2)->schema([
+                                            Forms\Components\Toggle::make('gerekli_revize')
+                                                ->label('Gerekli Revize')
+                                                ->inline(false)
+                                                ->default(false)
+                                                ->live()
+                                                ->dehydrated(true)
+                                                ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                                ->helperText('Yeni satırlarda işaretleyin; kayıtlı satırlar değiştirilemez.'),
+                                            Forms\Components\Textarea::make('revize_sebebi')
+                                                ->label('Revize Sebebi')
+                                                ->rows(2)
+                                                ->placeholder('Revize neden gerekli? Kisa aciklama yaziniz...')
+                                                ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                                ->required(fn (Get $get): bool => static::isGerekliRevizeEnabled($get))
+                                                ->visible(fn (Get $get): bool => static::isGerekliRevizeEnabled($get))
+                                                ->extraAttributes(fn (Get $get): array => static::isGerekliRevizeEnabled($get)
+                                                    ? ['class' => 'bg-amber-50 border-l-4 border-amber-500']
+                                                    : []),
+                                        ]),
+                                    ]),
 
                                 Grid::make(1)->schema([
                                     Forms\Components\TextInput::make('karar_ihtiyaci')
