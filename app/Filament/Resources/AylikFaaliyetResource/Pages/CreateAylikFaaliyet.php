@@ -35,6 +35,8 @@ class CreateAylikFaaliyet extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
+
         return AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data);
     }
 

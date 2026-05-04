@@ -10,6 +10,7 @@ use App\Support\ActivityCatalogFormatter;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\AylikFaaliyetRepeaterLock;
 use App\Support\CoordinationAccess;
+use App\Support\NonNegativeInput;
 use App\Support\QuerySafety;
 use App\Support\ReportingModelReader;
 use App\Support\TurkishString;
@@ -87,6 +88,71 @@ class AylikFaaliyetResource extends Resource
         return $sum;
     }
 
+    public static function sumKapsamAciktaKalan(Get $get): float
+    {
+        $kv = $get('kapsam_verileri');
+        if (! is_array($kv) || $kv === []) {
+            $kv = $get('../../kapsam_verileri');
+        }
+        if (! is_array($kv)) {
+            return 0.0;
+        }
+
+        return AylikFaaliyetRepeaterLock::faaliyetKapsamToplamAciktaKalan(['kapsam_verileri' => $kv]);
+    }
+
+    /**
+     * Sapma / risk / karar ihtiyacı: ay sonu alanları açıkken yazılabilir; yalnızca ay sonu performans kilidi (veya süper admin dışı) kapatır.
+     */
+    public static function faaliyetRowAySonuSerbestMetinAlaniDisabled(Get $get, mixed $livewire): bool
+    {
+        if (! static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)) {
+            return true;
+        }
+        $u = auth()->user();
+        if ($u instanceof User && $u->isReportingSuperAdmin()) {
+            return false;
+        }
+
+        return AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get);
+    }
+
+    /**
+     * Ay sonu performansında sapma nedeni alanı: açıkta kalan / bekleyen iş veya hedef altı gerçekleşme varsa gösterilir.
+     */
+    public static function faaliyetRowShowsSapmaNedeni(Get $get, mixed $livewire): bool
+    {
+        if (! static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)) {
+            return false;
+        }
+        if (static::faaliyetRowUsesKapsamAySonuForPerformans($get)) {
+            return static::sumKapsamAciktaKalan($get) > 0;
+        }
+        $bek = $get('bekleyen_is');
+        if ($bek !== null && $bek !== '' && is_numeric($bek) && (float) $bek > 0) {
+            return true;
+        }
+        $hedef = $get('hedef');
+        $ger = $get('gerceklesen');
+        if ($hedef === null || $hedef === '' || $ger === null || $ger === '') {
+            return false;
+        }
+        if (! is_numeric($hedef) || ! is_numeric($ger)) {
+            return false;
+        }
+
+        return (float) $ger < (float) $hedef;
+    }
+
+    private static function syncKapsamRepeaterAciktaKalanField(Set $set, Get $get): void
+    {
+        $set('acikta_kalan', AylikFaaliyetRepeaterLock::kapsamSatirAciktaKalan([
+            'ongorulen' => $get('ongorulen'),
+            'deger' => $get('deger'),
+            'gerceklesen' => $get('gerceklesen'),
+        ]));
+    }
+
     /**
      * Ay sonu (gerçekleşen / bekleyen) alanları: yalnızca kayıtlı rapor düzenlemesinde ve
      * kilitli faaliyet satırlarında (veya süper adminin kilitli satırlarında) gösterilir.
@@ -129,7 +195,7 @@ class AylikFaaliyetResource extends Resource
                     ])->compact(),
 
                 Section::make('Faaliyet ve Performans Takip Listesi')
-                    ->description('İlk kayıtta planı oluştururken kapsam kalemlerinde yalnızca öngörülen değerleri girilir. Ay sonunda aynı faaliyete tekrar girildiğinde, her kalem satırında öngörülenin yanında gerçekleşen ve açıkta kalan doldurulur; liste performans özeti buna göre hesaplanır. Kapsam listesi olmayan satırlarda aylık hedef ve satır geneli ay sonu alanları kullanılır. Tamamlanan ay sonu bir kez kilitlenir. Yeni plan için «Gerekli Revize» ile satır ekleyebilirsiniz.')
+                    ->description('İlk kayıtta planı oluştururken kapsam kalemlerinde yalnızca öngörülen değerleri girilir. Ay sonunda her kalem satırında gerçekleşen girilir; açıkta kalan öngörülen − gerçekleşen olarak otomatik hesaplanır. Liste performans özeti buna göre hesaplanır. Kapsam listesi olmayan satırlarda aylık hedef ve satır geneli ay sonu alanları kullanılır. Tamamlanan ay sonu bir kez kilitlenir. Yeni plan için «Gerekli Revize» ile satır ekleyebilirsiniz.')
                     ->schema([
                         Repeater::make('faaliyetler')
                             ->label('İş Listesi')
@@ -260,8 +326,8 @@ class AylikFaaliyetResource extends Resource
                                     ->extraAttributes(['class' => 'bg-gray-50']),
 
                                 Repeater::make('kapsam_verileri')
-                                    ->label('Kapsam kalemleri (aynı satırda: öngörülen → ay sonunda yanında gerçekleşen / açıkta kalan)')
-                                    ->helperText('Plan aşamasında yalnızca öngörülen girilir. Kayıtlı faaliyette düzenlerken aynı satırda gerçekleşen ve açıkta kalan alanları açılır.')
+                                    ->label('Kapsam kalemleri (aynı satırda: öngörülen → ay sonunda gerçekleşen; açıkta kalan otomatik)')
+                                    ->helperText('Plan aşamasında yalnızca öngörülen girilir. Ay sonunda gerçekleşen girilir; açıkta kalan öngörülen − gerçekleşen olarak hesaplanır (elle girilemez).')
                                     ->dehydrated()
                                     ->schema([
                                         Grid::make(4)->schema([
@@ -274,6 +340,16 @@ class AylikFaaliyetResource extends Resource
                                                 ->label('Öngörülen')
                                                 ->numeric()
                                                 ->minValue(0)
+                                                ->live()
+                                                ->extraInputAttributes(['min' => 0])
+                                                ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
+                                                ->afterStateUpdated(function (Set $set, Get $get, $state): void {
+                                                    $c = NonNegativeInput::coerceLiveState($state);
+                                                    if ($c !== $state) {
+                                                        $set('ongorulen', $c);
+                                                    }
+                                                    static::syncKapsamRepeaterAciktaKalanField($set, $get);
+                                                })
                                                 ->required(fn (Get $get): bool => trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '')
                                                 ->disabled(fn (Get $get): bool => trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) !== '')
                                                 ->dehydrated(true),
@@ -281,6 +357,16 @@ class AylikFaaliyetResource extends Resource
                                                 ->label('Gerçekleşen')
                                                 ->numeric()
                                                 ->minValue(0)
+                                                ->live()
+                                                ->extraInputAttributes(['min' => 0])
+                                                ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
+                                                ->afterStateUpdated(function (Set $set, Get $get, $state): void {
+                                                    $c = NonNegativeInput::coerceLiveState($state);
+                                                    if ($c !== $state) {
+                                                        $set('gerceklesen', $c);
+                                                    }
+                                                    static::syncKapsamRepeaterAciktaKalanField($set, $get);
+                                                })
                                                 ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                                     && ! AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get))
                                                 ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
@@ -300,21 +386,13 @@ class AylikFaaliyetResource extends Resource
                                                 ->label('Açıkta kalan')
                                                 ->numeric()
                                                 ->minValue(0)
-                                                ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
-                                                    && ! AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get))
+                                                ->extraInputAttributes(['min' => 0])
+                                                ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
+                                                ->readOnly()
+                                                ->helperText('Öngörülen − gerçekleşen (otomatik, en az 0).')
                                                 ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
                                                 ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
-                                                ->disabled(function (Get $get, $livewire): bool {
-                                                    if (! static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)) {
-                                                        return true;
-                                                    }
-                                                    $u = auth()->user();
-                                                    if ($u instanceof User && $u->isReportingSuperAdmin()) {
-                                                        return false;
-                                                    }
-
-                                                    return AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get);
-                                                }),
+                                                ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)),
                                         ]),
                                     ])
                                     ->addable(false)
@@ -470,9 +548,17 @@ class AylikFaaliyetResource extends Resource
                                         ->label('Öngörülen (aylık hedef)')
                                         ->numeric()
                                         ->minValue(0)
+                                        ->extraInputAttributes(['min' => 0])
+                                        ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
                                         ->required()
                                         ->placeholder('Örn: 450')
                                         ->live()
+                                        ->afterStateUpdated(function (Set $set, $state): void {
+                                            $c = NonNegativeInput::coerceLiveState($state);
+                                            if ($c !== $state) {
+                                                $set('hedef', $c);
+                                            }
+                                        })
                                         ->helperText(function (Get $get) {
                                             $catalog = ActivityCatalog::find($get('activity_catalog_id'));
                                             $kat = $catalog?->kategori ?? '';
@@ -490,11 +576,19 @@ class AylikFaaliyetResource extends Resource
                                         ->label('Gerçekleşen')
                                         ->numeric()
                                         ->minValue(0)
+                                        ->extraInputAttributes(['min' => 0])
+                                        ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
                                         ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                             && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get)
                                             && ! (bool) ($get('ay_sonu_performans_kilitli') ?? false))
                                         ->placeholder('Örn: 395')
                                         ->live()
+                                        ->afterStateUpdated(function (Set $set, $state): void {
+                                            $c = NonNegativeInput::coerceLiveState($state);
+                                            if ($c !== $state) {
+                                                $set('gerceklesen', $c);
+                                            }
+                                        })
                                         ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                             && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get))
                                         ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
@@ -518,6 +612,15 @@ class AylikFaaliyetResource extends Resource
                                         ->label('Açıkta bekleyen')
                                         ->numeric()
                                         ->minValue(0)
+                                        ->extraInputAttributes(['min' => 0])
+                                        ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
+                                        ->live()
+                                        ->afterStateUpdated(function (Set $set, $state): void {
+                                            $c = NonNegativeInput::coerceLiveState($state);
+                                            if ($c !== $state) {
+                                                $set('bekleyen_is', $c);
+                                            }
+                                        })
                                         ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                             && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get)
                                             && ! (bool) ($get('ay_sonu_performans_kilitli') ?? false))
@@ -545,27 +648,17 @@ class AylikFaaliyetResource extends Resource
                                 Grid::make(2)->schema([
                                     Forms\Components\Textarea::make('sapma_nedeni')
                                         ->label('Sapma Nedeni')
-                                        ->placeholder('Hedef gerçekleşmediyse nedenini yazınız...')
+                                        ->placeholder('Hedefe ulaşılamadıysa veya açıkta iş kaldıysa nedenini yazınız...')
                                         ->rows(2)
-                                        ->visible(function (Get $get, $livewire): bool {
-                                            if (! static::faaliyetRowShowsAySonuPerformansFields($get, $livewire) || ! filled($get('hedef'))) {
-                                                return false;
-                                            }
-                                            $hedef = (float) $get('hedef');
-                                            $ger = static::faaliyetRowUsesKapsamAySonuForPerformans($get)
-                                                ? static::sumKapsamNumericField($get, 'gerceklesen')
-                                                : (float) ($get('gerceklesen') ?? 0);
-
-                                            return $ger < $hedef;
-                                        })
-                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
+                                        ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsSapmaNedeni($get, $livewire))
+                                        ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowAySonuSerbestMetinAlaniDisabled($get, $livewire)),
 
                                     Forms\Components\Textarea::make('risk_engel')
                                         ->label('Risk / Engel')
                                         ->placeholder('İşin önündeki engelleri belirtiniz...')
                                         ->rows(2)
                                         ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
-                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
+                                        ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowAySonuSerbestMetinAlaniDisabled($get, $livewire)),
                                 ]),
 
                                 Grid::make(2)->schema([
@@ -596,7 +689,7 @@ class AylikFaaliyetResource extends Resource
                                         ->label('📌 Üst Yönetim Karar İhtiyacı')
                                         ->placeholder('Başkanlık makamından beklenen karar veya destek nedir?')
                                         ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
-                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)),
+                                        ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowAySonuSerbestMetinAlaniDisabled($get, $livewire)),
 
                                     Forms\Components\Textarea::make('vice_mayor_notu')
                                         ->label('Başkan Yardımcısı Değerlendirmesi')
@@ -715,7 +808,7 @@ class AylikFaaliyetResource extends Resource
                 if (! is_array($line)) {
                     continue;
                 }
-                if (filled($line['gerceklesen'] ?? null) || filled($line['acikta_kalan'] ?? null)) {
+                if (AylikFaaliyetRepeaterLock::kapsamSatirindaAySonuGerceklesenGirilmis($line)) {
                     return true;
                 }
             }
@@ -723,7 +816,7 @@ class AylikFaaliyetResource extends Resource
             return false;
         }
 
-        return array_key_exists('gerceklesen', $is) && $is['gerceklesen'] !== null && $is['gerceklesen'] !== '';
+        return AylikFaaliyetRepeaterLock::kapsamSatirindaAySonuGerceklesenGirilmis(['gerceklesen' => $is['gerceklesen'] ?? null]);
     }
 
     public static function table(Table $table): Table
@@ -1116,20 +1209,20 @@ class AylikFaaliyetResource extends Resource
                 $harita[$kalem] = [
                     'ongorulen' => $satir['ongorulen'] ?? $satir['deger'] ?? null,
                     'gerceklesen' => $satir['gerceklesen'] ?? null,
-                    'acikta_kalan' => $satir['acikta_kalan'] ?? null,
                 ];
             }
         }
 
         $out = [];
         foreach ($kalemler as $kalem) {
-            $prev = $harita[$kalem] ?? ['ongorulen' => null, 'gerceklesen' => null, 'acikta_kalan' => null];
-            $out[] = [
+            $prev = $harita[$kalem] ?? ['ongorulen' => null, 'gerceklesen' => null];
+            $row = [
                 'kalem' => $kalem,
                 'ongorulen' => $prev['ongorulen'],
                 'gerceklesen' => $prev['gerceklesen'],
-                'acikta_kalan' => $prev['acikta_kalan'] ?? null,
             ];
+            $row['acikta_kalan'] = AylikFaaliyetRepeaterLock::kapsamSatirAciktaKalan($row);
+            $out[] = $row;
         }
 
         return $out;

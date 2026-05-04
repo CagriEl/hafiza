@@ -72,6 +72,13 @@ final class AylikFaaliyetEscalation
      */
     public static function kpiUnderTarget(array $item): bool
     {
+        if (AylikFaaliyetRepeaterLock::faaliyetKapsamToplamAciktaKalan($item) > 0) {
+            return true;
+        }
+        $bek = $item['bekleyen_is'] ?? null;
+        if ($bek !== null && $bek !== '' && is_numeric($bek) && (float) $bek > 0) {
+            return true;
+        }
         if (! isset($item['hedef'], $item['gerceklesen'])) {
             return false;
         }

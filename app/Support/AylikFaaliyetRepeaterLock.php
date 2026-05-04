@@ -16,6 +16,9 @@ final class AylikFaaliyetRepeaterLock
     private const LOCKED_ROW_EDITABLE_KEYS = [
         'gerceklesen',
         'bekleyen_is',
+        'sapma_nedeni',
+        'risk_engel',
+        'karar_ihtiyaci',
     ];
 
     /**
@@ -117,9 +120,9 @@ final class AylikFaaliyetRepeaterLock
                 if (array_key_exists('gerceklesen', $incomingKv[$idx])) {
                     $original['kapsam_verileri'][$idx]['gerceklesen'] = $incomingKv[$idx]['gerceklesen'];
                 }
-                if (array_key_exists('acikta_kalan', $incomingKv[$idx])) {
-                    $original['kapsam_verileri'][$idx]['acikta_kalan'] = $incomingKv[$idx]['acikta_kalan'];
-                }
+                $original['kapsam_verileri'][$idx]['acikta_kalan'] = self::kapsamSatirAciktaKalan(
+                    $original['kapsam_verileri'][$idx]
+                );
             }
         }
 
@@ -181,7 +184,7 @@ final class AylikFaaliyetRepeaterLock
                     if (! is_array($line)) {
                         continue;
                     }
-                    if (! filled($line['gerceklesen'] ?? null) || ! filled($line['acikta_kalan'] ?? null)) {
+                    if (! self::kapsamSatirindaAySonuGerceklesenGirilmis($line)) {
                         $kapsamOk = false;
                         break;
                     }
@@ -226,7 +229,7 @@ final class AylikFaaliyetRepeaterLock
                     if (! is_array($line)) {
                         continue;
                     }
-                    if (! filled($line['gerceklesen'] ?? null) || ! filled($line['acikta_kalan'] ?? null)) {
+                    if (! self::kapsamSatirindaAySonuGerceklesenGirilmis($line)) {
                         $kapsamOk = false;
                         break;
                     }
@@ -263,6 +266,56 @@ final class AylikFaaliyetRepeaterLock
     }
 
     /**
+     * Sayısal performans alanlarında negatif değerleri 0 yapar (form dışı gönderim / eski veri).
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function clampNonNegativeNumericFaaliyetler(array $data): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        $rowKeys = ['hedef', 'gerceklesen', 'bekleyen_is'];
+        $kapsamKeys = ['ongorulen', 'deger', 'gerceklesen', 'acikta_kalan'];
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            foreach ($rowKeys as $key) {
+                self::clampArrayKeyNonNegative($data['faaliyetler'][$i], $key);
+            }
+            $kv = $data['faaliyetler'][$i]['kapsam_verileri'] ?? null;
+            if (! is_array($kv)) {
+                continue;
+            }
+            foreach (array_keys($kv) as $j) {
+                if (! is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
+                    continue;
+                }
+                foreach ($kapsamKeys as $key) {
+                    self::clampArrayKeyNonNegative($data['faaliyetler'][$i]['kapsam_verileri'][$j], $key);
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private static function clampArrayKeyNonNegative(array &$row, string $key): void
+    {
+        if (! array_key_exists($key, $row)) {
+            return;
+        }
+        $row[$key] = NonNegativeInput::normalizeScalar($row[$key]);
+    }
+
+    /**
      * Kapsam kalemleri tanımlıysa satır düzeyindeki gerçekleşen / açıkta bekleyen, kalemlerdeki
      * gerçekleşen ve açıkta kalan değerlerinin toplamı olarak yazılır (formda bu alanlar gösterilmez).
      *
@@ -283,6 +336,16 @@ final class AylikFaaliyetRepeaterLock
             if (! is_array($kv) || $kv === []) {
                 continue;
             }
+
+            foreach (array_keys($kv) as $j) {
+                if (! is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
+                    continue;
+                }
+                $data['faaliyetler'][$i]['kapsam_verileri'][$j]['acikta_kalan'] = self::kapsamSatirAciktaKalan(
+                    $data['faaliyetler'][$i]['kapsam_verileri'][$j]
+                );
+            }
+            $kv = $data['faaliyetler'][$i]['kapsam_verileri'];
 
             $sumG = 0.0;
             $sumB = 0.0;
@@ -501,5 +564,61 @@ final class AylikFaaliyetRepeaterLock
         }
 
         return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $line
+     */
+    public static function kapsamSatirAciktaKalan(array $line): mixed
+    {
+        $ong = $line['ongorulen'] ?? $line['deger'] ?? null;
+        $ger = $line['gerceklesen'] ?? null;
+        if (self::isNumericFormScalar($ong) && self::isNumericFormScalar($ger)) {
+            return max(0, (float) $ong - (float) $ger);
+        }
+
+        return null;
+    }
+
+    /**
+     * Faaliyet satırındaki kapsam kalemlerinde toplam açıkta kalan (satır başına).
+     *
+     * @param  array<string, mixed>  $faaliyetRow
+     */
+    public static function faaliyetKapsamToplamAciktaKalan(array $faaliyetRow): float
+    {
+        $kv = $faaliyetRow['kapsam_verileri'] ?? null;
+        if (! is_array($kv)) {
+            return 0.0;
+        }
+        $sum = 0.0;
+        foreach ($kv as $line) {
+            if (! is_array($line)) {
+                continue;
+            }
+            $a = self::kapsamSatirAciktaKalan($line);
+            if ($a !== null && is_numeric($a)) {
+                $sum += (float) $a;
+            }
+        }
+
+        return $sum;
+    }
+
+    /**
+     * @param  array<string, mixed>  $line
+     */
+    public static function kapsamSatirindaAySonuGerceklesenGirilmis(array $line): bool
+    {
+        return self::isNumericFormScalar($line['gerceklesen'] ?? null);
+    }
+
+    private static function isNumericFormScalar(mixed $v): bool
+    {
+        if ($v === null || $v === '') {
+            return false;
+        }
+
+        return is_numeric($v);
     }
 }

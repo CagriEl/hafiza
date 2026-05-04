@@ -5,10 +5,12 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PersonelDurumResource\Pages;
 use App\Models\PersonelDurum;
 use App\Models\ViceMayor;
+use App\Support\NonNegativeInput;
 use App\Support\QuerySafety;
 use App\Support\ReportDirectorateScope;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -33,23 +35,83 @@ class PersonelDurumResource extends Resource
                     ->schema([
                         Forms\Components\TextInput::make('memur')
                             ->label('Memur Sayısı')
-                            ->numeric()->default(0)->required(),
+                            ->numeric()
+                            ->minValue(0)
+                            ->extraInputAttributes(['min' => 0])
+                            ->default(0)
+                            ->required()
+                            ->live()
+                            ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s) ?? 0)
+                            ->afterStateUpdated(function (Set $set, $state): void {
+                                $c = NonNegativeInput::coerceLiveState($state);
+                                if ($c !== $state) {
+                                    $set('memur', $c === null ? 0 : $c);
+                                }
+                            }),
 
                         Forms\Components\TextInput::make('sozlesmeli_memur')
                             ->label('Sözleşmeli Memur')
-                            ->numeric()->default(0)->required(),
+                            ->numeric()
+                            ->minValue(0)
+                            ->extraInputAttributes(['min' => 0])
+                            ->default(0)
+                            ->required()
+                            ->live()
+                            ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s) ?? 0)
+                            ->afterStateUpdated(function (Set $set, $state): void {
+                                $c = NonNegativeInput::coerceLiveState($state);
+                                if ($c !== $state) {
+                                    $set('sozlesmeli_memur', $c === null ? 0 : $c);
+                                }
+                            }),
 
                         Forms\Components\TextInput::make('kadrolu_isci')
                             ->label('Kadrolu İşçi')
-                            ->numeric()->default(0)->required(),
+                            ->numeric()
+                            ->minValue(0)
+                            ->extraInputAttributes(['min' => 0])
+                            ->default(0)
+                            ->required()
+                            ->live()
+                            ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s) ?? 0)
+                            ->afterStateUpdated(function (Set $set, $state): void {
+                                $c = NonNegativeInput::coerceLiveState($state);
+                                if ($c !== $state) {
+                                    $set('kadrolu_isci', $c === null ? 0 : $c);
+                                }
+                            }),
 
                         Forms\Components\TextInput::make('sirket_personeli')
                             ->label('Şirket Personeli')
-                            ->numeric()->default(0)->required(),
+                            ->numeric()
+                            ->minValue(0)
+                            ->extraInputAttributes(['min' => 0])
+                            ->default(0)
+                            ->required()
+                            ->live()
+                            ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s) ?? 0)
+                            ->afterStateUpdated(function (Set $set, $state): void {
+                                $c = NonNegativeInput::coerceLiveState($state);
+                                if ($c !== $state) {
+                                    $set('sirket_personeli', $c === null ? 0 : $c);
+                                }
+                            }),
 
                         Forms\Components\TextInput::make('gecici_isci')
                             ->label('Geçici İşçi')
-                            ->numeric()->default(0)->required(),
+                            ->numeric()
+                            ->minValue(0)
+                            ->extraInputAttributes(['min' => 0])
+                            ->default(0)
+                            ->required()
+                            ->live()
+                            ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s) ?? 0)
+                            ->afterStateUpdated(function (Set $set, $state): void {
+                                $c = NonNegativeInput::coerceLiveState($state);
+                                if ($c !== $state) {
+                                    $set('gecici_isci', $c === null ? 0 : $c);
+                                }
+                            }),
                     ])->columns(2),
             ]);
     }

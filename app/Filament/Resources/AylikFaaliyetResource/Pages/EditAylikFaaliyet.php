@@ -38,6 +38,7 @@ class EditAylikFaaliyet extends EditRecord
         $data = AylikFaaliyetRepeaterLock::stampOrigIndexes($data);
         $data = AylikFaaliyetRepeaterLock::migrateLegacyKapsamVerileriKeys($data);
         $data = AylikFaaliyetRepeaterLock::hydrateAySonuPerformansKilitFromLegacy($data);
+        $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
         $data = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
 
         return ActivityCatalogFormatter::hydrateActivityCatalogIdsInFaaliyetler(
@@ -68,6 +69,7 @@ class EditAylikFaaliyet extends EditRecord
             $data = AylikFaaliyetRepeaterLock::stripAySonuFieldsFromUnpersistedMudurlukRows($this->record, $user, $data);
         }
 
+        $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
         $data = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
 
         if ($user instanceof User) {

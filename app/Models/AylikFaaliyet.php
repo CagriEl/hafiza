@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AylikFaaliyetRepeaterLock;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -25,6 +26,14 @@ class AylikFaaliyet extends Model
             if (Auth::check()) {
                 $model->user_id = Auth::id();
             }
+        });
+
+        static::saving(function (AylikFaaliyet $model): void {
+            if (! is_array($model->faaliyetler)) {
+                return;
+            }
+            $out = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler(['faaliyetler' => $model->faaliyetler]);
+            $model->faaliyetler = $out['faaliyetler'];
         });
     }
     // ----------------------
