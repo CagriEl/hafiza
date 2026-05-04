@@ -168,6 +168,42 @@ class AylikFaaliyetResource extends Resource
     }
 
     /**
+     * Revize işareti ve sebebi: ay sonu performansı kilitlenmedikçe düzenlenebilir (kayıtlı satırda da).
+     * Koordinasyonda gelen müdürlük (incoming partner) değiştiremez.
+     */
+    public static function faaliyetRowRevizeAlaniDisabled(Get $get, mixed $livewire): bool
+    {
+        if (AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get)) {
+            return true;
+        }
+        $u = auth()->user();
+        if (! $u instanceof User) {
+            return true;
+        }
+        if ($u->isReportingSuperAdmin()) {
+            return false;
+        }
+        if (! $livewire instanceof EditRecord) {
+            return true;
+        }
+        $r = $livewire->getRecord();
+        if (! $r instanceof AylikFaaliyet) {
+            return true;
+        }
+        if (CoordinationAccess::isIncomingPartnerOnRecord($r, (int) $u->id)) {
+            return true;
+        }
+        if ($u->isMudurlukReportingAccount() && AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($r, $u)) {
+            return false;
+        }
+        if ($u->isViceMayorAccount()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Ay sonu (gerçekleşen / bekleyen) alanları: yalnızca kayıtlı rapor düzenlemesinde ve
      * kilitli faaliyet satırlarında (veya süper adminin kilitli satırlarında) gösterilir.
      */
@@ -688,13 +724,13 @@ class AylikFaaliyetResource extends Resource
                                                 ->default(false)
                                                 ->live()
                                                 ->dehydrated(true)
-                                                ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
-                                                ->helperText('Yeni satırlarda işaretleyin; kayıtlı satırlar değiştirilemez.'),
+                                                ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowRevizeAlaniDisabled($get, $livewire))
+                                                ->helperText('Plan veya ay sonu sonrası revize gerekiyorsa işaretleyin; ay sonu performansı kilitlenince değiştirilemez.'),
                                             Forms\Components\Textarea::make('revize_sebebi')
                                                 ->label('Revize Sebebi')
                                                 ->rows(2)
                                                 ->placeholder('Revize neden gerekli? Kisa aciklama yaziniz...')
-                                                ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                                ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowRevizeAlaniDisabled($get, $livewire))
                                                 ->required(fn (Get $get): bool => static::isGerekliRevizeEnabled($get))
                                                 ->visible(fn (Get $get): bool => static::isGerekliRevizeEnabled($get))
                                                 ->extraAttributes(fn (Get $get): array => static::isGerekliRevizeEnabled($get)

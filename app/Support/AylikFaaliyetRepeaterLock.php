@@ -19,6 +19,8 @@ final class AylikFaaliyetRepeaterLock
         'sapma_nedeni',
         'risk_engel',
         'karar_ihtiyaci',
+        'gerekli_revize',
+        'revize_sebebi',
     ];
 
     /**
