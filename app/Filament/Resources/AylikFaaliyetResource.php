@@ -777,6 +777,19 @@ class AylikFaaliyetResource extends Resource
     }
 
     /**
+     * Başarı yüzdesi: gerçekleşen / öngörülen; en fazla %100 (hedefi aşan gerçekleşme %100 gösterilir).
+     */
+    private static function performansBasariOraniYuzde(float $gerceklesenToplam, float $ongorulenToplam): int
+    {
+        if ($ongorulenToplam <= 0.0) {
+            return 0;
+        }
+        $ham = ($gerceklesenToplam / $ongorulenToplam) * 100.0;
+
+        return (int) min(100, max(0, round($ham)));
+    }
+
+    /**
      * Performans oranı: kapsam kalemleri varsa plan toplamı öngörülenlerin, gerçekleşen toplamı kalemlerdeki gerçekleşenlerin toplamıdır.
      *
      * @param  array<string, mixed>  $is
@@ -864,7 +877,7 @@ class AylikFaaliyetResource extends Resource
                         if (! $hasAySonu) {
                             return 'Ay sonu verisi bekleniyor';
                         }
-                        $oran = (int) round(($toplamGerceklesen / $toplamHedef) * 100);
+                        $oran = static::performansBasariOraniYuzde($toplamGerceklesen, $toplamHedef);
 
                         return "% {$oran} Başarı";
                     })
