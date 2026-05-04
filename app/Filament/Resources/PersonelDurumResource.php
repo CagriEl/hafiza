@@ -41,7 +41,7 @@ class PersonelDurumResource extends Resource
                             ->default(0)
                             ->required()
                             ->live()
-                            ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s) ?? 0)
+                            ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state) ?? 0)
                             ->afterStateUpdated(function (Set $set, $state): void {
                                 $c = NonNegativeInput::coerceLiveState($state);
                                 if ($c !== $state) {
@@ -57,7 +57,7 @@ class PersonelDurumResource extends Resource
                             ->default(0)
                             ->required()
                             ->live()
-                            ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s) ?? 0)
+                            ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state) ?? 0)
                             ->afterStateUpdated(function (Set $set, $state): void {
                                 $c = NonNegativeInput::coerceLiveState($state);
                                 if ($c !== $state) {
@@ -73,7 +73,7 @@ class PersonelDurumResource extends Resource
                             ->default(0)
                             ->required()
                             ->live()
-                            ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s) ?? 0)
+                            ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state) ?? 0)
                             ->afterStateUpdated(function (Set $set, $state): void {
                                 $c = NonNegativeInput::coerceLiveState($state);
                                 if ($c !== $state) {
@@ -89,7 +89,7 @@ class PersonelDurumResource extends Resource
                             ->default(0)
                             ->required()
                             ->live()
-                            ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s) ?? 0)
+                            ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state) ?? 0)
                             ->afterStateUpdated(function (Set $set, $state): void {
                                 $c = NonNegativeInput::coerceLiveState($state);
                                 if ($c !== $state) {
@@ -105,7 +105,7 @@ class PersonelDurumResource extends Resource
                             ->default(0)
                             ->required()
                             ->live()
-                            ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s) ?? 0)
+                            ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state) ?? 0)
                             ->afterStateUpdated(function (Set $set, $state): void {
                                 $c = NonNegativeInput::coerceLiveState($state);
                                 if ($c !== $state) {

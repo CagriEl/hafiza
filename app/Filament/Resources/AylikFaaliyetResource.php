@@ -342,7 +342,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->minValue(0)
                                                 ->live()
                                                 ->extraInputAttributes(['min' => 0])
-                                                ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
+                                                ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
                                                     $c = NonNegativeInput::coerceLiveState($state);
                                                     if ($c !== $state) {
@@ -359,7 +359,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->minValue(0)
                                                 ->live()
                                                 ->extraInputAttributes(['min' => 0])
-                                                ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
+                                                ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
                                                     $c = NonNegativeInput::coerceLiveState($state);
                                                     if ($c !== $state) {
@@ -387,7 +387,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->numeric()
                                                 ->minValue(0)
                                                 ->extraInputAttributes(['min' => 0])
-                                                ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
+                                                ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
                                                 ->readOnly()
                                                 ->helperText('Öngörülen − gerçekleşen (otomatik, en az 0).')
                                                 ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
@@ -549,7 +549,7 @@ class AylikFaaliyetResource extends Resource
                                         ->numeric()
                                         ->minValue(0)
                                         ->extraInputAttributes(['min' => 0])
-                                        ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
+                                        ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
                                         ->required()
                                         ->placeholder('Örn: 450')
                                         ->live()
@@ -577,7 +577,7 @@ class AylikFaaliyetResource extends Resource
                                         ->numeric()
                                         ->minValue(0)
                                         ->extraInputAttributes(['min' => 0])
-                                        ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
+                                        ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
                                         ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                             && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get)
                                             && ! (bool) ($get('ay_sonu_performans_kilitli') ?? false))
@@ -613,7 +613,7 @@ class AylikFaaliyetResource extends Resource
                                         ->numeric()
                                         ->minValue(0)
                                         ->extraInputAttributes(['min' => 0])
-                                        ->dehydrateStateUsing(fn ($s) => NonNegativeInput::normalizeScalar($s))
+                                        ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
                                         ->live()
                                         ->afterStateUpdated(function (Set $set, $state): void {
                                             $c = NonNegativeInput::coerceLiveState($state);
