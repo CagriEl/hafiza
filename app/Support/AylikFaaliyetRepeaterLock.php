@@ -19,8 +19,6 @@ final class AylikFaaliyetRepeaterLock
         'sapma_nedeni',
         'risk_engel',
         'karar_ihtiyaci',
-        'gerekli_revize',
-        'revize_sebebi',
     ];
 
     /**
@@ -133,6 +131,12 @@ final class AylikFaaliyetRepeaterLock
 
         if (array_key_exists('_orig_index', $incoming)) {
             $original['_orig_index'] = $incoming['_orig_index'];
+        }
+
+        foreach (['gerekli_revize', 'revize_sebebi'] as $revKey) {
+            if (array_key_exists($revKey, $incoming)) {
+                $original[$revKey] = $incoming[$revKey];
+            }
         }
 
         return $original;

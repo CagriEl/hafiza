@@ -168,14 +168,37 @@ class AylikFaaliyetResource extends Resource
     }
 
     /**
-     * Revize işareti ve sebebi: ay sonu performansı kilitlenmedikçe düzenlenebilir (kayıtlı satırda da).
-     * Koordinasyonda gelen müdürlük (incoming partner) değiştiremez.
+     * Bu satırda ay sonu performansı girilmiş mi (özet başarı oranına dahil olabilecek durum).
+     */
+    private static function faaliyetRowAySonuPerformansiVarMiFromGet(Get $get): bool
+    {
+        $kv = $get('kapsam_verileri');
+        if (! is_array($kv) || $kv === []) {
+            $kv = $get('../../kapsam_verileri');
+        }
+        if (is_array($kv) && $kv !== []) {
+            foreach ($kv as $line) {
+                if (! is_array($line)) {
+                    continue;
+                }
+                if (AylikFaaliyetRepeaterLock::kapsamSatirindaAySonuGerceklesenGirilmis($line)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return AylikFaaliyetRepeaterLock::kapsamSatirindaAySonuGerceklesenGirilmis(['gerceklesen' => $get('gerceklesen')]);
+    }
+
+    /**
+     * Revize: yalnızca ay sonu verisi tamamlanmış (tamamlanmış) kayıtlı satırlarda veya yeni satırda.
+     * Ay sonu beklenen satırda kapalıdır. Performans kilidi olsa da revize işareti kayda alınır.
+     * Koordinasyonda gelen müdürlük değiştiremez.
      */
     public static function faaliyetRowRevizeAlaniDisabled(Get $get, mixed $livewire): bool
     {
-        if (AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get)) {
-            return true;
-        }
         $u = auth()->user();
         if (! $u instanceof User) {
             return true;
@@ -193,6 +216,13 @@ class AylikFaaliyetResource extends Resource
         if (CoordinationAccess::isIncomingPartnerOnRecord($r, (int) $u->id)) {
             return true;
         }
+
+        $orig = trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? ''));
+        $persisted = $orig !== '';
+        if ($persisted && ! static::faaliyetRowAySonuPerformansiVarMiFromGet($get)) {
+            return true;
+        }
+
         if ($u->isMudurlukReportingAccount() && AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($r, $u)) {
             return false;
         }
@@ -725,7 +755,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->live()
                                                 ->dehydrated(true)
                                                 ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowRevizeAlaniDisabled($get, $livewire))
-                                                ->helperText('Plan veya ay sonu sonrası revize gerekiyorsa işaretleyin; ay sonu performansı kilitlenince değiştirilemez.'),
+                                                ->helperText('Ay sonu gerçekleşen girildikten sonra (özet başarı oranı oluşunca) revize işaretleyebilirsiniz. Yeni eklenen satırda plan revizesi için de kullanılır.'),
                                             Forms\Components\Textarea::make('revize_sebebi')
                                                 ->label('Revize Sebebi')
                                                 ->rows(2)
