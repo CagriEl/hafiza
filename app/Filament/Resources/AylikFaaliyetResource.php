@@ -167,8 +167,18 @@ class AylikFaaliyetResource extends Resource
         return false;
     }
 
+    private static function coordinationPrerequisitesReady(Get $get): bool
+    {
+        $catalogId = (int) ($get('activity_catalog_id') ?? 0);
+
+        return $catalogId > 0;
+    }
+
     private static function coordinationFieldsDisabled(mixed $livewire, ?Get $get = null): bool
     {
+        if ($get instanceof Get && ! static::coordinationPrerequisitesReady($get)) {
+            return true;
+        }
         if ($get instanceof Get && AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)) {
             return true;
         }
@@ -564,6 +574,9 @@ class AylikFaaliyetResource extends Resource
                                         if (! $u instanceof User || ! $u->isMudurlukReportingAccount()) {
                                             return true;
                                         }
+                                        if (! static::coordinationPrerequisitesReady($get)) {
+                                            return true;
+                                        }
 
                                         return AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire);
                                     })
@@ -583,6 +596,7 @@ class AylikFaaliyetResource extends Resource
                                         Forms\Components\Select::make('isbirligi_hedef_mudurluk_user_ids')
                                             ->label('İşbirliği Yapılacak Müdürlükler')
                                             ->multiple()
+                                            ->live()
                                             ->searchable()
                                             ->preload()
                                             ->disabled(fn (Get $get, $livewire): bool => static::coordinationFieldsDisabled($livewire, $get))
@@ -632,7 +646,15 @@ class AylikFaaliyetResource extends Resource
                                             ->deletable(false)
                                             ->reorderable(false)
                                             ->defaultItems(0)
-                                            ->visible(fn (Get $get): bool => is_array($get('isbirligi_hedef_mudurluk_user_ids')) && count($get('isbirligi_hedef_mudurluk_user_ids')) > 0)
+                                            ->itemLabel(function (array $state): ?string {
+                                                $uid = (int) ($state['mudurluk_user_id'] ?? 0);
+                                                if ($uid <= 0) {
+                                                    return 'Müdürlük Talebi';
+                                                }
+
+                                                return User::query()->whereKey($uid)->value('name') ?? 'Müdürlük Talebi';
+                                            })
+                                            ->visible(fn (Get $get): bool => is_array($get('isbirligi_talepleri')) && count($get('isbirligi_talepleri')) > 0)
                                             ->schema([
                                                 Forms\Components\Hidden::make('mudurluk_user_id')->dehydrated(true),
                                                 Grid::make(3)->schema([
@@ -685,7 +707,8 @@ class AylikFaaliyetResource extends Resource
                                                 ]),
                                             ]),
                                     ])
-                                    ->visible(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon'),
+                                    ->visible(fn (Get $get) => static::coordinationPrerequisitesReady($get)
+                                        && $get('faaliyet_turu') === 'Koordinasyon'),
 
                                 Grid::make(3)->schema([
                                     Forms\Components\TextInput::make('hedef')

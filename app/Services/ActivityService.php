@@ -30,6 +30,8 @@ class ActivityService
     /** @var array<string, mixed>|null */
     private ?array $lastCatalogResolutionDebug = null;
 
+    private bool $autoSyncAttempted = false;
+
     public function __construct(
         ?string $activitySetsPath = null,
         ?string $reportingRulesPath = null,
@@ -44,6 +46,7 @@ class ActivityService
         $this->reportingRulesCache = null;
         $this->faaliyetFullJsonRowsCache = null;
         $this->lastCatalogResolutionDebug = null;
+        $this->autoSyncAttempted = false;
     }
 
     /**
@@ -184,6 +187,30 @@ class ActivityService
         }
 
         $rows = $query->get();
+
+        // JSON'da kod var ama katalog satirlari eksikse (deploy sonrasi sync unutulduysa)
+        // bir kez otomatik senkron dene ve sonucu tekrar cek.
+        if (
+            $codes !== []
+            && $rows->count() < count($codes)
+            && ! $this->autoSyncAttempted
+        ) {
+            $this->autoSyncAttempted = true;
+
+            try {
+                app(ActivityCatalogSyncService::class)->syncFromFile($path);
+                app(ActivityCatalogSyncService::class)->regenerateActivitySetsJson($path);
+                $this->forgetCache();
+
+                $query = ActivityCatalog::query()->orderBy('faaliyet_kodu')->whereIn('faaliyet_kodu', $codes);
+                if ($query instanceof Builder) {
+                    $rows = $query->get();
+                }
+            } catch (\Throwable) {
+                // Fail-safe: otomatik sync basarisiz olsa da sayfa normal akisla devam eder.
+            }
+        }
+
         $debug['catalog_rows_fetched'] = $rows->count();
 
         if ($codes !== []) {
