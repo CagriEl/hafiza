@@ -125,7 +125,29 @@ class ActivityReportResource extends Resource
 
     public static function canView(Model $record): bool
     {
-        return static::getEloquentQuery()->whereKey($record->getKey())->exists();
+        if (! $record instanceof AylikFaaliyet) {
+            return false;
+        }
+
+        $u = auth()->user();
+        if (! $u instanceof User) {
+            return false;
+        }
+        if ($u->isReportingSuperAdmin()) {
+            return true;
+        }
+        if ($u->isViceMayorAccount() || $u->isControlTeam()) {
+            return static::getEloquentQuery()->whereKey($record->getKey())->exists();
+        }
+        if ($u->isMudurlukReportingAccount()) {
+            if (AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($record, $u)) {
+                return true;
+            }
+
+            return CoordinationAccess::isIncomingPartnerOnRecord($record, (int) $u->id);
+        }
+
+        return false;
     }
 
     public static function canEdit(Model $record): bool

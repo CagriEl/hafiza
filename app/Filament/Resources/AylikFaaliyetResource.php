@@ -51,6 +51,11 @@ class AylikFaaliyetResource extends Resource
 
     protected static ?int $navigationSort = 2;
 
+    private static function isIncomingTabActive(): bool
+    {
+        return (string) session('activity_report_active_tab', '') === 'incoming';
+    }
+
     /**
      * Faaliyet satırında katalogdan gelen kapsam kalemleri varsa ay sonu performansı yalnızca
      * bu kalemler üzerinden girilir; satır genelinde ayrı gerçekleşen / açıkta bekleyen alanı yoktur.
@@ -169,7 +174,11 @@ class AylikFaaliyetResource extends Resource
 
     private static function coordinationPrerequisitesReady(Get $get): bool
     {
-        $catalogId = (int) ($get('activity_catalog_id') ?? 0);
+        $catalogId = (int) ($get('activity_catalog_id')
+            ?? $get('../activity_catalog_id')
+            ?? $get('../../activity_catalog_id')
+            ?? $get('../../../activity_catalog_id')
+            ?? 0);
 
         return $catalogId > 0;
     }
@@ -1011,6 +1020,18 @@ class AylikFaaliyetResource extends Resource
                 Tables\Columns\TextColumn::make('yil')->label('Yıl')->badge(),
                 Tables\Columns\TextColumn::make('ay')->label('Ay'),
                 Tables\Columns\TextColumn::make('user.name')->label('Müdürlük')->searchable(),
+                Tables\Columns\TextColumn::make('talep_tarihi')
+                    ->label('Talep Tarihi')
+                    ->getStateUsing(fn (AylikFaaliyet $record): string => optional($record->created_at)?->format('d.m.Y') ?? '—')
+                    ->visible(fn (): bool => static::isIncomingTabActive()),
+                Tables\Columns\TextColumn::make('incoming_coordination_summary')
+                    ->label('Gelen Koordinasyon Detayı')
+                    ->getStateUsing(function (AylikFaaliyet $record): string {
+                        return static::coordinationIncomingSummaryForUser($record, (int) (auth()->id() ?? 0));
+                    })
+                    ->toggleable()
+                    ->wrap()
+                    ->visible(fn (): bool => static::isIncomingTabActive()),
 
                 Tables\Columns\TextColumn::make('performans_ozeti')
                     ->label('İş başarı performansı')
@@ -1039,7 +1060,8 @@ class AylikFaaliyetResource extends Resource
                         str_contains((string) $state, '100') => 'success',
                         str_contains((string) $state, '80') => 'warning',
                         default => 'danger',
-                    }),
+                    })
+                    ->visible(fn (): bool => ! static::isIncomingTabActive()),
 
                 Tables\Columns\IconColumn::make('karar_bekleyen')
                     ->label('Üst yönetim bildirimi')
@@ -1064,7 +1086,8 @@ class AylikFaaliyetResource extends Resource
                         return false;
                     })
                     ->trueIcon('heroicon-o-exclamation-triangle')
-                    ->trueColor('danger'),
+                    ->trueColor('danger')
+                    ->visible(fn (): bool => ! static::isIncomingTabActive()),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('yil')->options([2025 => '2025', 2026 => '2026']),
@@ -1090,6 +1113,74 @@ class AylikFaaliyetResource extends Resource
         return is_array($kv) && $kv !== [];
     }
 
+    private static function shouldShowIncomingCoordinationOnly(?AylikFaaliyet $record): bool
+    {
+        $u = auth()->user();
+        if (! $u instanceof User || ! $record instanceof AylikFaaliyet) {
+            return false;
+        }
+
+        return $u->isMudurlukReportingAccount()
+            && ! AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($record, $u)
+            && CoordinationAccess::isIncomingPartnerOnRecord($record, (int) $u->id);
+    }
+
+    private static function incomingCoordinationDetailText(?AylikFaaliyet $record): string
+    {
+        $u = auth()->user();
+        if (! $u instanceof User || ! $record instanceof AylikFaaliyet) {
+            return '—';
+        }
+
+        $lines = [];
+        $rows = is_array($record->faaliyetler) ? $record->faaliyetler : [];
+        foreach ($rows as $row) {
+            if (! is_array($row) || ($row['faaliyet_turu'] ?? null) !== 'Koordinasyon') {
+                continue;
+            }
+            $talepler = $row['isbirligi_talepleri'] ?? [];
+            if (! is_array($talepler)) {
+                continue;
+            }
+            $kod = trim((string) ($row['faaliyet_kodu'] ?? 'Koordinasyon'));
+            $kapsam = trim((string) ($row['kapsam_icerigi'] ?? ''));
+
+            foreach ($talepler as $talep) {
+                if (! is_array($talep) || (int) ($talep['mudurluk_user_id'] ?? 0) !== (int) $u->id) {
+                    continue;
+                }
+
+                $parts = [];
+                $ihtiyac = trim((string) ($talep['ihtiyac'] ?? ''));
+                $hedefTarih = trim((string) ($talep['hedef_tarih'] ?? ''));
+                $bitisSuresi = trim((string) ($talep['bitis_suresi'] ?? ''));
+                if ($ihtiyac !== '') {
+                    $parts[] = 'İhtiyaç: '.e($ihtiyac);
+                }
+                if ($hedefTarih !== '') {
+                    $parts[] = 'Hedef tarih: '.e($hedefTarih);
+                }
+                if ($bitisSuresi !== '') {
+                    $parts[] = 'Bitiş süresi: '.e($bitisSuresi);
+                }
+                if ($parts === []) {
+                    continue;
+                }
+                $block = ['Faaliyet: '.e($kod)];
+                if ($kapsam !== '') {
+                    $block[] = 'Kapsam: '.e($kapsam);
+                }
+                foreach ($parts as $part) {
+                    $block[] = $part;
+                }
+
+                $lines[] = implode('<br>', $block);
+            }
+        }
+
+        return $lines === [] ? '—' : implode('<hr class="my-2">', $lines);
+    }
+
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist
@@ -1104,7 +1195,17 @@ class AylikFaaliyetResource extends Resource
                             ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                     ])
                     ->columns(3),
+                InfolistSection::make('Koordinasyon Detayı')
+                    ->visible(fn (?AylikFaaliyet $record): bool => static::shouldShowIncomingCoordinationOnly($record))
+                    ->schema([
+                        TextEntry::make('incoming_coordination_detail')
+                            ->label('Size Atanan Koordinasyon Bilgileri')
+                            ->getStateUsing(fn (?AylikFaaliyet $record): string => static::incomingCoordinationDetailText($record))
+                            ->placeholder('—')
+                            ->html(),
+                    ]),
                 InfolistSection::make('Raporlanan Faaliyetler')
+                    ->visible(fn (?AylikFaaliyet $record): bool => ! static::shouldShowIncomingCoordinationOnly($record))
                     ->schema([
                         RepeatableEntry::make('faaliyetler')
                             ->schema([
@@ -1373,6 +1474,61 @@ class AylikFaaliyetResource extends Resource
         }
 
         return $parts === [] ? '—' : implode(' | ', $parts);
+    }
+
+    private static function coordinationIncomingSummaryForUser(AylikFaaliyet $record, int $userId): string
+    {
+        if ($userId <= 0) {
+            return '—';
+        }
+
+        $rows = is_array($record->faaliyetler) ? $record->faaliyetler : [];
+        if ($rows === []) {
+            return '—';
+        }
+
+        $out = [];
+        foreach ($rows as $row) {
+            if (! is_array($row) || ($row['faaliyet_turu'] ?? null) !== 'Koordinasyon') {
+                continue;
+            }
+            $talepler = $row['isbirligi_talepleri'] ?? [];
+            if (! is_array($talepler)) {
+                continue;
+            }
+
+            $kod = trim((string) ($row['faaliyet_kodu'] ?? 'Koordinasyon'));
+            foreach ($talepler as $talep) {
+                if (! is_array($talep)) {
+                    continue;
+                }
+                if ((int) ($talep['mudurluk_user_id'] ?? 0) !== $userId) {
+                    continue;
+                }
+
+                $parts = [];
+                $ihtiyac = trim((string) ($talep['ihtiyac'] ?? ''));
+                $hedefTarih = trim((string) ($talep['hedef_tarih'] ?? ''));
+                $bitisSuresi = trim((string) ($talep['bitis_suresi'] ?? ''));
+
+                if ($ihtiyac !== '') {
+                    $parts[] = 'İhtiyaç: '.$ihtiyac;
+                }
+                if ($hedefTarih !== '') {
+                    $parts[] = 'Hedef: '.$hedefTarih;
+                }
+                if ($bitisSuresi !== '') {
+                    $parts[] = 'Süre: '.$bitisSuresi;
+                }
+                if ($parts === []) {
+                    continue;
+                }
+
+                $out[] = $kod.' -> '.implode(', ', $parts);
+            }
+        }
+
+        return $out === [] ? '—' : implode(' | ', array_slice($out, 0, 5));
     }
 
     /**

@@ -121,6 +121,8 @@ class EditAylikFaaliyet extends EditRecord
 
     protected function afterSave(): void
     {
+        $this->sendCoordinationPartnerNotifications();
+
         if (auth()->id() === 1) {
             return;
         }
@@ -147,5 +149,80 @@ class EditAylikFaaliyet extends EditRecord
                     ->url(ActivityReportResource::getUrl('edit', ['record' => $this->record])),
             ])
             ->sendToDatabase($admin);
+    }
+
+    private function sendCoordinationPartnerNotifications(): void
+    {
+        $faaliyetler = $this->record->faaliyetler;
+        if (! is_array($faaliyetler)) {
+            return;
+        }
+
+        $messagesByUserId = [];
+        foreach ($faaliyetler as $row) {
+            if (! is_array($row) || ($row['faaliyet_turu'] ?? null) !== 'Koordinasyon') {
+                continue;
+            }
+
+            $talepler = $row['isbirligi_talepleri'] ?? [];
+            if (! is_array($talepler)) {
+                continue;
+            }
+
+            $faaliyetKod = trim((string) ($row['faaliyet_kodu'] ?? 'Koordinasyon'));
+            foreach ($talepler as $talep) {
+                if (! is_array($talep)) {
+                    continue;
+                }
+                $uid = (int) ($talep['mudurluk_user_id'] ?? 0);
+                if ($uid <= 0 || $uid === (int) auth()->id()) {
+                    continue;
+                }
+
+                $ihtiyac = trim((string) ($talep['ihtiyac'] ?? ''));
+                $hedefTarih = trim((string) ($talep['hedef_tarih'] ?? ''));
+                $bitisSuresi = trim((string) ($talep['bitis_suresi'] ?? ''));
+
+                $parts = [];
+                if ($ihtiyac !== '') {
+                    $parts[] = "ihtiyaç: {$ihtiyac}";
+                }
+                if ($hedefTarih !== '') {
+                    $parts[] = "hedef tarih: {$hedefTarih}";
+                }
+                if ($bitisSuresi !== '') {
+                    $parts[] = "bitiş süresi: {$bitisSuresi}";
+                }
+                if ($parts === []) {
+                    continue;
+                }
+
+                $messagesByUserId[$uid] ??= [];
+                $messagesByUserId[$uid][] = "{$faaliyetKod} -> ".implode(', ', $parts);
+            }
+        }
+
+        if ($messagesByUserId === []) {
+            return;
+        }
+
+        $sender = $this->record->user?->name ?? auth()->user()?->name ?? 'Müdürlük';
+        foreach ($messagesByUserId as $uid => $lines) {
+            $target = User::find($uid);
+            if (! $target) {
+                continue;
+            }
+
+            Notification::make()
+                ->title('Koordinasyon talebi güncellendi')
+                ->body($sender.' raporunda size atanan talepler: '.implode(' | ', array_unique($lines)))
+                ->warning()
+                ->actions([
+                    NotificationAction::make('goruntule')
+                        ->label('Raporu Aç')
+                        ->url(AylikFaaliyetResource::getUrl('edit', ['record' => $this->record])),
+                ])
+                ->sendToDatabase($target);
+        }
     }
 }
