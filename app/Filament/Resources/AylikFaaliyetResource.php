@@ -167,6 +167,75 @@ class AylikFaaliyetResource extends Resource
         return false;
     }
 
+    private static function coordinationFieldsDisabled(mixed $livewire, ?Get $get = null): bool
+    {
+        if ($get instanceof Get && AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)) {
+            return true;
+        }
+        if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
+            return false;
+        }
+        $r = $livewire->getRecord();
+
+        return $r instanceof AylikFaaliyet
+            && auth()->user() instanceof User
+            && CoordinationAccess::isIncomingPartnerOnRecord($r, (int) auth()->id());
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function normalizeCoordinationTargetIds(mixed $state): array
+    {
+        if (! is_array($state)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map('intval', $state), fn (int $v) => $v > 0)));
+    }
+
+    /**
+     * @param  list<int>  $targetIds
+     * @return list<array{mudurluk_user_id:int, ihtiyac:string, hedef_tarih:mixed, bitis_suresi:string}>
+     */
+    private static function syncCoordinationRequests(array $targetIds, mixed $existing, mixed $legacyNeed, mixed $legacyDate, mixed $legacyDuration): array
+    {
+        $map = [];
+        if (is_array($existing)) {
+            foreach ($existing as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $uid = (int) ($row['mudurluk_user_id'] ?? 0);
+                if ($uid <= 0) {
+                    continue;
+                }
+                $map[$uid] = [
+                    'mudurluk_user_id' => $uid,
+                    'ihtiyac' => (string) ($row['ihtiyac'] ?? ''),
+                    'hedef_tarih' => $row['hedef_tarih'] ?? null,
+                    'bitis_suresi' => (string) ($row['bitis_suresi'] ?? ''),
+                ];
+            }
+        }
+
+        $legacyNeed = trim((string) ($legacyNeed ?? ''));
+        $legacyDuration = trim((string) ($legacyDuration ?? ''));
+        $legacyDate = $legacyDate ?? null;
+
+        $out = [];
+        foreach ($targetIds as $uid) {
+            $out[] = $map[$uid] ?? [
+                'mudurluk_user_id' => $uid,
+                'ihtiyac' => $legacyNeed,
+                'hedef_tarih' => $legacyDate,
+                'bitis_suresi' => $legacyDuration,
+            ];
+        }
+
+        return $out;
+    }
+
     /**
      * Bu satırda ay sonu performansı girilmiş mi (özet başarı oranına dahil olabilecek durum).
      */
@@ -504,6 +573,7 @@ class AylikFaaliyetResource extends Resource
                                             $set('isbirligi_hedef_tarih', null);
                                             $set('isbirligi_bitis_suresi', null);
                                             $set('isbirligi_hedef_mudurluk_user_ids', []);
+                                            $set('isbirligi_talepleri', []);
                                         }
                                     }),
 
@@ -515,19 +585,7 @@ class AylikFaaliyetResource extends Resource
                                             ->multiple()
                                             ->searchable()
                                             ->preload()
-                                            ->disabled(function (Get $get, $livewire): bool {
-                                                if (AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)) {
-                                                    return true;
-                                                }
-                                                if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
-                                                    return false;
-                                                }
-                                                $r = $livewire->getRecord();
-
-                                                return $r instanceof AylikFaaliyet
-                                                    && auth()->user() instanceof User
-                                                    && CoordinationAccess::isIncomingPartnerOnRecord($r, (int) auth()->id());
-                                            })
+                                            ->disabled(fn (Get $get, $livewire): bool => static::coordinationFieldsDisabled($livewire, $get))
                                             ->options(function () {
                                                 $uid = (int) (auth()->id() ?? 0);
 
@@ -542,84 +600,90 @@ class AylikFaaliyetResource extends Resource
                                                     auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon',
                                                     ['array', 'min:1']
                                                 ),
+                                            ])
+                                            ->afterStateHydrated(function (Set $set, Get $get, $state): void {
+                                                $ids = static::normalizeCoordinationTargetIds($state);
+                                                $set('isbirligi_hedef_mudurluk_user_ids', $ids);
+                                                $set('isbirligi_talepleri', static::syncCoordinationRequests(
+                                                    $ids,
+                                                    $get('isbirligi_talepleri'),
+                                                    $get('isbirligi_hangi_ihtiyac'),
+                                                    $get('isbirligi_hedef_tarih'),
+                                                    $get('isbirligi_bitis_suresi')
+                                                ));
+                                            })
+                                            ->afterStateUpdated(function (Set $set, Get $get, $state): void {
+                                                $ids = static::normalizeCoordinationTargetIds($state);
+                                                $set('isbirligi_hedef_mudurluk_user_ids', $ids);
+                                                $set('isbirligi_talepleri', static::syncCoordinationRequests(
+                                                    $ids,
+                                                    $get('isbirligi_talepleri'),
+                                                    $get('isbirligi_hangi_ihtiyac'),
+                                                    $get('isbirligi_hedef_tarih'),
+                                                    $get('isbirligi_bitis_suresi')
+                                                ));
+                                            }),
+
+                                        Repeater::make('isbirligi_talepleri')
+                                            ->label('Müdürlük Bazlı Talepler')
+                                            ->helperText('Seçilen her müdürlük için ayrı talep satırı açılır.')
+                                            ->dehydrated(true)
+                                            ->addable(false)
+                                            ->deletable(false)
+                                            ->reorderable(false)
+                                            ->defaultItems(0)
+                                            ->visible(fn (Get $get): bool => is_array($get('isbirligi_hedef_mudurluk_user_ids')) && count($get('isbirligi_hedef_mudurluk_user_ids')) > 0)
+                                            ->schema([
+                                                Forms\Components\Hidden::make('mudurluk_user_id')->dehydrated(true),
+                                                Grid::make(3)->schema([
+                                                    Forms\Components\Placeholder::make('mudurluk_adi')
+                                                        ->label('Müdürlük')
+                                                        ->content(function (Get $get): string {
+                                                            $uid = (int) ($get('mudurluk_user_id') ?? 0);
+                                                            if ($uid <= 0) {
+                                                                return '-';
+                                                            }
+
+                                                            return User::query()->whereKey($uid)->value('name') ?? '-';
+                                                        }),
+                                                    Forms\Components\Textarea::make('ihtiyac')
+                                                        ->label('Hangi İhtiyaç')
+                                                        ->rows(3)
+                                                        ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('../../faaliyet_turu') === 'Koordinasyon')
+                                                        ->rules([
+                                                            fn (Get $get) => Rule::when(
+                                                                auth()->user()?->isMudurlukReportingAccount() && $get('../../faaliyet_turu') === 'Koordinasyon',
+                                                                ['string', 'max:5000']
+                                                            ),
+                                                        ])
+                                                        ->disabled(fn (Get $get, $livewire): bool => static::coordinationFieldsDisabled($livewire, $get)),
+                                                    Forms\Components\DatePicker::make('hedef_tarih')
+                                                        ->label('Hedef Tarih')
+                                                        ->native(false)
+                                                        ->displayFormat('d.m.Y')
+                                                        ->minDate(Carbon::today()->startOfDay())
+                                                        ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('../../faaliyet_turu') === 'Koordinasyon')
+                                                        ->rules([
+                                                            fn (Get $get) => Rule::when(
+                                                                auth()->user()?->isMudurlukReportingAccount() && $get('../../faaliyet_turu') === 'Koordinasyon',
+                                                                ['date', 'after_or_equal:today']
+                                                            ),
+                                                        ])
+                                                        ->disabled(fn (Get $get, $livewire): bool => static::coordinationFieldsDisabled($livewire, $get)),
+                                                    Forms\Components\TextInput::make('bitis_suresi')
+                                                        ->label('Bitiş Süresi')
+                                                        ->placeholder('Örn: 10 iş günü, 2 hafta')
+                                                        ->maxLength(255)
+                                                        ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('../../faaliyet_turu') === 'Koordinasyon')
+                                                        ->rules([
+                                                            fn (Get $get) => Rule::when(
+                                                                auth()->user()?->isMudurlukReportingAccount() && $get('../../faaliyet_turu') === 'Koordinasyon',
+                                                                ['string', 'max:255']
+                                                            ),
+                                                        ])
+                                                        ->disabled(fn (Get $get, $livewire): bool => static::coordinationFieldsDisabled($livewire, $get)),
+                                                ]),
                                             ]),
-
-                                        Grid::make(3)->schema([
-                                            Forms\Components\Textarea::make('isbirligi_hangi_ihtiyac')
-                                                ->label('Hangi İhtiyaç')
-                                                ->rows(3)
-                                                ->disabled(function (Get $get, $livewire): bool {
-                                                    if (AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)) {
-                                                        return true;
-                                                    }
-                                                    if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
-                                                        return false;
-                                                    }
-                                                    $r = $livewire->getRecord();
-
-                                                    return $r instanceof AylikFaaliyet
-                                                        && auth()->user() instanceof User
-                                                        && CoordinationAccess::isIncomingPartnerOnRecord($r, (int) auth()->id());
-                                                })
-                                                ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon')
-                                                ->rules([
-                                                    fn (Get $get) => Rule::when(
-                                                        auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon',
-                                                        ['string', 'max:5000']
-                                                    ),
-                                                ]),
-
-                                            Forms\Components\DatePicker::make('isbirligi_hedef_tarih')
-                                                ->label('Hedef Tarih')
-                                                ->native(false)
-                                                ->displayFormat('d.m.Y')
-                                                ->disabled(function (Get $get, $livewire): bool {
-                                                    if (AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)) {
-                                                        return true;
-                                                    }
-                                                    if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
-                                                        return false;
-                                                    }
-                                                    $r = $livewire->getRecord();
-
-                                                    return $r instanceof AylikFaaliyet
-                                                        && auth()->user() instanceof User
-                                                        && CoordinationAccess::isIncomingPartnerOnRecord($r, (int) auth()->id());
-                                                })
-                                                ->minDate(Carbon::today()->startOfDay())
-                                                ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon')
-                                                ->rules([
-                                                    fn (Get $get) => Rule::when(
-                                                        auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon',
-                                                        ['date', 'after_or_equal:today']
-                                                    ),
-                                                ]),
-
-                                            Forms\Components\TextInput::make('isbirligi_bitis_suresi')
-                                                ->label('Bitiş Süresi')
-                                                ->placeholder('Örn: 10 iş günü, 2 hafta')
-                                                ->disabled(function (Get $get, $livewire): bool {
-                                                    if (AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire)) {
-                                                        return true;
-                                                    }
-                                                    if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
-                                                        return false;
-                                                    }
-                                                    $r = $livewire->getRecord();
-
-                                                    return $r instanceof AylikFaaliyet
-                                                        && auth()->user() instanceof User
-                                                        && CoordinationAccess::isIncomingPartnerOnRecord($r, (int) auth()->id());
-                                                })
-                                                ->maxLength(255)
-                                                ->required(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon')
-                                                ->rules([
-                                                    fn (Get $get) => Rule::when(
-                                                        auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon',
-                                                        ['string', 'max:255']
-                                                    ),
-                                                ]),
-                                        ]),
                                     ])
                                     ->visible(fn (Get $get) => auth()->user()?->isMudurlukReportingAccount() && $get('faaliyet_turu') === 'Koordinasyon'),
 

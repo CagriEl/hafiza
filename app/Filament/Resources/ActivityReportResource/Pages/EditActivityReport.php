@@ -91,6 +91,7 @@ class EditActivityReport extends EditRecord
         $keysToPreserve = [
             'faaliyet_turu',
             'isbirligi_hedef_mudurluk_user_ids',
+            'isbirligi_talepleri',
             'isbirligi_hangi_ihtiyac',
             'isbirligi_hedef_tarih',
             'isbirligi_bitis_suresi',
