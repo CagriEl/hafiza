@@ -62,4 +62,22 @@ class AylikFaaliyet extends Model
                 ->orWhereRaw("JSON_SEARCH(faaliyetler, 'one', 'Koordinasyon', NULL, '$[*].faaliyet_turu') IS NULL");
         });
     }
+
+    public static function existsForUserPeriod(int $userId, int $yil, string $ay, ?int $exceptId = null): bool
+    {
+        if ($userId <= 0 || $yil <= 0 || trim($ay) === '') {
+            return false;
+        }
+
+        $query = static::query()
+            ->where('user_id', $userId)
+            ->where('yil', $yil)
+            ->where('ay', trim($ay));
+
+        if ($exceptId !== null && $exceptId > 0) {
+            $query->whereKeyNot($exceptId);
+        }
+
+        return $query->exists();
+    }
 }

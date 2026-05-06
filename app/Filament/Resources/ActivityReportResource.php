@@ -175,7 +175,7 @@ class ActivityReportResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        return AylikFaaliyetResource::canDelete($record);
+        return false;
     }
 
     public static function canCreate(): bool

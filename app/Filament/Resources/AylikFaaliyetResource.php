@@ -361,6 +361,15 @@ class AylikFaaliyetResource extends Resource
                                 ->default(now()->format('m'))->required(),
                         ]),
                     ])->compact(),
+                Section::make('Uyarı')
+                    ->schema([
+                        Forms\Components\Placeholder::make('rapor_olusturma_uyarisi')
+                            ->content('Rapor oluştururken ilgili dönemdeki tüm faaliyetleri "İş Listesi" içine ekleyiniz. Her müdürlük için aynı ay içinde yalnızca 1 rapor oluşturulabilir.')
+                            ->extraAttributes(['class' => 'text-amber-700'])
+                            ->columnSpanFull(),
+                    ])
+                    ->visible(fn ($livewire): bool => $livewire instanceof \Filament\Resources\Pages\CreateRecord)
+                    ->compact(),
 
                 Section::make('Faaliyet ve Performans Takip Listesi')
                     ->description('İlk kayıtta planı oluştururken kapsam kalemlerinde yalnızca öngörülen değerleri girilir. Ay sonunda her kalem satırında gerçekleşen girilir; açıkta kalan öngörülen − gerçekleşen olarak otomatik hesaplanır. Liste performans özeti buna göre hesaplanır. Kapsam listesi olmayan satırlarda aylık hedef ve satır geneli ay sonu alanları kullanılır. Tamamlanan ay sonu bir kez kilitlenir. Yeni plan için «Gerekli Revize» ile satır ekleyebilirsiniz.')
@@ -900,6 +909,7 @@ class AylikFaaliyetResource extends Resource
                             })
                             ->collapsible()
                             ->reorderable(false)
+                            ->deletable(false)
                             ->deleteAction(function (FormAction $action) {
                                 return $action->visible(function (array $arguments, Repeater $component): bool {
                                     if (! $component->isDeletable()) {
@@ -1352,16 +1362,7 @@ class AylikFaaliyetResource extends Resource
 
     public static function canDelete(Model $record): bool
     {
-        $u = auth()->user();
-        if (! $u instanceof User) {
-            return false;
-        }
-
-        if ($u->isReportingSuperAdmin()) {
-            return true;
-        }
-
-        return (int) $record->user_id === (int) $u->id;
+        return false;
     }
 
     public static function canCreate(): bool

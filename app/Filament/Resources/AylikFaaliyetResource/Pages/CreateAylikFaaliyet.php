@@ -5,12 +5,14 @@ namespace App\Filament\Resources\AylikFaaliyetResource\Pages;
 use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
 use App\Filament\Resources\AylikFaaliyetResource;
+use App\Models\AylikFaaliyet;
 use App\Models\User;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\AylikFaaliyetRepeaterLock;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Illuminate\Validation\ValidationException;
 
 class CreateAylikFaaliyet extends CreateRecord
 {
@@ -35,6 +37,15 @@ class CreateAylikFaaliyet extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $uid = (int) (auth()->id() ?? 0);
+        $yil = (int) ($data['yil'] ?? 0);
+        $ay = trim((string) ($data['ay'] ?? ''));
+        if (AylikFaaliyet::existsForUserPeriod($uid, $yil, $ay)) {
+            throw ValidationException::withMessages([
+                'ay' => 'Bu müdürlük için seçilen yıl/ay döneminde zaten bir rapor var.',
+            ]);
+        }
+
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
 
         return AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data);
