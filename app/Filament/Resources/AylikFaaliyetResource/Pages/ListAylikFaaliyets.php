@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\AylikFaaliyetResource\Pages;
 
 use App\Filament\Resources\AylikFaaliyetResource;
+use App\Models\ExtraordinarySituation;
 use App\Models\User;
 use App\Services\ActivityService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -128,9 +129,21 @@ class ListAylikFaaliyets extends ListRecords
 
                     $kapsamIcerigi = trim((string) ($is['kapsam_icerigi'] ?? ''));
                     $olcuBirimi = trim((string) ($is['olcu_birimi'] ?? ''));
-                    $hedef = $is['hedef'] ?? '-';
                     $gerceklesen = $is['gerceklesen'] ?? '-';
                     $bekleyen = $is['bekleyen_is'] ?? '-';
+                    $extraordinary = ExtraordinarySituation::query()
+                        ->where('target_user_id', (int) ($record->user_id ?? 0))
+                        ->where('yil', (int) ($record->yil ?? 0))
+                        ->where('ay', str_pad((string) ($record->ay ?? ''), 2, '0', STR_PAD_LEFT))
+                        ->latest('id')
+                        ->first();
+                    $extraordinaryText = null;
+                    if ($extraordinary instanceof ExtraordinarySituation) {
+                        $reporter = User::find((int) ($extraordinary->reporter_user_id ?? 0));
+                        $reporterName = $reporter?->name ? trim((string) $reporter->name) : 'Sistem';
+                        $message = trim((string) ($extraordinary->message ?? ''));
+                        $extraordinaryText = $message === '' ? $reporterName : $reporterName.': '.$message;
+                    }
 
                     $kapsamKalemleri = '';
                     $satirlar = $is['kapsam_verileri'] ?? [];
@@ -156,9 +169,10 @@ class ListAylikFaaliyets extends ListRecords
 
                     $isDetaylari .= "<div style='margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;'>
                                         <b>[".e($durum).']</b> '.e($baslik).'
-                                        <br><b>Plan hedefi / Ay sonu gerçekleşen / Ay sonu bekleyen:</b> '.e((string) $hedef).' / '.e((string) $gerceklesen).' / '.e((string) $bekleyen).'
+                                        <br><b>Ay sonu gerçekleşen / Ay sonu bekleyen:</b> '.e((string) $gerceklesen).' / '.e((string) $bekleyen).'
                                         '.($olcuBirimi !== '' ? '<br><b>Ölçü birimi:</b> '.e($olcuBirimi) : '').'
                                         '.($kapsamIcerigi !== '' ? '<br><b>Kapsam:</b> '.e($kapsamIcerigi) : '').'
+                                        '.(filled($extraordinaryText) ? '<br><b>Olağanüstü durum:</b> '.e((string) $extraordinaryText) : '').'
                                         '.$kapsamKalemleri.'
                                         <br><b>Bitiş:</b> '.$sonTarih.'
                                      </div>';

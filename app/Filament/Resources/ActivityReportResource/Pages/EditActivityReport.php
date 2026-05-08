@@ -4,7 +4,6 @@ namespace App\Filament\Resources\ActivityReportResource\Pages;
 
 use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
-use App\Models\AylikFaaliyet;
 use App\Models\User;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\AylikFaaliyetEscalation;
@@ -13,7 +12,6 @@ use Filament\Actions;
 use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Validation\ValidationException;
 
 class EditActivityReport extends EditRecord
 {
@@ -62,15 +60,6 @@ class EditActivityReport extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $uid = (int) ($this->record->user_id ?? auth()->id() ?? 0);
-        $yil = (int) ($data['yil'] ?? $this->record->yil ?? 0);
-        $ay = trim((string) ($data['ay'] ?? $this->record->ay ?? ''));
-        if (AylikFaaliyet::existsForUserPeriod($uid, $yil, $ay, (int) $this->record->id)) {
-            throw ValidationException::withMessages([
-                'ay' => 'Bu müdürlük için seçilen yıl/ay döneminde zaten bir rapor var.',
-            ]);
-        }
-
         $user = auth()->user();
         if ($user instanceof User) {
             $data = AylikFaaliyetRepeaterLock::stripAySonuFieldsFromUnpersistedMudurlukRows($this->record, $user, $data);

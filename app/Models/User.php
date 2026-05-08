@@ -257,7 +257,16 @@ class User extends Authenticatable
             return false;
         }
 
-        return trim((string) $this->role) === self::ROLE_MUDURLUK;
+        $role = trim((string) $this->role);
+
+        return in_array($role, [
+            self::ROLE_MUDURLUK,
+            'mudurluk',
+            'MUDURLUK',
+            'Mudurluk',
+            'müdürlük',
+            'MÜDÜRLÜK',
+        ], true);
     }
 
     public function isControlTeam(): bool

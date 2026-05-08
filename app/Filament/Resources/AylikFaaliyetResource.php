@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\AylikFaaliyetResource\Pages;
 use App\Models\ActivityCatalog;
 use App\Models\AylikFaaliyet;
+use App\Models\ExtraordinarySituation;
 use App\Models\User;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\AylikFaaliyetEscalation;
@@ -124,7 +125,7 @@ class AylikFaaliyetResource extends Resource
     }
 
     /**
-     * Ay sonu performansında sapma nedeni alanı: açıkta kalan / bekleyen iş veya hedef altı gerçekleşme varsa gösterilir.
+     * Ay sonu performansında sapma nedeni alanı: açıkta kalan / bekleyen iş varsa gösterilir.
      */
     public static function faaliyetRowShowsSapmaNedeni(Get $get, mixed $livewire): bool
     {
@@ -135,19 +136,7 @@ class AylikFaaliyetResource extends Resource
             return static::sumKapsamAciktaKalan($get) > 0;
         }
         $bek = $get('bekleyen_is');
-        if ($bek !== null && $bek !== '' && is_numeric($bek) && (float) $bek > 0) {
-            return true;
-        }
-        $hedef = $get('hedef');
-        $ger = $get('gerceklesen');
-        if ($hedef === null || $hedef === '' || $ger === null || $ger === '') {
-            return false;
-        }
-        if (! is_numeric($hedef) || ! is_numeric($ger)) {
-            return false;
-        }
-
-        return (float) $ger < (float) $hedef;
+        return $bek !== null && $bek !== '' && is_numeric($bek) && (float) $bek > 0;
     }
 
     private static function syncKapsamRepeaterAciktaKalanField(Set $set, Get $get): void
@@ -346,6 +335,31 @@ class AylikFaaliyetResource extends Resource
         return AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire);
     }
 
+    /**
+     * Ay sonu gerçekleşen/bekleyen zorunluluğu yalnızca rapor döneminin son gününde devreye girer.
+     */
+    private static function shouldRequireAySonuCompletion(mixed $livewire): bool
+    {
+        if (! $livewire instanceof EditRecord) {
+            return false;
+        }
+
+        $record = $livewire->getRecord();
+        if (! $record instanceof AylikFaaliyet) {
+            return false;
+        }
+
+        $now = now();
+        $recordYil = (int) ($record->yil ?? 0);
+        $recordAy = str_pad(trim((string) ($record->ay ?? '')), 2, '0', STR_PAD_LEFT);
+
+        if ($recordYil !== (int) $now->year || $recordAy !== $now->format('m')) {
+            return false;
+        }
+
+        return (int) $now->day === (int) $now->daysInMonth;
+    }
+
     public static function form(Form $form): Form
     {
         return $form
@@ -364,15 +378,24 @@ class AylikFaaliyetResource extends Resource
                 Section::make('Uyarı')
                     ->schema([
                         Forms\Components\Placeholder::make('rapor_olusturma_uyarisi')
-                            ->content('Rapor oluştururken ilgili dönemdeki tüm faaliyetleri "İş Listesi" içine ekleyiniz. Her müdürlük için aynı ay içinde yalnızca 1 rapor oluşturulabilir.')
+                            ->content('Rapor oluştururken ilgili dönemdeki tüm faaliyetleri "İş Listesi" içine ekleyiniz. Müdürlükler aynı yıl/ay döneminde birden fazla rapor oluşturabilir.')
                             ->extraAttributes(['class' => 'text-amber-700'])
                             ->columnSpanFull(),
                     ])
                     ->visible(fn ($livewire): bool => $livewire instanceof \Filament\Resources\Pages\CreateRecord)
                     ->compact(),
+                Section::make('Ay Sonu Uyarısı')
+                    ->schema([
+                        Forms\Components\Placeholder::make('ay_sonu_kapanis_uyarisi')
+                            ->content('Ayın son günündesiniz. Mevcut faaliyet satırlarında ay sonu alanları (gerçekleşen/açıkta bekleyen) doldurulmadan kayıt tamamlanamaz.')
+                            ->extraAttributes(['class' => 'text-amber-700'])
+                            ->columnSpanFull(),
+                    ])
+                    ->visible(fn ($livewire): bool => static::shouldRequireAySonuCompletion($livewire))
+                    ->compact(),
 
                 Section::make('Faaliyet ve Performans Takip Listesi')
-                    ->description('İlk kayıtta planı oluştururken kapsam kalemlerinde yalnızca öngörülen değerleri girilir. Ay sonunda her kalem satırında gerçekleşen girilir; açıkta kalan öngörülen − gerçekleşen olarak otomatik hesaplanır. Liste performans özeti buna göre hesaplanır. Kapsam listesi olmayan satırlarda aylık hedef ve satır geneli ay sonu alanları kullanılır. Tamamlanan ay sonu bir kez kilitlenir. Yeni plan için «Gerekli Revize» ile satır ekleyebilirsiniz.')
+                    ->description('İlk kayıtta planı oluştururken kapsam kalemlerinde yalnızca öngörülen değerleri girilir. Ay sonunda her kalem satırında gerçekleşen girilir; açıkta kalan öngörülen − gerçekleşen olarak otomatik hesaplanır. Liste performans özeti buna göre hesaplanır. Kapsam listesi olmayan satırlarda satır geneli ay sonu alanları (gerçekleşen / açıkta bekleyen) kullanılır. Tamamlanan ay sonu bir kez kilitlenir. Yeni plan için «Gerekli Revize» ile satır ekleyebilirsiniz.')
                     ->schema([
                         Repeater::make('faaliyetler')
                             ->label('İş Listesi')
@@ -518,10 +541,11 @@ class AylikFaaliyetResource extends Resource
                                                 ->numeric()
                                                 ->minValue(0)
                                                 ->live()
-                                                ->extraInputAttributes(['min' => 0])
-                                                ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
+                                                ->rules(['integer', 'min:0'])
+                                                ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                                                ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
-                                                    $c = NonNegativeInput::coerceLiveState($state);
+                                                    $c = NonNegativeInput::coercePositiveIntegerLiveState($state);
                                                     if ($c !== $state) {
                                                         $set('ongorulen', $c);
                                                     }
@@ -535,16 +559,18 @@ class AylikFaaliyetResource extends Resource
                                                 ->numeric()
                                                 ->minValue(0)
                                                 ->live()
-                                                ->extraInputAttributes(['min' => 0])
-                                                ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
+                                                ->rules(['integer', 'min:0'])
+                                                ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                                                ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
-                                                    $c = NonNegativeInput::coerceLiveState($state);
+                                                    $c = NonNegativeInput::coercePositiveIntegerLiveState($state);
                                                     if ($c !== $state) {
                                                         $set('gerceklesen', $c);
                                                     }
                                                     static::syncKapsamRepeaterAciktaKalanField($set, $get);
                                                 })
                                                 ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
+                                                    && static::shouldRequireAySonuCompletion($livewire)
                                                     && ! AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get))
                                                 ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
                                                 ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
@@ -728,48 +754,22 @@ class AylikFaaliyetResource extends Resource
                                     ->visible(fn (Get $get) => static::coordinationPrerequisitesReady($get)
                                         && $get('faaliyet_turu') === 'Koordinasyon'),
 
-                                Grid::make(3)->schema([
-                                    Forms\Components\TextInput::make('hedef')
-                                        ->label('Öngörülen (aylık hedef)')
-                                        ->numeric()
-                                        ->minValue(0)
-                                        ->extraInputAttributes(['min' => 0])
-                                        ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
-                                        ->required()
-                                        ->placeholder('Örn: 450')
-                                        ->live()
-                                        ->afterStateUpdated(function (Set $set, $state): void {
-                                            $c = NonNegativeInput::coerceLiveState($state);
-                                            if ($c !== $state) {
-                                                $set('hedef', $c);
-                                            }
-                                        })
-                                        ->helperText(function (Get $get) {
-                                            $catalog = ActivityCatalog::find($get('activity_catalog_id'));
-                                            $kat = $catalog?->kategori ?? '';
-                                            if ($kat === '' || ! TurkishString::same($kat, 'Destek / İç İşleyiş')) {
-                                                return null;
-                                            }
-                                            $hint = ReportingModelReader::reportingStyleForKategori('Destek / İç İşleyiş');
-
-                                            return $hint ? 'Raporlama modeli (Destek / İç İşleyiş): '.$hint : null;
-                                        })
-                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
-                                        ->dehydrated(true),
-
+                                Grid::make(2)->schema([
                                     Forms\Components\TextInput::make('gerceklesen')
                                         ->label('Gerçekleşen')
                                         ->numeric()
                                         ->minValue(0)
-                                        ->extraInputAttributes(['min' => 0])
-                                        ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
+                                        ->rules(['integer', 'min:0'])
+                                        ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                                        ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
                                         ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
+                                            && static::shouldRequireAySonuCompletion($livewire)
                                             && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get)
                                             && ! (bool) ($get('ay_sonu_performans_kilitli') ?? false))
                                         ->placeholder('Örn: 395')
                                         ->live()
                                         ->afterStateUpdated(function (Set $set, $state): void {
-                                            $c = NonNegativeInput::coerceLiveState($state);
+                                            $c = NonNegativeInput::coercePositiveIntegerLiveState($state);
                                             if ($c !== $state) {
                                                 $set('gerceklesen', $c);
                                             }
@@ -807,6 +807,7 @@ class AylikFaaliyetResource extends Resource
                                             }
                                         })
                                         ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
+                                            && static::shouldRequireAySonuCompletion($livewire)
                                             && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get)
                                             && ! (bool) ($get('ay_sonu_performans_kilitli') ?? false))
                                         ->placeholder('Örn: 18')
@@ -979,7 +980,10 @@ class AylikFaaliyetResource extends Resource
             });
         }
 
-        return (float) ($is['hedef'] ?? 0);
+        $gerceklesen = (float) ($is['gerceklesen'] ?? 0);
+        $bekleyen = (float) ($is['bekleyen_is'] ?? 0);
+
+        return max(0.0, $gerceklesen + $bekleyen);
     }
 
     /**
@@ -1037,11 +1041,18 @@ class AylikFaaliyetResource extends Resource
                 Tables\Columns\TextColumn::make('incoming_coordination_summary')
                     ->label('Gelen Koordinasyon Detayı')
                     ->getStateUsing(function (AylikFaaliyet $record): string {
-                        return static::coordinationIncomingSummaryForUser($record, (int) (auth()->id() ?? 0));
+                        return static::coordinationIncomingSummaryForViewer($record);
                     })
                     ->toggleable()
                     ->wrap()
                     ->visible(fn (): bool => static::isIncomingTabActive()),
+                Tables\Columns\TextColumn::make('extraordinary_situation_summary')
+                    ->label('Olağanüstü Durum')
+                    ->getStateUsing(fn (AylikFaaliyet $record): string => static::latestExtraordinarySituationSummary($record))
+                    ->badge()
+                    ->color(fn (string $state): string => $state === '—' ? 'gray' : 'warning')
+                    ->wrap()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('performans_ozeti')
                     ->label('İş başarı performansı')
@@ -1130,6 +1141,10 @@ class AylikFaaliyetResource extends Resource
             return false;
         }
 
+        if (static::isIncomingTabActive()) {
+            return true;
+        }
+
         return $u->isMudurlukReportingAccount()
             && ! AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($record, $u)
             && CoordinationAccess::isIncomingPartnerOnRecord($record, (int) $u->id);
@@ -1137,11 +1152,11 @@ class AylikFaaliyetResource extends Resource
 
     private static function incomingCoordinationDetailText(?AylikFaaliyet $record): string
     {
-        $u = auth()->user();
-        if (! $u instanceof User || ! $record instanceof AylikFaaliyet) {
+        if (! $record instanceof AylikFaaliyet) {
             return '—';
         }
 
+        $targetUserIds = static::incomingCoordinationTargetUserIdsForViewer();
         $lines = [];
         $rows = is_array($record->faaliyetler) ? $record->faaliyetler : [];
         foreach ($rows as $row) {
@@ -1156,7 +1171,11 @@ class AylikFaaliyetResource extends Resource
             $kapsam = trim((string) ($row['kapsam_icerigi'] ?? ''));
 
             foreach ($talepler as $talep) {
-                if (! is_array($talep) || (int) ($talep['mudurluk_user_id'] ?? 0) !== (int) $u->id) {
+                if (! is_array($talep)) {
+                    continue;
+                }
+                $talepUserId = (int) ($talep['mudurluk_user_id'] ?? 0);
+                if ($targetUserIds !== [] && ! in_array($talepUserId, $targetUserIds, true)) {
                     continue;
                 }
 
@@ -1214,6 +1233,14 @@ class AylikFaaliyetResource extends Resource
                             ->placeholder('—')
                             ->html(),
                     ]),
+                InfolistSection::make('Olağanüstü Durum Bildirimleri')
+                    ->schema([
+                        TextEntry::make('extraordinary_situation_detail')
+                            ->label('Dönem Bildirimleri')
+                            ->getStateUsing(fn (?AylikFaaliyet $record): string => static::extraordinarySituationDetailText($record))
+                            ->placeholder('—')
+                            ->html(),
+                    ]),
                 InfolistSection::make('Raporlanan Faaliyetler')
                     ->visible(fn (?AylikFaaliyet $record): bool => ! static::shouldShowIncomingCoordinationOnly($record))
                     ->schema([
@@ -1234,8 +1261,6 @@ class AylikFaaliyetResource extends Resource
 
                                         return User::query()->whereIn('id', $ids)->pluck('name')->implode(', ') ?: '-';
                                     }),
-                                TextEntry::make('hedef')->label('Plan — Aylık öngörülen hedef')
-                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('gerceklesen')->label('Ay sonu — Gerçekleşen (satır)')
                                     ->visible(fn (TextEntry $component): bool => ! static::infolistFaaliyetRowHasKapsamVerileri($component))
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
@@ -1477,11 +1502,43 @@ class AylikFaaliyetResource extends Resource
         return $parts === [] ? '—' : implode(' | ', $parts);
     }
 
-    private static function coordinationIncomingSummaryForUser(AylikFaaliyet $record, int $userId): string
+    /**
+     * @return list<int>
+     */
+    private static function incomingCoordinationTargetUserIdsForViewer(): array
     {
-        if ($userId <= 0) {
-            return '—';
+        $u = auth()->user();
+        if (! $u instanceof User) {
+            return [];
         }
+
+        if ($u->isReportingSuperAdmin()) {
+            return User::queryMudurlukReportingAccounts()
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->values()
+                ->all();
+        }
+
+        if ($u->isControlTeam()) {
+            return $u->assignedDirectorates()
+                ->pluck('users.id')
+                ->map(fn ($id): int => (int) $id)
+                ->values()
+                ->all();
+        }
+
+        $audience = $u->reportAudienceUserIds();
+        if (is_array($audience)) {
+            return array_values(array_filter(array_map('intval', $audience), fn (int $id): bool => $id > 0));
+        }
+
+        return [(int) $u->id];
+    }
+
+    private static function coordinationIncomingSummaryForViewer(AylikFaaliyet $record): string
+    {
+        $targetUserIds = static::incomingCoordinationTargetUserIdsForViewer();
 
         $rows = is_array($record->faaliyetler) ? $record->faaliyetler : [];
         if ($rows === []) {
@@ -1503,7 +1560,9 @@ class AylikFaaliyetResource extends Resource
                 if (! is_array($talep)) {
                     continue;
                 }
-                if ((int) ($talep['mudurluk_user_id'] ?? 0) !== $userId) {
+
+                $talepUserId = (int) ($talep['mudurluk_user_id'] ?? 0);
+                if ($targetUserIds !== [] && ! in_array($talepUserId, $targetUserIds, true)) {
                     continue;
                 }
 
@@ -1530,6 +1589,59 @@ class AylikFaaliyetResource extends Resource
         }
 
         return $out === [] ? '—' : implode(' | ', array_slice($out, 0, 5));
+    }
+
+    private static function latestExtraordinarySituationSummary(AylikFaaliyet $record): string
+    {
+        $last = ExtraordinarySituation::query()
+            ->where('target_user_id', (int) $record->user_id)
+            ->where('yil', (int) $record->yil)
+            ->where('ay', str_pad((string) $record->ay, 2, '0', STR_PAD_LEFT))
+            ->latest('id')
+            ->first();
+
+        if (! $last instanceof ExtraordinarySituation) {
+            return '—';
+        }
+
+        $reporter = User::find((int) ($last->reporter_user_id ?? 0));
+        $reporterName = $reporter?->name ? trim((string) $reporter->name) : 'Sistem';
+        $message = trim((string) $last->message);
+        if ($message === '') {
+            return $reporterName;
+        }
+
+        return $reporterName.': '.$message;
+    }
+
+    private static function extraordinarySituationDetailText(?AylikFaaliyet $record): string
+    {
+        if (! $record instanceof AylikFaaliyet) {
+            return '—';
+        }
+
+        $rows = ExtraordinarySituation::query()
+            ->where('target_user_id', (int) $record->user_id)
+            ->where('yil', (int) $record->yil)
+            ->where('ay', str_pad((string) $record->ay, 2, '0', STR_PAD_LEFT))
+            ->latest('id')
+            ->limit(5)
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return '—';
+        }
+
+        $blocks = $rows->map(function (ExtraordinarySituation $row): string {
+            $reporter = User::find((int) ($row->reporter_user_id ?? 0));
+            $reporterName = $reporter?->name ? e($reporter->name) : 'Sistem';
+            $message = trim((string) $row->message) !== '' ? e(trim((string) $row->message)) : '—';
+            $at = optional($row->created_at)?->format('d.m.Y H:i') ?? '—';
+
+            return '<b>'.$reporterName.'</b> ('.$at.')<br>'.$message;
+        })->all();
+
+        return implode('<hr class="my-2">', $blocks);
     }
 
     /**

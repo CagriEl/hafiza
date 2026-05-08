@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ActivityReportResource\Pages;
 
 use App\Filament\Resources\ActivityReportResource;
+use App\Models\ExtraordinarySituation;
 use App\Models\User;
 use App\Services\ActivityService;
 use App\Support\CoordinationAccess;
@@ -10,6 +11,9 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
 use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Database\Eloquent\Builder;
@@ -184,6 +188,66 @@ class ListActivityReports extends ListRecords
                 ->label('Yeni Faaliyet Raporu Oluştur')
                 ->visible(fn () => ActivityReportResource::canCreate()),
 
+            Action::make('reportExtraordinarySituation')
+                ->label('Olağanüstü Durum Bildir')
+                ->icon('heroicon-o-exclamation-triangle')
+                ->color('warning')
+                ->visible(fn (): bool => auth()->user()?->isMudurlukReportingAccount() === true)
+                ->form([
+                    Select::make('yil')
+                        ->label('Yıl')
+                        ->options([
+                            now()->year - 1 => (string) (now()->year - 1),
+                            now()->year => (string) now()->year,
+                            now()->year + 1 => (string) (now()->year + 1),
+                        ])
+                        ->default(now()->year)
+                        ->required(),
+                    Select::make('ay')
+                        ->label('Ay')
+                        ->options([
+                            '01' => 'Ocak',
+                            '02' => 'Şubat',
+                            '03' => 'Mart',
+                            '04' => 'Nisan',
+                            '05' => 'Mayıs',
+                            '06' => 'Haziran',
+                            '07' => 'Temmuz',
+                            '08' => 'Ağustos',
+                            '09' => 'Eylül',
+                            '10' => 'Ekim',
+                            '11' => 'Kasım',
+                            '12' => 'Aralık',
+                        ])
+                        ->default(now()->format('m'))
+                        ->required(),
+                    Textarea::make('message')
+                        ->label('Olağanüstü Durum Açıklaması')
+                        ->rows(4)
+                        ->maxLength(2000)
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    $currentUserId = (int) (auth()->id() ?? 0);
+                    if ($currentUserId <= 0) {
+                        return;
+                    }
+
+                    ExtraordinarySituation::query()->create([
+                        'reporter_user_id' => $currentUserId,
+                        'target_user_id' => $currentUserId,
+                        'yil' => (int) ($data['yil'] ?? now()->year),
+                        'ay' => str_pad((string) ($data['ay'] ?? now()->format('m')), 2, '0', STR_PAD_LEFT),
+                        'message' => trim((string) ($data['message'] ?? '')),
+                    ]);
+
+                    Notification::make()
+                        ->title('Olağanüstü durum kaydedildi')
+                        ->body('Bildirim yalnızca kendi müdürlüğünüz için kaydedildi.')
+                        ->success()
+                        ->send();
+                }),
+
             Action::make('pdfIndir')
                 ->label('Tüm Faaliyetleri PDF İndir')
                 ->color('success')
@@ -253,9 +317,21 @@ class ListActivityReports extends ListRecords
 
                     $kapsamIcerigi = trim((string) ($is['kapsam_icerigi'] ?? ''));
                     $olcuBirimi = trim((string) ($is['olcu_birimi'] ?? ''));
-                    $hedef = $is['hedef'] ?? '-';
                     $gerceklesen = $is['gerceklesen'] ?? '-';
                     $bekleyen = $is['bekleyen_is'] ?? '-';
+                    $extraordinary = ExtraordinarySituation::query()
+                        ->where('target_user_id', (int) ($record->user_id ?? 0))
+                        ->where('yil', (int) ($record->yil ?? 0))
+                        ->where('ay', str_pad((string) ($record->ay ?? ''), 2, '0', STR_PAD_LEFT))
+                        ->latest('id')
+                        ->first();
+                    $extraordinaryText = null;
+                    if ($extraordinary instanceof ExtraordinarySituation) {
+                        $reporter = User::find((int) ($extraordinary->reporter_user_id ?? 0));
+                        $reporterName = $reporter?->name ? trim((string) $reporter->name) : 'Sistem';
+                        $message = trim((string) ($extraordinary->message ?? ''));
+                        $extraordinaryText = $message === '' ? $reporterName : $reporterName.': '.$message;
+                    }
 
                     $kapsamKalemleri = '';
                     $satirlar = $is['kapsam_verileri'] ?? [];
@@ -281,9 +357,10 @@ class ListActivityReports extends ListRecords
 
                     $isDetaylari .= "<div style='margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;'>
                                         <b>[".e($durum).']</b> '.e($baslik).'
-                                        <br><b>Plan hedefi / Ay sonu gerçekleşen / Ay sonu bekleyen:</b> '.e((string) $hedef).' / '.e((string) $gerceklesen).' / '.e((string) $bekleyen).'
+                                        <br><b>Ay sonu gerçekleşen / Ay sonu bekleyen:</b> '.e((string) $gerceklesen).' / '.e((string) $bekleyen).'
                                         '.($olcuBirimi !== '' ? '<br><b>Ölçü birimi:</b> '.e($olcuBirimi) : '').'
                                         '.($kapsamIcerigi !== '' ? '<br><b>Kapsam:</b> '.e($kapsamIcerigi) : '').'
+                                        '.(filled($extraordinaryText) ? '<br><b>Olağanüstü durum:</b> '.e((string) $extraordinaryText) : '').'
                                         '.$kapsamKalemleri.'
                                         <br><b>Bitiş:</b> '.$sonTarih.'
                                      </div>';
