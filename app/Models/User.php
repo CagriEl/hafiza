@@ -258,8 +258,7 @@ class User extends Authenticatable
         }
 
         $role = trim((string) $this->role);
-
-        return in_array($role, [
+        $isMudurlukRole = in_array($role, [
             self::ROLE_MUDURLUK,
             'mudurluk',
             'MUDURLUK',
@@ -267,6 +266,20 @@ class User extends Authenticatable
             'müdürlük',
             'MÜDÜRLÜK',
         ], true);
+
+        if (! $isMudurlukRole) {
+            return false;
+        }
+
+        // Demo kilidi: veri girişi yalnızca Mali Hizmetler Md. hesabında açık.
+        return $this->isMaliHizmetlerAccount();
+    }
+
+    public function isMaliHizmetlerAccount(): bool
+    {
+        $name = mb_strtolower(trim((string) ($this->name ?? '')));
+
+        return str_contains($name, 'mali hizmetler');
     }
 
     public function isControlTeam(): bool
