@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Exports\FeedbackExporter;
 use App\Filament\Resources\FeedbackResource\Pages;
 use App\Models\Directorate;
 use App\Models\Feedback;
@@ -15,7 +14,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Actions\ExportAction;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -139,9 +138,39 @@ class FeedbackResource extends Resource
                     ]),
             ])
             ->headerActions([
-                ExportAction::make('exportFeedbacks')
+                Action::make('exportFeedbacks')
                     ->label('Excel Aktar')
-                    ->exporter(FeedbackExporter::class)
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->action(function () {
+                        $rows = static::getEloquentQuery()
+                            ->with('user:id,name')
+                            ->orderByDesc('created_at')
+                            ->get(['id', 'user_id', 'message', 'created_at']);
+
+                        $fileName = 'geri_bildirimler_'.now()->format('Y_m_d_His').'.csv';
+
+                        return response()->streamDownload(function () use ($rows): void {
+                            $handle = fopen('php://output', 'w');
+                            if (! $handle) {
+                                return;
+                            }
+
+                            fwrite($handle, "\xEF\xBB\xBF");
+                            fputcsv($handle, ['Müdürlük', 'İçerik', 'Tarih'], ';');
+
+                            foreach ($rows as $row) {
+                                fputcsv($handle, [
+                                    $row->user?->name ?? '—',
+                                    trim((string) ($row->message ?? '')),
+                                    optional($row->created_at)?->format('d.m.Y H:i') ?? '—',
+                                ], ';');
+                            }
+
+                            fclose($handle);
+                        }, $fileName, [
+                            'Content-Type' => 'text/csv; charset=UTF-8',
+                        ]);
+                    })
                     ->visible(fn (): bool => static::isAdmin()),
             ])
             ->actions([
