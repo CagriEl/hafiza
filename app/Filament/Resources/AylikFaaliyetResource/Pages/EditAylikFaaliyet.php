@@ -158,6 +158,14 @@ class EditAylikFaaliyet extends EditRecord
             return;
         }
 
+        $validMudurlukIds = User::queryMudurlukReportingAccounts()
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+        if ($validMudurlukIds === []) {
+            return;
+        }
+
         $messagesByUserId = [];
         foreach ($faaliyetler as $row) {
             if (! is_array($row) || ($row['faaliyet_turu'] ?? null) !== 'Koordinasyon') {
@@ -176,6 +184,9 @@ class EditAylikFaaliyet extends EditRecord
                 }
                 $uid = (int) ($talep['mudurluk_user_id'] ?? 0);
                 if ($uid <= 0 || $uid === (int) auth()->id()) {
+                    continue;
+                }
+                if (! in_array($uid, $validMudurlukIds, true)) {
                     continue;
                 }
 
