@@ -21,12 +21,7 @@ class FeedbackPolicy
         }
 
         if ($this->isControlTeam($user)) {
-            $directorateId = (int) ($feedback->directorate_id ?? 0);
             $feedbackUserId = (int) ($feedback->user_id ?? 0);
-
-            if ($directorateId > 0 && in_array($directorateId, $this->resolveDirectorateIdsForControlTeam($user), true)) {
-                return true;
-            }
 
             return $feedbackUserId > 0 && in_array($feedbackUserId, $this->resolveMudurlukUserIdsForControlTeam($user), true);
         }

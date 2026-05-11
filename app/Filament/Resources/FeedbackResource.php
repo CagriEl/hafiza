@@ -194,21 +194,12 @@ class FeedbackResource extends Resource
         }
 
         if (static::isControlTeamUser()) {
-            $directorateIds = static::resolveDirectorateIdsForControlTeam();
             $mudurlukUserIds = static::resolveMudurlukUserIdsForControlTeam();
-            if ($directorateIds === [] && $mudurlukUserIds === []) {
+            if ($mudurlukUserIds === []) {
                 return $query->whereRaw('0 = 1');
             }
 
-            return $query->where(function (Builder $q) use ($directorateIds, $mudurlukUserIds): void {
-                if ($directorateIds !== []) {
-                    $q->whereIn($q->qualifyColumn('directorate_id'), $directorateIds);
-                }
-
-                if ($mudurlukUserIds !== []) {
-                    $q->orWhereIn($q->qualifyColumn('user_id'), $mudurlukUserIds);
-                }
-            });
+            return $query->whereIn($query->qualifyColumn('user_id'), $mudurlukUserIds);
         }
 
         $userId = auth()->id();
@@ -236,12 +227,7 @@ class FeedbackResource extends Resource
         }
 
         if (static::isControlTeamUser()) {
-            $directorateId = (int) ($record->getAttribute('directorate_id') ?? 0);
             $feedbackUserId = (int) ($record->getAttribute('user_id') ?? 0);
-
-            if ($directorateId > 0 && in_array($directorateId, static::resolveDirectorateIdsForControlTeam(), true)) {
-                return true;
-            }
 
             return $feedbackUserId > 0 && in_array($feedbackUserId, static::resolveMudurlukUserIdsForControlTeam(), true);
         }
