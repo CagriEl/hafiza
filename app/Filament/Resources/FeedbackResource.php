@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Exports\FeedbackExporter;
 use App\Filament\Resources\FeedbackResource\Pages;
 use App\Models\Directorate;
 use App\Models\Feedback;
@@ -14,6 +15,7 @@ use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\ExportAction;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -135,6 +137,12 @@ class FeedbackResource extends Resource
                         Feedback::CATEGORY_REQUEST => Feedback::CATEGORY_REQUEST,
                         Feedback::CATEGORY_OTHER => Feedback::CATEGORY_OTHER,
                     ]),
+            ])
+            ->headerActions([
+                ExportAction::make('exportFeedbacks')
+                    ->label('Excel Aktar')
+                    ->exporter(FeedbackExporter::class)
+                    ->visible(fn (): bool => static::isAdmin()),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Görüntüle'),
