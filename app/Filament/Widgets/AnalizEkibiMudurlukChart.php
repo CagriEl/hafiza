@@ -71,6 +71,15 @@ class AnalizEkibiMudurlukChart extends ChartWidget
                 ->whereIn('ay', $monthVariants)
                 ->get(['faaliyetler']);
 
+            if ($records->isEmpty()) {
+                $records = AylikFaaliyet::query()
+                    ->where('user_id', (int) $directorateUser->id)
+                    ->get(['yil', 'ay', 'faaliyetler'])
+                    ->sortByDesc(fn (AylikFaaliyet $record): int => static::reportPeriodSortKey($record))
+                    ->take(1)
+                    ->values();
+            }
+
             $planned = 0;
             $actual = 0;
 
@@ -125,6 +134,14 @@ class AnalizEkibiMudurlukChart extends ChartWidget
             ],
             'labels' => $labels,
         ];
+    }
+
+    private static function reportPeriodSortKey(AylikFaaliyet $record): int
+    {
+        $year = (int) ($record->yil ?? 0);
+        $month = (int) (preg_replace('/\D/', '', (string) ($record->ay ?? '')) ?: 0);
+
+        return $year * 100 + $month;
     }
 
     /**
