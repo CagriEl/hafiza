@@ -78,17 +78,27 @@ class AnalizEkibiMudurlukChart extends ChartWidget
         $labels = [];
         $plannedTotals = [];
         $actualTotals = [];
-        $actualColors = [];
+        $remainingTotals = [];
+        $remainingColors = [];
 
         foreach ($directorates as $directorateUser) {
             $summary = $aggregates->get((int) $directorateUser->id);
             $planned = (int) ($summary->planned_total ?? 0);
             $actual = (int) ($summary->actual_total ?? 0);
+            $remaining = max(0, $planned - $actual);
 
             $labels[] = (string) $directorateUser->name;
             $plannedTotals[] = $planned;
             $actualTotals[] = $actual;
-            $actualColors[] = $planned > 0 && $actual >= $planned ? '#22c55e' : '#3b82f6';
+            $remainingTotals[] = $remaining;
+
+            if ($remaining <= 0) {
+                $remainingColors[] = '#22c55e';
+            } elseif ($actual <= 0) {
+                $remainingColors[] = '#ef4444';
+            } else {
+                $remainingColors[] = '#a855f7';
+            }
         }
 
         return [
@@ -102,8 +112,14 @@ class AnalizEkibiMudurlukChart extends ChartWidget
                 [
                     'label' => 'Gerçekleşen',
                     'data' => $actualTotals,
-                    'backgroundColor' => $actualColors,
-                    'borderColor' => $actualColors,
+                    'backgroundColor' => '#22c55e',
+                    'borderColor' => '#16a34a',
+                ],
+                [
+                    'label' => 'Açıkta Kalan',
+                    'data' => $remainingTotals,
+                    'backgroundColor' => $remainingColors,
+                    'borderColor' => $remainingColors,
                 ],
             ],
             'labels' => $labels,
