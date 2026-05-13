@@ -2,8 +2,9 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\AylikFaaliyet;
+use App\Models\RoutineWorkItem;
 use App\Models\User;
+use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 
 class AnalizEkibiMudurlukChart extends ChartWidget
@@ -51,11 +52,28 @@ class AnalizEkibiMudurlukChart extends ChartWidget
         [$yearRaw, $monthRaw] = array_pad(explode('-', $period), 2, '');
         $year = (int) $yearRaw;
         $month = max(1, min(12, (int) $monthRaw));
-        $monthVariants = [(string) $month, str_pad((string) $month, 2, '0', STR_PAD_LEFT)];
+        $periodStart = Carbon::create($year, $month, 1)->startOfMonth();
+        $periodEnd = $periodStart->copy()->endOfMonth();
 
         $directorates = $user->assignedDirectorates()
             ->orderBy('users.name')
             ->get(['users.id', 'users.name']);
+
+        $directorateIds = $directorates
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->values()
+            ->all();
+
+        $aggregates = RoutineWorkItem::query()
+            ->selectRaw('user_id, COUNT(*) as planned_total')
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as actual_total', [RoutineWorkItem::STATUS_DONE])
+            ->whereIn('user_id', $directorateIds)
+            ->whereBetween('work_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->groupBy('user_id')
+            ->get()
+            ->keyBy('user_id');
 
         $labels = [];
         $plannedTotals = [];
@@ -63,27 +81,9 @@ class AnalizEkibiMudurlukChart extends ChartWidget
         $actualColors = [];
 
         foreach ($directorates as $directorateUser) {
-            $records = AylikFaaliyet::query()
-                ->where('user_id', (int) $directorateUser->id)
-                ->where('yil', $year)
-                ->whereIn('ay', $monthVariants)
-                ->get(['faaliyetler']);
-
-            $planned = 0;
-            $actual = 0;
-
-            foreach ($records as $record) {
-                $rows = is_array($record->faaliyetler) ? $record->faaliyetler : [];
-
-                foreach ($rows as $row) {
-                    if (! is_array($row)) {
-                        continue;
-                    }
-
-                    $planned += static::plannedValueForRow($row);
-                    $actual += static::actualValueForRow($row);
-                }
-            }
+            $summary = $aggregates->get((int) $directorateUser->id);
+            $planned = (int) ($summary->planned_total ?? 0);
+            $actual = (int) ($summary->actual_total ?? 0);
 
             $labels[] = (string) $directorateUser->name;
             $plannedTotals[] = $planned;
@@ -96,8 +96,8 @@ class AnalizEkibiMudurlukChart extends ChartWidget
                 [
                     'label' => 'Öngörülen',
                     'data' => $plannedTotals,
-                    'backgroundColor' => '#94a3b8',
-                    'borderColor' => '#64748b',
+                    'backgroundColor' => '#60a5fa',
+                    'borderColor' => '#3b82f6',
                 ],
                 [
                     'label' => 'Gerçekleşen',
@@ -108,66 +108,6 @@ class AnalizEkibiMudurlukChart extends ChartWidget
             ],
             'labels' => $labels,
         ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $row
-     */
-    private static function plannedValueForRow(array $row): int
-    {
-        $kapsam = $row['kapsam_verileri'] ?? null;
-        if (is_array($kapsam) && $kapsam !== []) {
-            $sum = 0;
-            foreach ($kapsam as $line) {
-                if (! is_array($line)) {
-                    continue;
-                }
-                $v = $line['ongorulen'] ?? $line['deger'] ?? null;
-                if (is_numeric($v)) {
-                    $sum += (int) $v;
-                }
-            }
-
-            return $sum;
-        }
-
-        if (is_numeric($row['hedef'] ?? null)) {
-            return (int) $row['hedef'];
-        }
-
-        if (is_numeric($row['ongorulen'] ?? null)) {
-            return (int) $row['ongorulen'];
-        }
-
-        if (is_numeric($row['gerceklesen'] ?? null) || is_numeric($row['bekleyen_is'] ?? null)) {
-            return (int) (($row['gerceklesen'] ?? 0) + ($row['bekleyen_is'] ?? 0));
-        }
-
-        return 0;
-    }
-
-    /**
-     * @param  array<string, mixed>  $row
-     */
-    private static function actualValueForRow(array $row): int
-    {
-        $kapsam = $row['kapsam_verileri'] ?? null;
-        if (is_array($kapsam) && $kapsam !== []) {
-            $sum = 0;
-            foreach ($kapsam as $line) {
-                if (! is_array($line)) {
-                    continue;
-                }
-                $v = $line['gerceklesen'] ?? null;
-                if (is_numeric($v)) {
-                    $sum += (int) $v;
-                }
-            }
-
-            return $sum;
-        }
-
-        return is_numeric($row['gerceklesen'] ?? null) ? (int) $row['gerceklesen'] : 0;
     }
 
     protected function getType(): string
