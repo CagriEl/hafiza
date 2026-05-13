@@ -9,7 +9,7 @@ use Filament\Widgets\ChartWidget;
 
 class AnalizEkibiMudurlukChart extends ChartWidget
 {
-    protected static ?string $heading = 'Müdürlüklerde Aylık İş Yoğunluğu';
+    protected static ?string $heading = 'Bağlı Müdürlüklerde Aylık İş Yoğunluğu';
 
     protected int|string|array $columnSpan = 'full';
 
@@ -54,7 +54,8 @@ class AnalizEkibiMudurlukChart extends ChartWidget
         $month = max(1, min(12, (int) $monthRaw));
         $monthVariants = [(string) $month, str_pad((string) $month, 2, '0', STR_PAD_LEFT)];
 
-        $directorates = User::queryMudurlukReportingAccounts()
+        $directorates = $user->assignedDirectorates()
+            ->orderBy('users.name')
             ->get(['users.id', 'users.name']);
 
         $labels = [];
