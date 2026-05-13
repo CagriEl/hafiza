@@ -64,8 +64,13 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
                     continue;
                 }
 
-                $durum = mb_strtolower(trim((string) ($row['durum'] ?? '')));
-                $isCompleted = in_array($durum, ['tamam', 'tamamlandı', 'tamamlandi'], true);
+                $planned = static::plannedValueForRow($row);
+                $actual = static::actualValueForRow($row);
+                if ($planned <= 0 && $actual <= 0) {
+                    continue;
+                }
+
+                $isCompleted = $planned > 0 && $actual >= $planned;
 
                 if ($isCompleted) {
                     $completed[$monthIndex]++;
@@ -94,6 +99,70 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
             ],
             'labels' => $labels,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private static function plannedValueForRow(array $row): int
+    {
+        $kapsam = $row['kapsam_verileri'] ?? null;
+        if (is_array($kapsam) && $kapsam !== []) {
+            $sum = 0;
+            foreach ($kapsam as $line) {
+                if (! is_array($line)) {
+                    continue;
+                }
+
+                $v = $line['ongorulen'] ?? $line['deger'] ?? null;
+                if (is_numeric($v)) {
+                    $sum += (int) $v;
+                }
+            }
+
+            return $sum;
+        }
+
+        if (is_numeric($row['hedef'] ?? null)) {
+            return (int) $row['hedef'];
+        }
+
+        if (is_numeric($row['ongorulen'] ?? null)) {
+            return (int) $row['ongorulen'];
+        }
+
+        $gerceklesen = is_numeric($row['gerceklesen'] ?? null) ? (int) $row['gerceklesen'] : 0;
+        $bekleyen = is_numeric($row['bekleyen_is'] ?? null) ? (int) $row['bekleyen_is'] : 0;
+        if ($gerceklesen > 0 || $bekleyen > 0) {
+            return $gerceklesen + $bekleyen;
+        }
+
+        return 0;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private static function actualValueForRow(array $row): int
+    {
+        $kapsam = $row['kapsam_verileri'] ?? null;
+        if (is_array($kapsam) && $kapsam !== []) {
+            $sum = 0;
+            foreach ($kapsam as $line) {
+                if (! is_array($line)) {
+                    continue;
+                }
+
+                $v = $line['gerceklesen'] ?? null;
+                if (is_numeric($v)) {
+                    $sum += (int) $v;
+                }
+            }
+
+            return $sum;
+        }
+
+        return is_numeric($row['gerceklesen'] ?? null) ? (int) $row['gerceklesen'] : 0;
     }
 
     protected function getType(): string
