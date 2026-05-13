@@ -271,8 +271,8 @@ class User extends Authenticatable
             return false;
         }
 
-        // Demo kilidi: veri girişi yalnızca Mali Hizmetler Md. hesabında açık.
-        return $this->isMaliHizmetlerAccount();
+        // Demo kilidi: veri girişi yalnızca izinli müdürlük hesaplarında açık.
+        return $this->isMaliHizmetlerAccount() || $this->isDestekHizmetleriAccount();
     }
 
     public function isMaliHizmetlerAccount(): bool
@@ -280,6 +280,13 @@ class User extends Authenticatable
         $name = mb_strtolower(trim((string) ($this->name ?? '')));
 
         return str_contains($name, 'mali hizmetler');
+    }
+
+    public function isDestekHizmetleriAccount(): bool
+    {
+        $name = mb_strtolower(trim((string) ($this->name ?? '')));
+
+        return str_contains($name, 'destek hizmetleri');
     }
 
     public function isControlTeam(): bool

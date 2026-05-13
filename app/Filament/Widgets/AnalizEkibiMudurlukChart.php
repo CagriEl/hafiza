@@ -8,7 +8,7 @@ use Filament\Widgets\ChartWidget;
 
 class AnalizEkibiMudurlukChart extends ChartWidget
 {
-    protected static ?string $heading = 'Bağlı Müdürlüklerde Aylık Durum';
+    protected static ?string $heading = 'Bağlı Müdürlüklerde Aylık İş Yoğunluğu';
 
     protected int|string|array $columnSpan = 'full';
 
@@ -58,8 +58,9 @@ class AnalizEkibiMudurlukChart extends ChartWidget
             ->get(['users.id', 'users.name']);
 
         $labels = [];
-        $completed = [];
-        $inProgress = [];
+        $plannedTotals = [];
+        $actualTotals = [];
+        $actualColors = [];
 
         foreach ($directorates as $directorateUser) {
             $records = AylikFaaliyet::query()
@@ -68,8 +69,8 @@ class AnalizEkibiMudurlukChart extends ChartWidget
                 ->whereIn('ay', $monthVariants)
                 ->get(['faaliyetler']);
 
-            $doneCount = 0;
-            $progressCount = 0;
+            $planned = 0;
+            $actual = 0;
 
             foreach ($records as $record) {
                 $rows = is_array($record->faaliyetler) ? $record->faaliyetler : [];
@@ -79,41 +80,94 @@ class AnalizEkibiMudurlukChart extends ChartWidget
                         continue;
                     }
 
-                    $status = mb_strtolower(trim((string) ($row['durum'] ?? '')));
-                    $isDone = in_array($status, ['tamam', 'tamamlandı', 'tamamlandi'], true);
-
-                    if ($isDone) {
-                        $doneCount++;
-
-                        continue;
-                    }
-
-                    $progressCount++;
+                    $planned += static::plannedValueForRow($row);
+                    $actual += static::actualValueForRow($row);
                 }
             }
 
             $labels[] = (string) $directorateUser->name;
-            $completed[] = $doneCount;
-            $inProgress[] = $progressCount;
+            $plannedTotals[] = $planned;
+            $actualTotals[] = $actual;
+            $actualColors[] = $planned > 0 && $actual >= $planned ? '#22c55e' : '#3b82f6';
         }
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Tamamlanan',
-                    'data' => $completed,
-                    'backgroundColor' => '#22c55e',
-                    'borderColor' => '#16a34a',
+                    'label' => 'Öngörülen',
+                    'data' => $plannedTotals,
+                    'backgroundColor' => '#94a3b8',
+                    'borderColor' => '#64748b',
                 ],
                 [
-                    'label' => 'Devam Eden',
-                    'data' => $inProgress,
-                    'backgroundColor' => '#3b82f6',
-                    'borderColor' => '#2563eb',
+                    'label' => 'Gerçekleşen',
+                    'data' => $actualTotals,
+                    'backgroundColor' => $actualColors,
+                    'borderColor' => $actualColors,
                 ],
             ],
             'labels' => $labels,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private static function plannedValueForRow(array $row): int
+    {
+        $kapsam = $row['kapsam_verileri'] ?? null;
+        if (is_array($kapsam) && $kapsam !== []) {
+            $sum = 0;
+            foreach ($kapsam as $line) {
+                if (! is_array($line)) {
+                    continue;
+                }
+                $v = $line['ongorulen'] ?? $line['deger'] ?? null;
+                if (is_numeric($v)) {
+                    $sum += (int) $v;
+                }
+            }
+
+            return $sum;
+        }
+
+        if (is_numeric($row['hedef'] ?? null)) {
+            return (int) $row['hedef'];
+        }
+
+        if (is_numeric($row['ongorulen'] ?? null)) {
+            return (int) $row['ongorulen'];
+        }
+
+        if (is_numeric($row['gerceklesen'] ?? null) || is_numeric($row['bekleyen_is'] ?? null)) {
+            return (int) (($row['gerceklesen'] ?? 0) + ($row['bekleyen_is'] ?? 0));
+        }
+
+        return 0;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private static function actualValueForRow(array $row): int
+    {
+        $kapsam = $row['kapsam_verileri'] ?? null;
+        if (is_array($kapsam) && $kapsam !== []) {
+            $sum = 0;
+            foreach ($kapsam as $line) {
+                if (! is_array($line)) {
+                    continue;
+                }
+                $v = $line['gerceklesen'] ?? null;
+                if (is_numeric($v)) {
+                    $sum += (int) $v;
+                }
+            }
+
+            return $sum;
+        }
+
+        return is_numeric($row['gerceklesen'] ?? null) ? (int) $row['gerceklesen'] : 0;
     }
 
     protected function getType(): string
