@@ -4,7 +4,6 @@ namespace App\Filament\Widgets;
 
 use App\Models\AylikFaaliyet;
 use App\Models\User;
-use Carbon\Carbon;
 use Filament\Widgets\ChartWidget;
 
 class AnalizEkibiMudurlukChart extends ChartWidget
@@ -90,8 +89,8 @@ class AnalizEkibiMudurlukChart extends ChartWidget
                         continue;
                     }
 
-                    $planned += static::plannedValueForRow($row);
-                    $actual += static::actualValueForRow($row);
+                    $planned += static::plannedCountForRow($row);
+                    $actual += static::actualCountForRow($row);
                 }
             }
 
@@ -147,65 +146,118 @@ class AnalizEkibiMudurlukChart extends ChartWidget
     /**
      * @param  array<string, mixed>  $row
      */
-    private static function plannedValueForRow(array $row): int
+    private static function plannedCountForRow(array $row): int
     {
-        $kapsam = $row['kapsam_verileri'] ?? null;
-        if (is_array($kapsam) && $kapsam !== []) {
-            $sum = 0;
-            foreach ($kapsam as $line) {
-                if (! is_array($line)) {
-                    continue;
-                }
+        $plannedQuantity = static::plannedQuantityForRow($row);
+        $actualQuantity = static::actualQuantityForRow($row);
 
-                $v = $line['ongorulen'] ?? $line['deger'] ?? null;
-                if (is_numeric($v)) {
-                    $sum += (int) $v;
-                }
-            }
-
-            return $sum;
-        }
-
-        if (is_numeric($row['hedef'] ?? null)) {
-            return (int) $row['hedef'];
-        }
-
-        if (is_numeric($row['ongorulen'] ?? null)) {
-            return (int) $row['ongorulen'];
-        }
-
-        $gerceklesen = is_numeric($row['gerceklesen'] ?? null) ? (int) $row['gerceklesen'] : 0;
-        $bekleyen = is_numeric($row['bekleyen_is'] ?? null) ? (int) $row['bekleyen_is'] : 0;
-        if ($gerceklesen > 0 || $bekleyen > 0) {
-            return $gerceklesen + $bekleyen;
-        }
-
-        return 0;
+        return ($plannedQuantity > 0 || $actualQuantity > 0) ? 1 : 0;
     }
 
     /**
      * @param  array<string, mixed>  $row
      */
-    private static function actualValueForRow(array $row): int
+    private static function actualCountForRow(array $row): int
+    {
+        $plannedQuantity = static::plannedQuantityForRow($row);
+        $actualQuantity = static::actualQuantityForRow($row);
+
+        if ($plannedQuantity <= 0) {
+            return $actualQuantity > 0 ? 1 : 0;
+        }
+
+        return $actualQuantity >= $plannedQuantity ? 1 : 0;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private static function plannedQuantityForRow(array $row): float
     {
         $kapsam = $row['kapsam_verileri'] ?? null;
         if (is_array($kapsam) && $kapsam !== []) {
-            $sum = 0;
+            $sum = 0.0;
             foreach ($kapsam as $line) {
                 if (! is_array($line)) {
                     continue;
                 }
 
-                $v = $line['gerceklesen'] ?? null;
-                if (is_numeric($v)) {
-                    $sum += (int) $v;
+                $v = static::toNumber($line['ongorulen'] ?? $line['deger'] ?? null);
+                if ($v !== null) {
+                    $sum += $v;
                 }
             }
 
             return $sum;
         }
 
-        return is_numeric($row['gerceklesen'] ?? null) ? (int) $row['gerceklesen'] : 0;
+        foreach (['hedef', 'ongorulen'] as $field) {
+            $v = static::toNumber($row[$field] ?? null);
+            if ($v !== null) {
+                return $v;
+            }
+        }
+
+        $gerceklesen = static::toNumber($row['gerceklesen'] ?? null) ?? 0.0;
+        $bekleyen = static::toNumber($row['bekleyen_is'] ?? null) ?? 0.0;
+
+        return max(0.0, $gerceklesen + $bekleyen);
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private static function actualQuantityForRow(array $row): float
+    {
+        $kapsam = $row['kapsam_verileri'] ?? null;
+        if (is_array($kapsam) && $kapsam !== []) {
+            $sum = 0.0;
+            foreach ($kapsam as $line) {
+                if (! is_array($line)) {
+                    continue;
+                }
+
+                $v = static::toNumber($line['gerceklesen'] ?? null);
+                if ($v !== null) {
+                    $sum += $v;
+                }
+            }
+
+            return $sum;
+        }
+
+        return static::toNumber($row['gerceklesen'] ?? null) ?? 0.0;
+    }
+
+    private static function toNumber(mixed $value): ?float
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return null;
+        }
+
+        $normalized = str_replace(' ', '', $raw);
+        $normalized = str_replace(',', '.', $normalized);
+        $normalized = preg_replace('/[^0-9.\-]/', '', $normalized) ?? '';
+        if ($normalized === '') {
+            return null;
+        }
+
+        $parts = explode('.', $normalized);
+        if (count($parts) > 2) {
+            $decimal = array_pop($parts);
+            $normalized = implode('', $parts).'.'.$decimal;
+        }
+
+        return is_numeric($normalized) ? (float) $normalized : null;
     }
 
     protected function getType(): string
