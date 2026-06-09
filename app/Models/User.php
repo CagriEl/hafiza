@@ -271,8 +271,7 @@ class User extends Authenticatable
             return false;
         }
 
-        // Demo kilidi: veri girişi yalnızca izinli müdürlük hesaplarında açık.
-        return $this->isMaliHizmetlerAccount() || $this->isDestekHizmetleriAccount();
+        return true;
     }
 
     public function isMaliHizmetlerAccount(): bool
