@@ -146,6 +146,7 @@ class ActivityCatalogSyncService
                 'olcu_birimi' => (string) $catalog->olcu_birimi,
                 'kpi_sla' => (string) $catalog->kpi_sla,
                 'raporlama_sikligi' => (string) $catalog->raporlama_sikligi,
+                'baskanlik_bilgilendirme_seviyesi' => (string) $catalog->baskanlik_bilgilendirme_seviyesi,
             ];
         }
 
@@ -200,6 +201,7 @@ class ActivityCatalogSyncService
             'olcu_birimi' => trim((string) ($row['Ölçü Birimi'] ?? '')),
             'kpi_sla' => trim((string) ($row['Ana KPI / SLA'] ?? '')),
             'raporlama_sikligi' => trim((string) ($row['Raporlama Sıklığı'] ?? '')),
+            'baskanlik_bilgilendirme_seviyesi' => trim((string) ($row['Başkanlık Bilgilendirme Seviyesi'] ?? '')),
         ];
     }
 

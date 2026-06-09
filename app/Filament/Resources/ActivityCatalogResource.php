@@ -42,6 +42,7 @@ class ActivityCatalogResource extends Resource
                         Forms\Components\TextInput::make('olcu_birimi')->label('Ölçü Birimi'),
                         Forms\Components\TextInput::make('kpi_sla')->label('KPI / SLA Hedefi'),
                         Forms\Components\TextInput::make('raporlama_sikligi')->label('Raporlama Sıklığı'),
+                        Forms\Components\TextInput::make('baskanlik_bilgilendirme_seviyesi')->label('Başkanlık Bilgilendirme Seviyesi'),
                     ])->columns(2),
             ]);
     }
@@ -81,6 +82,10 @@ class ActivityCatalogResource extends Resource
                     ->label('Raporlama Sıklığı')
                     ->badge()
                     ->color('warning'),
+                Tables\Columns\TextColumn::make('baskanlik_bilgilendirme_seviyesi')
+                    ->label('Başkanlık Bilgilendirme Seviyesi')
+                    ->badge()
+                    ->color('danger'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('mudurluk')

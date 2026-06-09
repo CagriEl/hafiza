@@ -95,6 +95,7 @@ final class ActivityCatalogFormatter
         $olcuBirimi = trim((string) ($row->olcu_birimi ?? ''));
         $kpiSla = trim((string) ($row->kpi_sla ?? ''));
         $freq = trim((string) ($row->raporlama_sikligi ?? ''));
+        $infoLevel = trim((string) ($row->baskanlik_bilgilendirme_seviyesi ?? ''));
 
         $parts = [];
         if ($olcuBirimi !== '') {
@@ -105,6 +106,9 @@ final class ActivityCatalogFormatter
         }
         if ($freq !== '') {
             $parts[] = 'Raporlama: '.$freq;
+        }
+        if ($infoLevel !== '') {
+            $parts[] = 'Bilgilendirme: '.$infoLevel;
         }
 
         return $parts === [] ? $base : $base.' ('.implode(' | ', $parts).')';

@@ -485,6 +485,9 @@ class AylikFaaliyetResource extends Resource
                                             if (! filled($get('raporlama_sikligi'))) {
                                                 $set('raporlama_sikligi', $catalog->raporlama_sikligi);
                                             }
+                                            if (! filled($get('baskanlik_bilgilendirme_seviyesi'))) {
+                                                $set('baskanlik_bilgilendirme_seviyesi', $catalog->baskanlik_bilgilendirme_seviyesi);
+                                            }
                                             if (! filled($get('faaliyet_kodu'))) {
                                                 $set('faaliyet_kodu', $catalog->faaliyet_kodu);
                                             }
@@ -505,6 +508,7 @@ class AylikFaaliyetResource extends Resource
                                             if ($catalog) {
                                                 $set('olcu_birimi', $catalog->olcu_birimi);
                                                 $set('raporlama_sikligi', $catalog->raporlama_sikligi);
+                                                $set('baskanlik_bilgilendirme_seviyesi', $catalog->baskanlik_bilgilendirme_seviyesi);
                                                 $set('faaliyet_kodu', $catalog->faaliyet_kodu);
                                                 $set('kapsam_icerigi', $catalog->kapsam);
                                                 $set(
@@ -533,6 +537,12 @@ class AylikFaaliyetResource extends Resource
                                         ->extraAttributes(['class' => 'bg-gray-50']),
                                     Forms\Components\TextInput::make('raporlama_sikligi')
                                         ->label('Raporlama Sıklığı')
+                                        ->readOnly()
+                                        ->dehydrated()
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                        ->extraAttributes(['class' => 'bg-gray-50']),
+                                    Forms\Components\TextInput::make('baskanlik_bilgilendirme_seviyesi')
+                                        ->label('Başkanlık Bilgilendirme Seviyesi')
                                         ->readOnly()
                                         ->dehydrated()
                                         ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
@@ -1079,6 +1089,18 @@ class AylikFaaliyetResource extends Resource
                     ->color(fn (string $state): string => $state === '—' ? 'gray' : 'warning')
                     ->wrap()
                     ->toggleable(),
+                Tables\Columns\TextColumn::make('presidency_info_level_summary')
+                    ->label('Başkanlık Bilgilendirme Seviyesi')
+                    ->getStateUsing(fn (AylikFaaliyet $record): string => static::presidencyInfoLevelSummary($record))
+                    ->badge()
+                    ->color(fn (string $state): string => match (mb_strtolower(trim($state))) {
+                        'kritik', 'acil müdahale gerektirir' => 'danger',
+                        'takip edilecek' => 'warning',
+                        'bilgi amaçlı' => 'info',
+                        default => 'gray',
+                    })
+                    ->wrap()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('performans_ozeti')
                     ->label('İş Durum Özeti')
@@ -1301,6 +1323,8 @@ class AylikFaaliyetResource extends Resource
                                     ->visible(fn (TextEntry $component): bool => ! static::infolistFaaliyetRowHasKapsamVerileri($component))
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('olcu_birimi')->label('Ölçü Birimi')->placeholder('—')
+                                    ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
+                                TextEntry::make('baskanlik_bilgilendirme_seviyesi')->label('Başkanlık Bilgilendirme Seviyesi')->placeholder('—')
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('kapsam_icerigi')->label('Kapsam İçeriği')->placeholder('—')
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
@@ -1675,6 +1699,32 @@ class AylikFaaliyetResource extends Resource
         })->all();
 
         return implode('<hr class="my-2">', $blocks);
+    }
+
+    private static function presidencyInfoLevelSummary(AylikFaaliyet $record): string
+    {
+        $rows = is_array($record->faaliyetler) ? $record->faaliyetler : [];
+        if ($rows === []) {
+            return '—';
+        }
+
+        $levels = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $level = trim((string) ($row['baskanlik_bilgilendirme_seviyesi'] ?? ''));
+            if ($level === '') {
+                continue;
+            }
+            $levels[$level] = true;
+        }
+
+        if ($levels === []) {
+            return '—';
+        }
+
+        return implode(' | ', array_keys($levels));
     }
 
     /**

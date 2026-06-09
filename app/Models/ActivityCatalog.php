@@ -15,5 +15,6 @@ class ActivityCatalog extends Model
         'olcu_birimi',
         'kpi_sla',
         'raporlama_sikligi',
+        'baskanlik_bilgilendirme_seviyesi',
     ];
 }
