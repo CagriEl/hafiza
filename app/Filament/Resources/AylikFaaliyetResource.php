@@ -559,7 +559,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->dehydrated()
                                                 ->extraAttributes(['class' => 'bg-gray-50']),
                                             Forms\Components\TextInput::make('ongorulen')
-                                                ->label('İş Hedefi')
+                                                ->label('Açıkta Kalan İş')
                                                 ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
@@ -610,7 +610,7 @@ class AylikFaaliyetResource extends Resource
                                                     return AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get);
                                                 }),
                                             Forms\Components\TextInput::make('acikta_kalan')
-                                                ->label('Bekleyen İş')
+                                                ->label('Açıkta Kalan İş')
                                                 ->numeric()
                                                 ->minValue(0)
                                                 ->extraInputAttributes(['min' => 0])
@@ -819,7 +819,7 @@ class AylikFaaliyetResource extends Resource
                                         }),
 
                                     Forms\Components\TextInput::make('bekleyen_is')
-                                        ->label('Bekleyen İş')
+                                        ->label('Açıkta Kalan İş')
                                         ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                         ->numeric()
                                         ->minValue(0)
@@ -1297,7 +1297,7 @@ class AylikFaaliyetResource extends Resource
                                 TextEntry::make('gerceklesen')->label('Ay sonu — Yapılan İş (satır)')
                                     ->visible(fn (TextEntry $component): bool => ! static::infolistFaaliyetRowHasKapsamVerileri($component))
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
-                                TextEntry::make('bekleyen_is')->label('Ay sonu — Bekleyen İş (satır)')
+                                TextEntry::make('bekleyen_is')->label('Ay sonu — Açıkta Kalan İş (satır)')
                                     ->visible(fn (TextEntry $component): bool => ! static::infolistFaaliyetRowHasKapsamVerileri($component))
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('olcu_birimi')->label('Ölçü Birimi')->placeholder('—')
