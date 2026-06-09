@@ -24,7 +24,7 @@ class FaaliyetIstatistikGrafik extends ChartWidget
         return [
             'all' => 'Tüm Müdürlükler',
             'top_5' => 'En Çok Yapılan İş (5)',
-            'bottom_5' => 'En Çok Açıkta Kalan İş (5)',
+            'bottom_5' => 'En Çok Açıkta Bekleyen İş (5)',
         ];
     }
 
@@ -112,7 +112,7 @@ class FaaliyetIstatistikGrafik extends ChartWidget
                     'borderWidth' => 1,
                 ],
                 [
-                    'label' => 'Açıkta Kalan İş',
+                    'label' => 'Açıkta Bekleyen İş',
                     'data' => $bekleyenVerisi,
                     'backgroundColor' => '#3b82f6',
                     'borderColor' => '#2563eb',

@@ -123,7 +123,7 @@ class ControlTeamAuditNoteResource extends Resource
                             ->label('Yapılan İş')
                             ->content(fn (Get $get): string => (string) static::activityProgressSummary($get)['gerceklesen']),
                         Forms\Components\Placeholder::make('activity_kalan')
-                            ->label('Açıkta Kalan İş')
+                            ->label('Açıkta Bekleyen İş')
                             ->content(fn (Get $get): string => (string) static::activityProgressSummary($get)['kalan']),
                     ])
                     ->columns(2),

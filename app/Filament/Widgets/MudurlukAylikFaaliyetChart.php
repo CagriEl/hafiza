@@ -91,7 +91,7 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
                     'borderColor' => '#16a34a',
                 ],
                 [
-                    'label' => 'Açıkta Kalan İş',
+                    'label' => 'Açıkta Bekleyen İş',
                     'data' => $pendingCounts,
                     'backgroundColor' => '#3b82f6',
                     'borderColor' => '#2563eb',
