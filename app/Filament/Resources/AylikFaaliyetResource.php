@@ -407,7 +407,7 @@ class AylikFaaliyetResource extends Resource
                     ->compact(),
 
                 Section::make('Faaliyet ve Performans Takip Listesi')
-                    ->description('İlk kayıtta planı oluştururken kapsam kalemlerinde yalnızca öngörülen değerleri girilir. Ay sonunda her kalem satırında gerçekleşen girilir; açıkta kalan öngörülen − gerçekleşen olarak otomatik hesaplanır. Liste performans özeti buna göre hesaplanır. Kapsam listesi olmayan satırlarda satır geneli ay sonu alanları (gerçekleşen / açıkta bekleyen) kullanılır. Tamamlanan ay sonu bir kez kilitlenir. Yeni plan için «Gerekli Revize» ile satır ekleyebilirsiniz.')
+                    ->description('İş satırlarında yapılan iş sayısı ve bekleyen işlem sayısı üzerinden takip yapılır. Kapsam kalemi olan satırlarda bekleyen alanı otomatik hesaplanır. Tamamlanan ay sonu bir kez kilitlenir. Yeni plan için «Gerekli Revize» ile satır ekleyebilirsiniz.')
                     ->schema([
                         Repeater::make('faaliyetler')
                             ->label('İş Listesi')
@@ -559,7 +559,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->dehydrated()
                                                 ->extraAttributes(['class' => 'bg-gray-50']),
                                             Forms\Components\TextInput::make('ongorulen')
-                                                ->label('Öngörülen')
+                                                ->label('Yapılacak İş Sayısı')
                                                 ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
@@ -610,13 +610,13 @@ class AylikFaaliyetResource extends Resource
                                                     return AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get);
                                                 }),
                                             Forms\Components\TextInput::make('acikta_kalan')
-                                                ->label('Açıkta kalan')
+                                                ->label('Bekleyen İşlem Sayısı')
                                                 ->numeric()
                                                 ->minValue(0)
                                                 ->extraInputAttributes(['min' => 0])
                                                 ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
                                                 ->readOnly()
-                                                ->helperText('Öngörülen − gerçekleşen (otomatik, en az 0).')
+                                                ->helperText('Yapılacak iş − yapılan iş (otomatik, en az 0).')
                                                 ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
                                                 ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
                                                 ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)),
