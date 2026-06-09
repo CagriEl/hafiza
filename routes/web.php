@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // Backward-compatible auth entrypoints for old bookmarks/links.
+Route::redirect('/', '/admin/login');
 Route::redirect('/login', '/admin/login')->name('login');
 Route::redirect('/dashboard', '/admin')->name('dashboard');
 

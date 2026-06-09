@@ -50,11 +50,42 @@ class ActivityCatalogSyncService
             throw new RuntimeException('Geçersiz JSON: kök dizi bekleniyordu.');
         }
 
+        return $this->syncFromRows($decoded);
+    }
+
+    /**
+     * @return array{created: int, updated: int, skipped: int}
+     */
+    public function syncFromCsvFile(string $path): array
+    {
+        if (! File::isReadable($path)) {
+            throw new RuntimeException("CSV dosyası okunamadı: {$path}");
+        }
+
+        return $this->syncFromCsvString(File::get($path));
+    }
+
+    /**
+     * @return array{created: int, updated: int, skipped: int}
+     */
+    public function syncFromCsvString(string $csv): array
+    {
+        $rows = $this->parseCsvRows($csv);
+
+        return $this->syncFromRows($rows);
+    }
+
+    /**
+     * @param  array<int, mixed>  $rows
+     * @return array{created: int, updated: int, skipped: int}
+     */
+    public function syncFromRows(array $rows): array
+    {
         $created = 0;
         $updated = 0;
         $skipped = 0;
 
-        foreach ($decoded as $row) {
+        foreach ($rows as $row) {
             if (! is_array($row)) {
                 $skipped++;
 
@@ -89,29 +120,17 @@ class ActivityCatalogSyncService
     /**
      * ActivityService ile uyumlu activity_sets.json üretir (silme yok, dosyanın tamamı yeniden yazılır).
      */
-    public function regenerateActivitySetsJson(?string $path = null): void
+    public function regenerateActivitySetsJsonFromCatalog(): void
     {
-        $path ??= $this->resolveFullJsonPath();
-        if (! File::isReadable($path)) {
-            throw new RuntimeException("activity_sets.json için kaynak okunamadı: {$path}");
-        }
-
-        $decoded = json_decode(File::get($path), true);
-        if (! is_array($decoded)) {
-            throw new RuntimeException('Geçersiz JSON.');
-        }
-
         /** @var array<string, array{label: string, activities: list<array<string, string>>}> $byNormKey */
         $byNormKey = [];
-        foreach ($decoded as $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-            $mapped = $this->mapRowToCatalogAttributes($row);
-            if ($mapped === null) {
-                continue;
-            }
-            $mudurluk = $mapped['mudurluk'];
+        $catalogRows = ActivityCatalog::query()
+            ->orderBy('mudurluk')
+            ->orderBy('faaliyet_kodu')
+            ->get();
+
+        foreach ($catalogRows as $catalog) {
+            $mudurluk = trim((string) $catalog->mudurluk);
             $norm = TurkishString::normalizeForFuzzyMatch($mudurluk);
             if ($norm === '') {
                 continue;
@@ -120,12 +139,12 @@ class ActivityCatalogSyncService
                 $byNormKey[$norm] = ['label' => $mudurluk, 'activities' => []];
             }
             $byNormKey[$norm]['activities'][] = [
-                'faaliyet_kodu' => $mapped['faaliyet_kodu'],
-                'faaliyet_ailesi' => $mapped['faaliyet_ailesi'],
-                'kategori' => $mapped['kategori'],
-                'kapsam' => $mapped['kapsam'],
-                'olcu_birimi' => $mapped['olcu_birimi'],
-                'kpi_sla' => $mapped['kpi_sla'],
+                'faaliyet_kodu' => (string) $catalog->faaliyet_kodu,
+                'faaliyet_ailesi' => (string) $catalog->faaliyet_ailesi,
+                'kategori' => (string) $catalog->kategori,
+                'kapsam' => (string) $catalog->kapsam,
+                'olcu_birimi' => (string) $catalog->olcu_birimi,
+                'kpi_sla' => (string) $catalog->kpi_sla,
             ];
         }
 
@@ -148,6 +167,18 @@ class ActivityCatalogSyncService
         app(ActivityService::class)->forgetCache();
     }
 
+    public function buildGoogleSheetsCsvExportUrl(string $sheetUrl, string $gid = '0'): string
+    {
+        if (preg_match('~spreadsheets/d/([a-zA-Z0-9-_]+)~', $sheetUrl, $matches) !== 1) {
+            throw new RuntimeException('Google Sheets linkinden spreadsheet id ayrıştırılamadı.');
+        }
+
+        $spreadsheetId = $matches[1];
+        $gid = trim($gid) === '' ? '0' : trim($gid);
+
+        return "https://docs.google.com/spreadsheets/d/{$spreadsheetId}/gviz/tq?tqx=out:csv&gid={$gid}";
+    }
+
     /**
      * @param  array<string, mixed>  $row
      * @return array<string, string>|null
@@ -168,5 +199,54 @@ class ActivityCatalogSyncService
             'olcu_birimi' => trim((string) ($row['Ölçü Birimi'] ?? '')),
             'kpi_sla' => trim((string) ($row['Ana KPI / SLA'] ?? '')),
         ];
+    }
+
+    /**
+     * @return list<array<string, string>>
+     */
+    private function parseCsvRows(string $csv): array
+    {
+        $handle = fopen('php://temp', 'r+');
+        if (! $handle) {
+            throw new RuntimeException('CSV belleğe açılamadı.');
+        }
+
+        fwrite($handle, $csv);
+        rewind($handle);
+
+        $headers = fgetcsv($handle);
+        if (! is_array($headers) || $headers === []) {
+            fclose($handle);
+            throw new RuntimeException('CSV başlık satırı bulunamadı.');
+        }
+
+        // UTF-8 BOM temizliği
+        $headers = array_map(function ($header): string {
+            $h = (string) $header;
+            $h = preg_replace('/^\xEF\xBB\xBF/', '', $h) ?? $h;
+
+            return trim($h);
+        }, $headers);
+
+        $rows = [];
+        while (($values = fgetcsv($handle)) !== false) {
+            if (! is_array($values)) {
+                continue;
+            }
+
+            $values = array_pad($values, count($headers), '');
+            $assoc = [];
+            foreach ($headers as $index => $header) {
+                if ($header === '') {
+                    continue;
+                }
+                $assoc[$header] = trim((string) ($values[$index] ?? ''));
+            }
+            $rows[] = $assoc;
+        }
+
+        fclose($handle);
+
+        return $rows;
     }
 }
