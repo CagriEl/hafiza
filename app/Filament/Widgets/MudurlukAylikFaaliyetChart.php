@@ -37,6 +37,7 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
     protected function getData(): array
     {
         $labels = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+        $plannedCounts = array_fill(0, 12, 0);
         $doneCounts = array_fill(0, 12, 0);
         $pendingCounts = array_fill(0, 12, 0);
 
@@ -70,6 +71,8 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
                     continue;
                 }
 
+                $plannedCounts[$monthIndex]++;
+
                 $isCompleted = ($planned > 0 && $actual >= $planned) || ($planned <= 0 && $actual > 0);
 
                 if ($isCompleted) {
@@ -84,6 +87,12 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
 
         return [
             'datasets' => [
+                [
+                    'label' => 'Yapılacak İş Sayısı',
+                    'data' => $plannedCounts,
+                    'backgroundColor' => '#60a5fa',
+                    'borderColor' => '#3b82f6',
+                ],
                 [
                     'label' => 'Yapılan İş Sayısı',
                     'data' => $doneCounts,

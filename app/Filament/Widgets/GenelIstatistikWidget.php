@@ -23,7 +23,7 @@ class GenelIstatistikWidget extends BaseWidget
             return [
                 Stat::make('Toplam SWOT Analizi', '—')->color('gray'),
                 Stat::make('Haftalik Rapor Sayısı', '—')->color('gray'),
-                Stat::make('Toplam Tamamlanan Faaliyet', '—')->color('gray'),
+                Stat::make('Toplam Yapılacak İş Sayısı', '—')->color('gray'),
             ];
         }
 
@@ -50,7 +50,7 @@ class GenelIstatistikWidget extends BaseWidget
                 ->descriptionIcon('heroicon-m-document-text')
                 ->color('warning'),
 
-            Stat::make('Toplam Tamamlanan Faaliyet', $toplamIsSayisi)
+            Stat::make('Toplam Yapılacak İş Sayısı', $toplamIsSayisi)
                 ->description('Raporlardaki toplam iş satırı')
                 ->descriptionIcon('heroicon-m-check-circle')
                 ->color('primary'),

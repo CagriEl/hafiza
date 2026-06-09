@@ -578,7 +578,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->disabled(fn (Get $get): bool => trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) !== '')
                                                 ->dehydrated(true),
                                             Forms\Components\TextInput::make('gerceklesen')
-                                                ->label('Gerçekleşen')
+                                                ->label('Yapılan İş Sayısı')
                                                 ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
@@ -780,7 +780,7 @@ class AylikFaaliyetResource extends Resource
 
                                 Grid::make(2)->schema([
                                     Forms\Components\TextInput::make('gerceklesen')
-                                        ->label('Gerçekleşen')
+                                        ->label('Yapılan İş Sayısı')
                                         ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                         ->numeric()
                                         ->minValue(0)
@@ -819,7 +819,7 @@ class AylikFaaliyetResource extends Resource
                                         }),
 
                                     Forms\Components\TextInput::make('bekleyen_is')
-                                        ->label('Açıkta bekleyen')
+                                        ->label('Bekleyen İşlem Sayısı')
                                         ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                         ->numeric()
                                         ->minValue(0)
@@ -1088,6 +1088,7 @@ class AylikFaaliyetResource extends Resource
                             return '-';
                         }
 
+                        $yapilacak = 0;
                         $yapilan = 0;
                         $bekleyen = 0;
                         foreach ($isler as $is) {
@@ -1099,6 +1100,7 @@ class AylikFaaliyetResource extends Resource
                             if ($plan <= 0 && $ger <= 0) {
                                 continue;
                             }
+                            $yapilacak++;
 
                             $tamamlandi = ($plan > 0 && $ger >= $plan) || ($plan <= 0 && $ger > 0);
                             if ($tamamlandi) {
@@ -1108,7 +1110,7 @@ class AylikFaaliyetResource extends Resource
                             }
                         }
 
-                        return "Yapılan: {$yapilan} | Bekleyen: {$bekleyen}";
+                        return "Yapılacak: {$yapilacak} | Yapılan: {$yapilan} | Bekleyen: {$bekleyen}";
                     })
                     ->badge()
                     ->color(fn ($state) => match (true) {
@@ -1295,10 +1297,10 @@ class AylikFaaliyetResource extends Resource
 
                                         return User::query()->whereIn('id', $ids)->pluck('name')->implode(', ') ?: '-';
                                     }),
-                                TextEntry::make('gerceklesen')->label('Ay sonu — Gerçekleşen (satır)')
+                                TextEntry::make('gerceklesen')->label('Ay sonu — Yapılan İş Sayısı (satır)')
                                     ->visible(fn (TextEntry $component): bool => ! static::infolistFaaliyetRowHasKapsamVerileri($component))
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
-                                TextEntry::make('bekleyen_is')->label('Ay sonu — Açıkta bekleyen (satır)')
+                                TextEntry::make('bekleyen_is')->label('Ay sonu — Bekleyen İşlem Sayısı (satır)')
                                     ->visible(fn (TextEntry $component): bool => ! static::infolistFaaliyetRowHasKapsamVerileri($component))
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('olcu_birimi')->label('Ölçü Birimi')->placeholder('—')
