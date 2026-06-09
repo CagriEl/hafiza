@@ -145,6 +145,7 @@ class ActivityCatalogSyncService
                 'kapsam' => (string) $catalog->kapsam,
                 'olcu_birimi' => (string) $catalog->olcu_birimi,
                 'kpi_sla' => (string) $catalog->kpi_sla,
+                'raporlama_sikligi' => (string) $catalog->raporlama_sikligi,
             ];
         }
 
@@ -198,6 +199,7 @@ class ActivityCatalogSyncService
             'kapsam' => trim((string) ($row['Kapsam'] ?? '')),
             'olcu_birimi' => trim((string) ($row['Ölçü Birimi'] ?? '')),
             'kpi_sla' => trim((string) ($row['Ana KPI / SLA'] ?? '')),
+            'raporlama_sikligi' => trim((string) ($row['Raporlama Sıklığı'] ?? '')),
         ];
     }
 

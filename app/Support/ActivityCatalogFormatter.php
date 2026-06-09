@@ -22,11 +22,11 @@ final class ActivityCatalogFormatter
         $ids = array_map('intval', array_keys($raw));
         $rows = ActivityCatalog::query()
             ->whereIn('id', $ids)
-            ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi']);
+            ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'raporlama_sikligi']);
 
         $out = [];
         foreach ($rows as $row) {
-            $out[(int) $row->id] = trim((string) $row->faaliyet_kodu).' - '.trim((string) $row->faaliyet_ailesi);
+            $out[(int) $row->id] = static::buildCatalogLabel($row);
         }
 
         return $out;
@@ -42,7 +42,7 @@ final class ActivityCatalogFormatter
             return null;
         }
 
-        return trim((string) $row->faaliyet_kodu).' - '.trim((string) $row->faaliyet_ailesi);
+        return static::buildCatalogLabel($row);
     }
 
     /**
@@ -87,5 +87,26 @@ final class ActivityCatalogFormatter
         }
 
         return $data;
+    }
+
+    private static function buildCatalogLabel(ActivityCatalog $row): string
+    {
+        $base = trim((string) $row->faaliyet_kodu).' - '.trim((string) $row->faaliyet_ailesi);
+        $olcuBirimi = trim((string) ($row->olcu_birimi ?? ''));
+        $kpiSla = trim((string) ($row->kpi_sla ?? ''));
+        $freq = trim((string) ($row->raporlama_sikligi ?? ''));
+
+        $parts = [];
+        if ($olcuBirimi !== '') {
+            $parts[] = 'Ölçü Birimi: '.$olcuBirimi;
+        }
+        if ($kpiSla !== '') {
+            $parts[] = 'KPI/SLA: '.$kpiSla;
+        }
+        if ($freq !== '') {
+            $parts[] = 'Raporlama: '.$freq;
+        }
+
+        return $parts === [] ? $base : $base.' ('.implode(' | ', $parts).')';
     }
 }

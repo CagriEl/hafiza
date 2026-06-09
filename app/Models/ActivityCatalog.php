@@ -14,5 +14,6 @@ class ActivityCatalog extends Model
         'kapsam',
         'olcu_birimi',
         'kpi_sla',
+        'raporlama_sikligi',
     ];
 }

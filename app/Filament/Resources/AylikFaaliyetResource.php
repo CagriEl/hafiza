@@ -406,7 +406,7 @@ class AylikFaaliyetResource extends Resource
                                     ->dehydrated(true),
                                 Grid::make(4)->schema([
                                     Forms\Components\Select::make('activity_catalog_id')
-                                        ->label('Faaliyet Tanımı (Katalog)')
+                                        ->label('Faaliyet Ailesi')
                                         ->options(function (Forms\Components\Select $field, Get $get): array {
                                             $mudurlukAdi = auth()->user()?->name ?? '';
                                             $record = $field->getRecord();
@@ -470,6 +470,9 @@ class AylikFaaliyetResource extends Resource
                                             if (! filled($get('olcu_birimi'))) {
                                                 $set('olcu_birimi', $catalog->olcu_birimi);
                                             }
+                                            if (! filled($get('raporlama_sikligi'))) {
+                                                $set('raporlama_sikligi', $catalog->raporlama_sikligi);
+                                            }
                                             if (! filled($get('faaliyet_kodu'))) {
                                                 $set('faaliyet_kodu', $catalog->faaliyet_kodu);
                                             }
@@ -489,6 +492,7 @@ class AylikFaaliyetResource extends Resource
                                             $catalog = ActivityCatalog::find($state);
                                             if ($catalog) {
                                                 $set('olcu_birimi', $catalog->olcu_birimi);
+                                                $set('raporlama_sikligi', $catalog->raporlama_sikligi);
                                                 $set('faaliyet_kodu', $catalog->faaliyet_kodu);
                                                 $set('kapsam_icerigi', $catalog->kapsam);
                                                 $set(
@@ -511,8 +515,14 @@ class AylikFaaliyetResource extends Resource
                                         ->extraAttributes(['class' => 'bg-gray-50']),
 
                                     Forms\Components\TextInput::make('olcu_birimi')
-                                        ->label('Birim')
+                                        ->label('Ölçü Birimi')
                                         ->readOnly()
+                                        ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                        ->extraAttributes(['class' => 'bg-gray-50']),
+                                    Forms\Components\TextInput::make('raporlama_sikligi')
+                                        ->label('Raporlama Sıklığı')
+                                        ->readOnly()
+                                        ->dehydrated()
                                         ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
                                         ->extraAttributes(['class' => 'bg-gray-50']),
                                 ]),

@@ -41,6 +41,7 @@ class ActivityCatalogResource extends Resource
                         Forms\Components\Textarea::make('kapsam')->label('Kapsam')->columnSpanFull(),
                         Forms\Components\TextInput::make('olcu_birimi')->label('Ölçü Birimi'),
                         Forms\Components\TextInput::make('kpi_sla')->label('KPI / SLA Hedefi'),
+                        Forms\Components\TextInput::make('raporlama_sikligi')->label('Raporlama Sıklığı'),
                     ])->columns(2),
             ]);
     }
@@ -62,8 +63,9 @@ class ActivityCatalogResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('faaliyet_ailesi')
-                    ->label('Faaliyet Tanımı')
+                    ->label('Faaliyet Ailesi')
                     ->searchable()
+                    ->description(fn (ActivityCatalog $record): string => 'Ölçü Birimi: '.((string) ($record->olcu_birimi ?: '-')))
                     ->wrap(), // Uzun metinleri alt satıra indirir
 
                 Tables\Columns\TextColumn::make('olcu_birimi')
@@ -74,6 +76,11 @@ class ActivityCatalogResource extends Resource
                 Tables\Columns\TextColumn::make('kpi_sla')
                     ->label('KPI / SLA')
                     ->limit(30), // Çok uzunsa keser
+
+                Tables\Columns\TextColumn::make('raporlama_sikligi')
+                    ->label('Raporlama Sıklığı')
+                    ->badge()
+                    ->color('warning'),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('mudurluk')
