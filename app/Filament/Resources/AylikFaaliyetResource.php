@@ -1081,32 +1081,40 @@ class AylikFaaliyetResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('performans_ozeti')
-                    ->label('İş başarı performansı')
+                    ->label('İş Durum Özeti')
                     ->getStateUsing(function ($record) {
                         $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
                         if (! is_array($isler)) {
                             return '-';
                         }
 
-                        $toplamHedef = collect($isler)->sum(fn ($is) => is_array($is) ? static::performansPlanToplamForFaaliyetIs($is) : 0);
-                        $toplamGerceklesen = collect($isler)->sum(fn ($is) => is_array($is) ? static::performansGerceklesenToplamForFaaliyetIs($is) : 0);
-                        $hasAySonu = collect($isler)->contains(fn ($is) => is_array($is) && static::faaliyetIsindeAySonuPerformansiVarMi($is));
+                        $yapilan = 0;
+                        $bekleyen = 0;
+                        foreach ($isler as $is) {
+                            if (! is_array($is)) {
+                                continue;
+                            }
+                            $plan = static::performansPlanToplamForFaaliyetIs($is);
+                            $ger = static::performansGerceklesenToplamForFaaliyetIs($is);
+                            if ($plan <= 0 && $ger <= 0) {
+                                continue;
+                            }
 
-                        if ($toplamHedef == 0) {
-                            return 'Sayısal Veri Yok';
+                            $tamamlandi = ($plan > 0 && $ger >= $plan) || ($plan <= 0 && $ger > 0);
+                            if ($tamamlandi) {
+                                $yapilan++;
+                            } else {
+                                $bekleyen++;
+                            }
                         }
-                        if (! $hasAySonu) {
-                            return 'Ay sonu verisi bekleniyor';
-                        }
-                        $oran = static::performansBasariOraniYuzde($toplamGerceklesen, $toplamHedef);
 
-                        return "% {$oran} Başarı";
+                        return "Yapılan: {$yapilan} | Bekleyen: {$bekleyen}";
                     })
                     ->badge()
                     ->color(fn ($state) => match (true) {
-                        str_contains((string) $state, '100') => 'success',
-                        str_contains((string) $state, '80') => 'warning',
-                        default => 'danger',
+                        str_contains((string) $state, 'Bekleyen: 0') => 'success',
+                        str_contains((string) $state, 'Yapılan: 0') => 'danger',
+                        default => 'warning',
                     })
                     ->visible(fn (): bool => ! static::isIncomingTabActive()),
 

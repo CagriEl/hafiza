@@ -11,7 +11,7 @@ class FaaliyetIstatistikGrafik extends ChartWidget
 {
     protected static string $view = 'filament.widgets.faaliyet-istatistik-grafik';
 
-    protected static ?string $heading = 'Müdürlük İş Yükü Dağılımı';
+    protected static ?string $heading = 'Müdürlük İş Dağılımı';
 
     protected string|int|array $columnSpan = 'full';
 
@@ -23,8 +23,8 @@ class FaaliyetIstatistikGrafik extends ChartWidget
     {
         return [
             'all' => 'Tüm Müdürlükler',
-            'top_5' => 'En Yüksek Performanslı 5 Müdürlük',
-            'bottom_5' => 'En Düşük Performanslı 5 Müdürlük',
+            'top_5' => 'En Çok Yapılan İş (5)',
+            'bottom_5' => 'En Çok Bekleyen İşlem (5)',
         ];
     }
 
@@ -53,7 +53,7 @@ class FaaliyetIstatistikGrafik extends ChartWidget
                 ->whereIn('ay', $ayVariants)
                 ->get();
 
-            $tamam = 0;
+            $yapilan = 0;
             $bekleyen = 0;
 
             foreach ($kayitlar as $kayit) {
@@ -70,28 +70,28 @@ class FaaliyetIstatistikGrafik extends ChartWidget
                             continue;
                         }
 
-                        $tamam += min($planned, $actual);
-                        $bekleyen += max(0, $planned - $actual);
+                        $rowDone = ($planned > 0 && $actual >= $planned) || ($planned <= 0 && $actual > 0);
+                        if ($rowDone) {
+                            $yapilan++;
+                        } else {
+                            $bekleyen++;
+                        }
                     }
                 }
             }
 
-            $toplam = $tamam + $bekleyen;
-            $performansOrani = $toplam > 0 ? round(($tamam / $toplam) * 100, 2) : 0.0;
-
             $rows[] = [
                 'full_name' => (string) $mudurluk->name,
-                'tamam' => $tamam,
+                'yapilan' => $yapilan,
                 'bekleyen' => $bekleyen,
-                'performans' => $performansOrani,
             ];
         }
 
         if ($activeFilter === 'top_5') {
-            usort($rows, fn (array $a, array $b): int => $b['performans'] <=> $a['performans']);
+            usort($rows, fn (array $a, array $b): int => $b['yapilan'] <=> $a['yapilan']);
             $rows = array_slice($rows, 0, 5);
         } elseif ($activeFilter === 'bottom_5') {
-            usort($rows, fn (array $a, array $b): int => $a['performans'] <=> $b['performans']);
+            usort($rows, fn (array $a, array $b): int => $b['bekleyen'] <=> $a['bekleyen']);
             $rows = array_slice($rows, 0, 5);
         } else {
             usort($rows, fn (array $a, array $b): int => strcasecmp($a['full_name'], $b['full_name']));
@@ -99,19 +99,24 @@ class FaaliyetIstatistikGrafik extends ChartWidget
 
         $labels = array_column($rows, 'full_name');
         $fullLabels = array_column($rows, 'full_name');
-        $performansVerisi = array_column($rows, 'performans');
+        $yapilanVerisi = array_column($rows, 'yapilan');
+        $bekleyenVerisi = array_column($rows, 'bekleyen');
 
         return [
             'datasets' => [
                 [
-                    'label' => 'İş Yükü Skoru (%)',
-                    'data' => $performansVerisi,
-                    'backgroundColor' => '#60a5fa',
-                    'borderColor' => '#3b82f6',
+                    'label' => 'Yapılan İş Sayısı',
+                    'data' => $yapilanVerisi,
+                    'backgroundColor' => '#22c55e',
+                    'borderColor' => '#16a34a',
                     'borderWidth' => 1,
-                    'barThickness' => 5,
-                    'barPercentage' => 1,
-                    'categoryPercentage' => 1,
+                ],
+                [
+                    'label' => 'Bekleyen İşlem Sayısı',
+                    'data' => $bekleyenVerisi,
+                    'backgroundColor' => '#3b82f6',
+                    'borderColor' => '#2563eb',
+                    'borderWidth' => 1,
                 ],
             ],
             'labels' => $labels,
@@ -196,14 +201,13 @@ class FaaliyetIstatistikGrafik extends ChartWidget
             'scales' => [
                 'x' => [
                     'beginAtZero' => true,
-                    'max' => 100,
                 ],
                 'y' => [
                     'ticks' => ['autoSkip' => false, 'font' => ['size' => 10]],
                 ],
             ],
             'plugins' => [
-                'legend' => ['display' => false],
+                'legend' => ['display' => true],
                 'tooltip' => [
                     'callbacks' => [
                         'title' => RawJs::make('function (items) {
@@ -214,7 +218,7 @@ class FaaliyetIstatistikGrafik extends ChartWidget
                             return full ?? items[0].label;
                         }'),
                         'label' => RawJs::make('function (item) {
-                            return "Performans Skoru: " + item.formattedValue + "%";
+                            return item.dataset.label + ": " + item.formattedValue;
                         }'),
                     ],
                 ],

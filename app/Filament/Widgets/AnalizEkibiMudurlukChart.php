@@ -58,10 +58,8 @@ class AnalizEkibiMudurlukChart extends ChartWidget
             ->get(['users.id', 'users.name']);
 
         $labels = [];
-        $plannedTotals = [];
-        $actualTotals = [];
+        $doneTotals = [];
         $remainingTotals = [];
-        $remainingColors = [];
 
         foreach ($directorates as $directorateUser) {
             $records = AylikFaaliyet::query()
@@ -80,7 +78,7 @@ class AnalizEkibiMudurlukChart extends ChartWidget
             }
 
             $planned = 0;
-            $actual = 0;
+            $done = 0;
 
             foreach ($records as $record) {
                 $rows = is_array($record->faaliyetler) ? $record->faaliyetler : [];
@@ -90,45 +88,30 @@ class AnalizEkibiMudurlukChart extends ChartWidget
                     }
 
                     $planned += static::plannedCountForRow($row);
-                    $actual += static::actualCountForRow($row);
+                    $done += static::actualCountForRow($row);
                 }
             }
 
-            $remaining = max(0, $planned - $actual);
+            $remaining = max(0, $planned - $done);
 
             $labels[] = (string) $directorateUser->name;
-            $plannedTotals[] = $planned;
-            $actualTotals[] = $actual;
+            $doneTotals[] = $done;
             $remainingTotals[] = $remaining;
-
-            if ($remaining <= 0) {
-                $remainingColors[] = '#22c55e';
-            } elseif ($actual <= 0) {
-                $remainingColors[] = '#ef4444';
-            } else {
-                $remainingColors[] = '#a855f7';
-            }
         }
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Öngörülen',
-                    'data' => $plannedTotals,
-                    'backgroundColor' => '#60a5fa',
-                    'borderColor' => '#3b82f6',
-                ],
-                [
-                    'label' => 'Gerçekleşen',
-                    'data' => $actualTotals,
+                    'label' => 'Yapılan İş Sayısı',
+                    'data' => $doneTotals,
                     'backgroundColor' => '#22c55e',
                     'borderColor' => '#16a34a',
                 ],
                 [
-                    'label' => 'Açıkta Kalan',
+                    'label' => 'Bekleyen İşlem Sayısı',
                     'data' => $remainingTotals,
-                    'backgroundColor' => $remainingColors,
-                    'borderColor' => $remainingColors,
+                    'backgroundColor' => '#3b82f6',
+                    'borderColor' => '#2563eb',
                 ],
             ],
             'labels' => $labels,

@@ -37,8 +37,8 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
     protected function getData(): array
     {
         $labels = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-        $completed = array_fill(0, 12, 0);
-        $inProgress = array_fill(0, 12, 0);
+        $doneCounts = array_fill(0, 12, 0);
+        $pendingCounts = array_fill(0, 12, 0);
 
         $user = auth()->user();
         if (! $user instanceof User || ! $user->isMudurlukReportingAccount()) {
@@ -70,29 +70,29 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
                     continue;
                 }
 
-                $isCompleted = $planned > 0 && $actual >= $planned;
+                $isCompleted = ($planned > 0 && $actual >= $planned) || ($planned <= 0 && $actual > 0);
 
                 if ($isCompleted) {
-                    $completed[$monthIndex]++;
+                    $doneCounts[$monthIndex]++;
 
                     continue;
                 }
 
-                $inProgress[$monthIndex]++;
+                $pendingCounts[$monthIndex]++;
             }
         }
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Tamamlanan',
-                    'data' => $completed,
+                    'label' => 'Yapılan İş Sayısı',
+                    'data' => $doneCounts,
                     'backgroundColor' => '#22c55e',
                     'borderColor' => '#16a34a',
                 ],
                 [
-                    'label' => 'Devam Eden',
-                    'data' => $inProgress,
+                    'label' => 'Bekleyen İşlem Sayısı',
+                    'data' => $pendingCounts,
                     'backgroundColor' => '#3b82f6',
                     'borderColor' => '#2563eb',
                 ],
