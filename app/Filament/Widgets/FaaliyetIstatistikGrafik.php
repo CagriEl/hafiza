@@ -53,7 +53,6 @@ class FaaliyetIstatistikGrafik extends ChartWidget
                 ->whereIn('ay', $ayVariants)
                 ->get();
 
-            $yapilacak = 0;
             $yapilan = 0;
             $bekleyen = 0;
 
@@ -71,7 +70,6 @@ class FaaliyetIstatistikGrafik extends ChartWidget
                             continue;
                         }
 
-                        $yapilacak++;
                         $rowDone = ($planned > 0 && $actual >= $planned) || ($planned <= 0 && $actual > 0);
                         if ($rowDone) {
                             $yapilan++;
@@ -84,7 +82,6 @@ class FaaliyetIstatistikGrafik extends ChartWidget
 
             $rows[] = [
                 'full_name' => (string) $mudurluk->name,
-                'yapilacak' => $yapilacak,
                 'yapilan' => $yapilan,
                 'bekleyen' => $bekleyen,
             ];
@@ -102,28 +99,20 @@ class FaaliyetIstatistikGrafik extends ChartWidget
 
         $labels = array_column($rows, 'full_name');
         $fullLabels = array_column($rows, 'full_name');
-        $yapilacakVerisi = array_column($rows, 'yapilacak');
         $yapilanVerisi = array_column($rows, 'yapilan');
         $bekleyenVerisi = array_column($rows, 'bekleyen');
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Yapılacak İş Sayısı',
-                    'data' => $yapilacakVerisi,
-                    'backgroundColor' => '#60a5fa',
-                    'borderColor' => '#3b82f6',
-                    'borderWidth' => 1,
-                ],
-                [
-                    'label' => 'Yapılan İş Sayısı',
+                    'label' => 'Yapılan İş',
                     'data' => $yapilanVerisi,
                     'backgroundColor' => '#22c55e',
                     'borderColor' => '#16a34a',
                     'borderWidth' => 1,
                 ],
                 [
-                    'label' => 'Bekleyen İşlem Sayısı',
+                    'label' => 'Bekleyen İş',
                     'data' => $bekleyenVerisi,
                     'backgroundColor' => '#3b82f6',
                     'borderColor' => '#2563eb',
