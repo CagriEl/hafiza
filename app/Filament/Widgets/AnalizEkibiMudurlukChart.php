@@ -58,6 +58,7 @@ class AnalizEkibiMudurlukChart extends ChartWidget
             ->get(['users.id', 'users.name']);
 
         $labels = [];
+        $plannedTotals = [];
         $actualTotals = [];
         $remainingTotals = [];
         $remainingColors = [];
@@ -96,6 +97,7 @@ class AnalizEkibiMudurlukChart extends ChartWidget
             $remaining = max(0, $planned - $actual);
 
             $labels[] = (string) $directorateUser->name;
+            $plannedTotals[] = $planned;
             $actualTotals[] = $actual;
             $remainingTotals[] = $remaining;
 
@@ -110,6 +112,12 @@ class AnalizEkibiMudurlukChart extends ChartWidget
 
         return [
             'datasets' => [
+                [
+                    'label' => 'Öngörülen',
+                    'data' => $plannedTotals,
+                    'backgroundColor' => '#60a5fa',
+                    'borderColor' => '#3b82f6',
+                ],
                 [
                     'label' => 'Gerçekleşen',
                     'data' => $actualTotals,

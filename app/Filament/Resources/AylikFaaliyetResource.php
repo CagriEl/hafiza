@@ -190,6 +190,18 @@ class AylikFaaliyetResource extends Resource
             && CoordinationAccess::isIncomingPartnerOnRecord($r, (int) auth()->id());
     }
 
+    private static function resolveOlcuBirimiForRow(Get $get): ?string
+    {
+        $value = $get('olcu_birimi')
+            ?? $get('../olcu_birimi')
+            ?? $get('../../olcu_birimi')
+            ?? $get('../../../olcu_birimi');
+
+        $unit = trim((string) ($value ?? ''));
+
+        return $unit !== '' ? $unit : null;
+    }
+
     /**
      * @return list<int>
      */
@@ -548,6 +560,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->extraAttributes(['class' => 'bg-gray-50']),
                                             Forms\Components\TextInput::make('ongorulen')
                                                 ->label('Öngörülen')
+                                                ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
                                                 ->live()
@@ -566,6 +579,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->dehydrated(true),
                                             Forms\Components\TextInput::make('gerceklesen')
                                                 ->label('Gerçekleşen')
+                                                ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
                                                 ->live()
@@ -767,6 +781,7 @@ class AylikFaaliyetResource extends Resource
                                 Grid::make(2)->schema([
                                     Forms\Components\TextInput::make('gerceklesen')
                                         ->label('Gerçekleşen')
+                                        ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                         ->numeric()
                                         ->minValue(0)
                                         ->rules(['integer', 'min:0'])
@@ -805,6 +820,7 @@ class AylikFaaliyetResource extends Resource
 
                                     Forms\Components\TextInput::make('bekleyen_is')
                                         ->label('Açıkta bekleyen')
+                                        ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                         ->numeric()
                                         ->minValue(0)
                                         ->extraInputAttributes(['min' => 0])
