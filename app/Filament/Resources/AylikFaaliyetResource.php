@@ -578,7 +578,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->disabled(fn (Get $get): bool => trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) !== '')
                                                 ->dehydrated(true),
                                             Forms\Components\TextInput::make('gerceklesen')
-                                                ->label('Yapılan İş')
+                                                ->label('Tamamlanan İş')
                                                 ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
@@ -780,7 +780,7 @@ class AylikFaaliyetResource extends Resource
 
                                 Grid::make(2)->schema([
                                     Forms\Components\TextInput::make('gerceklesen')
-                                        ->label('Yapılan İş')
+                                        ->label('Tamamlanan İş')
                                         ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                         ->numeric()
                                         ->minValue(0)
@@ -1294,7 +1294,7 @@ class AylikFaaliyetResource extends Resource
 
                                         return User::query()->whereIn('id', $ids)->pluck('name')->implode(', ') ?: '-';
                                     }),
-                                TextEntry::make('gerceklesen')->label('Ay sonu — Yapılan İş (satır)')
+                                TextEntry::make('gerceklesen')->label('Ay sonu — Tamamlanan İş (satır)')
                                     ->visible(fn (TextEntry $component): bool => ! static::infolistFaaliyetRowHasKapsamVerileri($component))
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('bekleyen_is')->label('Ay sonu — Açıkta Bekleyen İş (satır)')

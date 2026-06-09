@@ -120,7 +120,7 @@ class ControlTeamAuditNoteResource extends Resource
                 Section::make('Seçili faaliyet özeti')
                     ->schema([
                         Forms\Components\Placeholder::make('activity_gerceklesen')
-                            ->label('Yapılan İş')
+                            ->label('Tamamlanan İş')
                             ->content(fn (Get $get): string => (string) static::activityProgressSummary($get)['gerceklesen']),
                         Forms\Components\Placeholder::make('activity_kalan')
                             ->label('Açıkta Bekleyen İş')
