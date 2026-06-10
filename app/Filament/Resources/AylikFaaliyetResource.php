@@ -33,6 +33,7 @@ use Filament\Infolists\Infolist;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Grouping\Group as TableGroup;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -1165,7 +1166,18 @@ class AylikFaaliyetResource extends Resource
                     ->trueColor('danger')
                     ->visible(fn (): bool => ! static::isIncomingTabActive()),
             ])
+            ->groups([
+                TableGroup::make('user.name')
+                    ->label('Müdürlük')
+                    ->collapsible(),
+            ])
+            ->defaultGroup('user.name')
             ->filters([
+                Tables\Filters\SelectFilter::make('user_id')
+                    ->label('Müdürlük')
+                    ->relationship('user', 'name')
+                    ->searchable()
+                    ->preload(),
                 Tables\Filters\SelectFilter::make('yil')->options([2025 => '2025', 2026 => '2026']),
             ])
             ->actions([
