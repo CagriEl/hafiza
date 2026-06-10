@@ -46,7 +46,7 @@ class AylikFaaliyetResource extends Resource
     protected static bool $shouldRegisterNavigation = false;
 
     /** @var array<int, int> */
-    private static array $mudurlukGroupFaaliyetCountCache = [];
+    private static array $mudurlukGroupReportCountCache = [];
 
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
 
@@ -1262,15 +1262,14 @@ class AylikFaaliyetResource extends Resource
             return $name;
         }
 
-        if (! array_key_exists($userId, static::$mudurlukGroupFaaliyetCountCache)) {
-            $total = (int) (static::getEloquentQuery()
+        if (! array_key_exists($userId, static::$mudurlukGroupReportCountCache)) {
+            $total = (int) static::getEloquentQuery()
                 ->where('user_id', $userId)
-                ->selectRaw('COALESCE(SUM(JSON_LENGTH(faaliyetler)), 0) as toplam')
-                ->value('toplam') ?? 0);
-            static::$mudurlukGroupFaaliyetCountCache[$userId] = max(0, $total);
+                ->count();
+            static::$mudurlukGroupReportCountCache[$userId] = max(0, $total);
         }
 
-        return $name.' ('.static::$mudurlukGroupFaaliyetCountCache[$userId].')';
+        return $name.' ('.static::$mudurlukGroupReportCountCache[$userId].')';
     }
 
     /**
