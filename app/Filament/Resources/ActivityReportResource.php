@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Support\AylikFaaliyetRepeaterLock;
 use App\Support\CoordinationAccess;
 use App\Support\QuerySafety;
+use Carbon\Carbon;
 use Filament\Forms\Form;
 use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
@@ -156,6 +157,10 @@ class ActivityReportResource extends Resource
             return false;
         }
 
+        if (static::isReportPeriodClosed($record)) {
+            return false;
+        }
+
         if (! static::canView($record)) {
             return false;
         }
@@ -171,6 +176,19 @@ class ActivityReportResource extends Resource
 
         return $u->isMudurlukReportingAccount()
             && AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($record, $u);
+    }
+
+    public static function isReportPeriodClosed(AylikFaaliyet $record): bool
+    {
+        $year = (int) ($record->yil ?? 0);
+        $month = (int) ($record->ay ?? 0);
+        if ($year <= 0 || $month < 1 || $month > 12) {
+            return false;
+        }
+
+        $periodEnd = Carbon::create($year, $month, 1, 23, 59, 59)->endOfMonth();
+
+        return now()->greaterThan($periodEnd);
     }
 
     public static function canDelete(Model $record): bool

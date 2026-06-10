@@ -1296,6 +1296,15 @@ class AylikFaaliyetResource extends Resource
                             ->placeholder('—')
                             ->html(),
                     ]),
+                InfolistSection::make('Görsel Performans Özeti')
+                    ->visible(fn (?AylikFaaliyet $record): bool => ! static::shouldShowIncomingCoordinationOnly($record))
+                    ->schema([
+                        TextEntry::make('visual_performance_summary')
+                            ->hiddenLabel()
+                            ->getStateUsing(fn (?AylikFaaliyet $record): string => static::visualPerformanceSummaryHtml($record))
+                            ->html()
+                            ->columnSpanFull(),
+                    ]),
                 InfolistSection::make('Raporlanan Faaliyetler')
                     ->visible(fn (?AylikFaaliyet $record): bool => ! static::shouldShowIncomingCoordinationOnly($record))
                     ->schema([
@@ -1557,6 +1566,464 @@ class AylikFaaliyetResource extends Resource
         }
 
         return $parts === [] ? '—' : implode(' | ', $parts);
+    }
+
+    private static function visualPerformanceSummaryHtml(?AylikFaaliyet $record): string
+    {
+        $summary = static::summarizeReportForPresentation($record);
+        $totalDone = number_format((float) $summary['total_done'], 0, ',', '.');
+        $totalPending = number_format((float) $summary['total_pending'], 0, ',', '.');
+        $totalPlan = number_format((float) $summary['total_plan'], 0, ',', '.');
+        $completion = (int) $summary['completion'];
+        $completedRows = (int) $summary['completed_rows'];
+        $pendingRows = (int) $summary['pending_rows'];
+        $totalsMissing = (bool) $summary['totals_missing'];
+        $totalDoneColor = $totalsMissing ? '#b91c1c' : '#065f46';
+        $totalPendingColor = $totalsMissing ? '#b91c1c' : '#1e3a8a';
+        $totalPlanColor = $totalsMissing ? '#b91c1c' : '#9a3412';
+
+        $chartMax = max((float) $summary['total_done'], (float) $summary['total_pending'], (float) $summary['total_plan'], 1.0);
+        $doneHeight = (int) round(((float) $summary['total_done'] / $chartMax) * 100);
+        $pendingHeight = (int) round(((float) $summary['total_pending'] / $chartMax) * 100);
+        $planHeight = (int) round(((float) $summary['total_plan'] / $chartMax) * 100);
+        $chartHtml = '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#fff;margin-top:10px;">'
+            .'<div style="font-size:12px;font-weight:700;color:#111827;margin-bottom:8px;">Aylık İş Dağılımı (Chart)</div>'
+            .'<table style="width:100%;border-collapse:separate;border-spacing:10px 0;">'
+            .'<tr style="height:140px;vertical-align:bottom;">'
+            .'<td style="width:33%;text-align:center;background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;padding:6px;">'
+            .'<div style="height:'.$doneHeight.'%;min-height:3px;background:#22c55e;border-radius:6px 6px 0 0;"></div>'
+            .'<div style="font-size:11px;color:#065f46;margin-top:6px;">Yapılan</div><div style="font-size:12px;font-weight:700;color:'.$totalDoneColor.';">'.e($totalDone).'</div>'
+            .'</td>'
+            .'<td style="width:33%;text-align:center;background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;padding:6px;">'
+            .'<div style="height:'.$pendingHeight.'%;min-height:3px;background:#3b82f6;border-radius:6px 6px 0 0;"></div>'
+            .'<div style="font-size:11px;color:#1e3a8a;margin-top:6px;">Açıkta Bekleyen</div><div style="font-size:12px;font-weight:700;color:'.$totalPendingColor.';">'.e($totalPending).'</div>'
+            .'</td>'
+            .'<td style="width:33%;text-align:center;background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;padding:6px;">'
+            .'<div style="height:'.$planHeight.'%;min-height:3px;background:#a855f7;border-radius:6px 6px 0 0;"></div>'
+            .'<div style="font-size:11px;color:#6b21a8;margin-top:6px;">Toplam</div><div style="font-size:12px;font-weight:700;color:'.$totalPlanColor.';">'.e($totalPlan).'</div>'
+            .'</td>'
+            .'</tr></table>'
+            .'</div>';
+
+        $cardsHtml = '';
+        foreach ($summary['items'] as $item) {
+            $width = (int) $item['completion'];
+            $done = number_format((float) $item['done'], 0, ',', '.');
+            $pending = number_format((float) $item['pending'], 0, ',', '.');
+            $plan = number_format((float) $item['plan'], 0, ',', '.');
+            $doneColor = (bool) ($item['missing_done'] ?? false) ? '#b91c1c' : '#111827';
+            $pendingColor = (bool) ($item['missing_pending'] ?? false) ? '#b91c1c' : '#111827';
+            $planColor = (bool) ($item['missing_plan'] ?? false) ? '#b91c1c' : '#111827';
+            $unit = trim((string) ($item['unit'] ?? ''));
+            $unitSuffix = $unit !== '' ? ' '.$unit : '';
+            $infoLevel = trim((string) ($item['info_level'] ?? ''));
+            $infoHtml = $infoLevel !== ''
+                ? '<span style="font-size:11px;color:#b91c1c;background:#fee2e2;padding:2px 8px;border-radius:9999px;">Bilgilendirme: '.e($infoLevel).'</span>'
+                : '';
+
+            $cardsHtml .= '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff;">'
+                .'<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">'
+                .'<div><div style="font-weight:700;color:#111827;">'.e((string) $item['code']).'</div><div style="font-size:12px;color:#4b5563;">'.e((string) $item['title']).'</div></div>'
+                .'<span style="font-size:12px;padding:3px 10px;border-radius:9999px;background:'.e((string) $item['badge_bg']).';color:'.e((string) $item['badge_text']).';">'.e((string) $item['status_label']).'</span>'
+                .'</div>'
+                .'<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#374151;">'
+                .'<span>Yapılan: <b style="color:'.$doneColor.';">'.e($done.$unitSuffix).'</b></span>'
+                .'<span>Açıkta Bekleyen: <b style="color:'.$pendingColor.';">'.e($pending.$unitSuffix).'</b></span>'
+                .'<span>Toplam İş: <b style="color:'.$planColor.';">'.e($plan.$unitSuffix).'</b></span>'
+                .$infoHtml
+                .'</div>'
+                .'<div style="margin-top:10px;background:#e5e7eb;height:9px;border-radius:9999px;overflow:hidden;">'
+                .'<div style="height:100%;width:'.$width.'%;background:'.e((string) $item['bar_color']).';"></div>'
+                .'</div>'
+                .'<div style="margin-top:6px;font-size:11px;color:#6b7280;">Tamamlanma oranı: <b>%'.e((string) $width).'</b></div>'
+                .'</div>';
+        }
+
+        $riskItems = collect($summary['items'])
+            ->filter(fn (array $item): bool => ((float) ($item['pending'] ?? 0.0) > 0.0)
+                || ((bool) ($item['missing_done'] ?? false))
+                || ((bool) ($item['missing_pending'] ?? false))
+                || ((bool) ($item['missing_plan'] ?? false)))
+            ->take(5)
+            ->map(function (array $item): string {
+                $pending = number_format((float) ($item['pending'] ?? 0), 0, ',', '.');
+                $status = trim((string) ($item['status_label'] ?? 'Kısmi'));
+
+                return '<li style="margin:0 0 6px 16px;color:#7f1d1d;">'
+                    .'<b>'.e((string) ($item['code'] ?? 'Faaliyet')).'</b> - '
+                    .e((string) ($item['title'] ?? 'Kapsam girilmedi')).' | '
+                    .'Açıkta Bekleyen: <b>'.e($pending).'</b> | Durum: <b>'.e($status).'</b>'
+                    .'</li>';
+            })
+            ->implode('');
+        $riskPanelHtml = $riskItems === ''
+            ? '<div style="font-size:12px;color:#166534;">Kritik risk görünmüyor, açıkta bekleyen satır yok.</div>'
+            : '<ul style="padding:0;margin:6px 0 0;">'.$riskItems.'</ul>';
+
+        return '<div>'
+            .'<table style="width:100%;border-collapse:separate;border-spacing:8px;">'
+            .'<tr>'
+            .'<td style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px;"><div style="font-size:12px;color:#065f46;">Yapılan İş</div><div style="font-size:22px;font-weight:700;color:'.$totalDoneColor.';">'.$totalDone.'</div></td>'
+            .'<td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;"><div style="font-size:12px;color:#1e3a8a;">Açıkta Bekleyen İş</div><div style="font-size:22px;font-weight:700;color:'.$totalPendingColor.';">'.$totalPending.'</div></td>'
+            .'<td style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;"><div style="font-size:12px;color:#9a3412;">Toplam İş</div><div style="font-size:22px;font-weight:700;color:'.$totalPlanColor.';">'.$totalPlan.'</div></td>'
+            .'<td style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px;"><div style="font-size:12px;color:#5b21b6;">Genel Tamamlanma</div><div style="font-size:22px;font-weight:700;color:#5b21b6;">%'.$completion.'</div></td>'
+            .'</tr></table>'
+            .'<div style="font-size:11px;color:#b91c1c;">Eksik alanlar otomatik olarak 0 gösterilir ve kırmızı ile işaretlenir.</div>'
+            .$chartHtml
+            .'<div style="font-size:12px;color:#4b5563;margin-top:8px;">Satır özeti: <b>'.e((string) $completedRows).'</b> tamamlandı, <b>'.e((string) $pendingRows).'</b> satır açıkta bekliyor.</div>'
+            .'<div style="border:1px solid #fecaca;background:#fff1f2;border-radius:10px;padding:10px;margin-top:8px;">'
+            .'<div style="font-size:12px;font-weight:700;color:#9f1239;">Risk ve İstisnalar</div>'
+            .$riskPanelHtml
+            .'</div>'
+            .'<div style="margin-top:8px;">'.$cardsHtml.'</div>'
+            .'</div>';
+    }
+
+    public static function reportPdfHtml(?AylikFaaliyet $record): string
+    {
+        $summary = static::summarizeReportForPresentation($record);
+        $mudurluk = trim((string) ($record?->user?->name ?? 'Belirtilmemiş'));
+        $period = trim((string) (($record?->yil ?? '—').' / '.str_pad((string) ($record?->ay ?? '—'), 2, '0', STR_PAD_LEFT)));
+        $rowsHtml = '';
+
+        foreach ($summary['items'] as $item) {
+            $doneColor = (bool) ($item['missing_done'] ?? false) ? '#b91c1c' : '#111827';
+            $pendingColor = (bool) ($item['missing_pending'] ?? false) ? '#b91c1c' : '#111827';
+            $planColor = (bool) ($item['missing_plan'] ?? false) ? '#b91c1c' : '#111827';
+            $rowsHtml .= '<tr>'
+                .'<td>'.e((string) $item['code']).'</td>'
+                .'<td>'.e((string) $item['title']).'</td>'
+                .'<td style="color:'.$doneColor.';">'.e(number_format((float) $item['done'], 0, ',', '.')).'</td>'
+                .'<td style="color:'.$pendingColor.';">'.e(number_format((float) $item['pending'], 0, ',', '.')).'</td>'
+                .'<td style="color:'.$planColor.';">'.e(number_format((float) $item['plan'], 0, ',', '.')).'</td>'
+                .'<td>%'.e((string) ((int) $item['completion'])).'</td>'
+                .'<td>'.e((string) $item['status_label']).'</td>'
+                .'<td>'.e((string) ($item['info_level'] ?: '—')).'</td>'
+                .'</tr>';
+        }
+
+        if ($rowsHtml === '') {
+            $rowsHtml = '<tr><td colspan="8">Kayıtlı faaliyet bulunamadı.</td></tr>';
+        }
+
+        return '<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <style>
+        body { font-family: "DejaVu Sans", sans-serif; font-size: 11px; color: #111827; }
+        .title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+        .meta { font-size: 11px; color: #4b5563; margin-bottom: 12px; }
+        .cards { width: 100%; margin-bottom: 12px; }
+        .cards td { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; width: 25%; }
+        .cards .k { font-size: 10px; color: #374151; }
+        .cards .v { font-size: 18px; font-weight: 700; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #d1d5db; padding: 6px; vertical-align: top; text-align: left; }
+        th { background: #f3f4f6; }
+    </style>
+</head>
+<body>
+    <div class="title">Faaliyet Raporu - Görsel Özet</div>
+    <div class="meta">Müdürlük: '.e($mudurluk).' | Dönem: '.e($period).' | Oluşturulma: '.e(now()->format('d.m.Y H:i')).'</div>
+
+    <table class="cards">
+        <tr>
+            <td><div class="k">Yapılan İş</div><div class="v">'.e(number_format((float) $summary['total_done'], 0, ',', '.')).'</div></td>
+            <td><div class="k">Açıkta Bekleyen İş</div><div class="v">'.e(number_format((float) $summary['total_pending'], 0, ',', '.')).'</div></td>
+            <td><div class="k">Toplam İş</div><div class="v">'.e(number_format((float) $summary['total_plan'], 0, ',', '.')).'</div></td>
+            <td><div class="k">Genel Tamamlanma</div><div class="v">%'.e((string) ((int) $summary['completion'])).'</div></td>
+        </tr>
+    </table>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Kod</th>
+                <th>Faaliyet</th>
+                <th>Yapılan</th>
+                <th>Açıkta Bekleyen</th>
+                <th>Toplam</th>
+                <th>Tamamlanma</th>
+                <th>Durum</th>
+                <th>Başkanlık Bilgilendirme</th>
+            </tr>
+        </thead>
+        <tbody>
+            '.$rowsHtml.'
+        </tbody>
+    </table>
+</body>
+</html>';
+    }
+
+    /**
+     * @return array{
+     *   total_done: float,
+     *   total_pending: float,
+     *   total_plan: float,
+     *   completion: int,
+     *   total_rows: int,
+     *   completed_rows: int,
+     *   pending_rows: int,
+     *   totals_missing: bool,
+     *   items: list<array{
+     *     code: string,
+     *     title: string,
+     *     unit: string,
+     *     info_level: string,
+     *     done: float,
+     *     pending: float,
+     *     plan: float,
+     *     missing_done: bool,
+     *     missing_pending: bool,
+     *     missing_plan: bool,
+     *     completion: int,
+     *     status_label: string,
+     *     badge_bg: string,
+     *     badge_text: string,
+     *     bar_color: string
+     *   }>
+     * }
+     */
+    private static function summarizeReportForPresentation(?AylikFaaliyet $record): array
+    {
+        $rows = is_array($record?->faaliyetler) ? $record->faaliyetler : [];
+        $items = [];
+        $totalDone = 0.0;
+        $totalPending = 0.0;
+        $totalPlan = 0.0;
+        $completedRows = 0;
+        $pendingRows = 0;
+        $totalsMissing = false;
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $progress = static::resolveProgressFromFaaliyetRow($row);
+            $done = $progress['done'];
+            $pending = $progress['pending'];
+            $plan = $progress['plan'];
+            $missingDone = (bool) ($progress['missing_done'] ?? true);
+            $missingPending = (bool) ($progress['missing_pending'] ?? true);
+            $missingPlan = (bool) ($progress['missing_plan'] ?? true);
+            if ($missingDone || $missingPending || $missingPlan) {
+                $totalsMissing = true;
+            }
+
+            $completion = $plan > 0.0 ? (int) min(100, max(0, round(($done / $plan) * 100))) : 0;
+            $statusLabel = 'Kısmi';
+            $badgeBg = '#ede9fe';
+            $badgeText = '#5b21b6';
+            $barColor = '#8b5cf6';
+
+            if ($missingDone && $missingPending && $missingPlan) {
+                $statusLabel = 'Veri Eksik';
+                $badgeBg = '#fee2e2';
+                $badgeText = '#b91c1c';
+                $barColor = '#ef4444';
+                $pendingRows++;
+            } elseif ($pending <= 0.0 && $done > 0.0) {
+                $statusLabel = 'Tamamlandı';
+                $badgeBg = '#dcfce7';
+                $badgeText = '#166534';
+                $barColor = '#22c55e';
+                $completedRows++;
+            } elseif ($done <= 0.0 && $pending > 0.0) {
+                $statusLabel = 'Başlanmadı';
+                $badgeBg = '#fee2e2';
+                $badgeText = '#b91c1c';
+                $barColor = '#ef4444';
+                $pendingRows++;
+            } elseif ($pending > 0.0) {
+                $pendingRows++;
+            }
+
+            $items[] = [
+                'code' => trim((string) ($row['faaliyet_kodu'] ?? 'Faaliyet')),
+                'title' => static::resolveReportRowTitle($row),
+                'unit' => trim((string) ($row['olcu_birimi'] ?? '')),
+                'info_level' => trim((string) ($row['baskanlik_bilgilendirme_seviyesi'] ?? '')),
+                'done' => $done,
+                'pending' => $pending,
+                'plan' => $plan,
+                'missing_done' => $missingDone,
+                'missing_pending' => $missingPending,
+                'missing_plan' => $missingPlan,
+                'completion' => $completion,
+                'status_label' => $statusLabel,
+                'badge_bg' => $badgeBg,
+                'badge_text' => $badgeText,
+                'bar_color' => $barColor,
+            ];
+
+            $totalDone += $done;
+            $totalPending += $pending;
+            $totalPlan += $plan;
+        }
+
+        $completion = $totalPlan > 0.0 ? (int) min(100, max(0, round(($totalDone / $totalPlan) * 100))) : 0;
+        $totalRows = count($items);
+
+        return [
+            'total_done' => $totalDone,
+            'total_pending' => $totalPending,
+            'total_plan' => $totalPlan,
+            'completion' => $completion,
+            'total_rows' => $totalRows,
+            'completed_rows' => $completedRows,
+            'pending_rows' => $pendingRows,
+            'totals_missing' => $totalsMissing,
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return array{
+     *   done: float,
+     *   pending: float,
+     *   plan: float,
+     *   missing_done: bool,
+     *   missing_pending: bool,
+     *   missing_plan: bool
+     * }
+     */
+    private static function resolveProgressFromFaaliyetRow(array $row): array
+    {
+        $kapsamRows = $row['kapsam_verileri'] ?? null;
+        if (is_array($kapsamRows) && $kapsamRows !== []) {
+            $plan = 0.0;
+            $done = 0.0;
+            $hasPlan = false;
+            $hasDone = false;
+            foreach ($kapsamRows as $kapsamRow) {
+                if (! is_array($kapsamRow)) {
+                    continue;
+                }
+                if (static::hasProvidedNumericValue($kapsamRow['ongorulen'] ?? null) || static::hasProvidedNumericValue($kapsamRow['deger'] ?? null)) {
+                    $hasPlan = true;
+                }
+                if (static::hasProvidedNumericValue($kapsamRow['gerceklesen'] ?? null)) {
+                    $hasDone = true;
+                }
+                $plan += static::toFloatNumber($kapsamRow['ongorulen'] ?? $kapsamRow['deger'] ?? 0);
+                $done += static::toFloatNumber($kapsamRow['gerceklesen'] ?? 0);
+            }
+
+            return [
+                'done' => max(0.0, $done),
+                'pending' => max(0.0, $plan - $done),
+                'plan' => max(0.0, $plan),
+                'missing_done' => ! $hasDone,
+                'missing_pending' => ! $hasPlan && ! $hasDone,
+                'missing_plan' => ! $hasPlan,
+            ];
+        }
+
+        $targetProvided = static::hasProvidedNumericValue(
+            $row['hedef'] ?? $row['ongorulen'] ?? $row['deger'] ?? null
+        );
+        $doneProvided = static::hasProvidedNumericValue($row['gerceklesen'] ?? null);
+        $pendingProvided = static::hasProvidedNumericValue($row['bekleyen_is'] ?? null);
+        $target = static::toFloatNumber($row['hedef'] ?? $row['ongorulen'] ?? $row['deger'] ?? 0);
+        $done = static::toFloatNumber($row['gerceklesen'] ?? 0);
+        $pending = $pendingProvided
+            ? static::toFloatNumber($row['bekleyen_is'] ?? 0)
+            : ($targetProvided && $doneProvided ? max(0.0, $target - $done) : 0.0);
+
+        $plan = $targetProvided ? max(0.0, $target) : max(0.0, $done + $pending);
+
+        return [
+            'done' => max(0.0, $done),
+            'pending' => max(0.0, $pending),
+            'plan' => $plan,
+            'missing_done' => ! $doneProvided,
+            'missing_pending' => ! $pendingProvided,
+            'missing_plan' => ! $targetProvided && ! $doneProvided && ! $pendingProvided,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private static function resolveReportRowTitle(array $row): string
+    {
+        $scope = trim((string) ($row['kapsam_icerigi'] ?? ''));
+        if ($scope !== '') {
+            return $scope;
+        }
+
+        $week = trim((string) ($row['hafta'] ?? ''));
+        if ($week !== '') {
+            return 'Hafta: '.$week;
+        }
+
+        $type = trim((string) ($row['faaliyet_turu'] ?? ''));
+        if ($type !== '') {
+            return $type.' faaliyet kaydı';
+        }
+
+        return 'Kapsam girilmedi';
+    }
+
+    private static function hasProvidedNumericValue(mixed $value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+        if (is_int($value) || is_float($value)) {
+            return true;
+        }
+        if (! is_string($value)) {
+            return false;
+        }
+
+        return trim($value) !== '';
+    }
+
+    private static function toFloatNumber(mixed $value): float
+    {
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
+        if (! is_string($value)) {
+            return 0.0;
+        }
+
+        $normalized = trim($value);
+        if ($normalized === '') {
+            return 0.0;
+        }
+
+        $normalized = str_replace(["\xc2\xa0", ' '], '', $normalized);
+        $hasComma = str_contains($normalized, ',');
+        $hasDot = str_contains($normalized, '.');
+
+        if ($hasComma && $hasDot) {
+            $lastComma = strrpos($normalized, ',');
+            $lastDot = strrpos($normalized, '.');
+            if ($lastComma !== false && $lastDot !== false) {
+                if ($lastComma > $lastDot) {
+                    $normalized = str_replace('.', '', $normalized);
+                    $normalized = str_replace(',', '.', $normalized);
+                } else {
+                    $normalized = str_replace(',', '', $normalized);
+                }
+            }
+        } elseif ($hasComma) {
+            $normalized = str_replace(',', '.', $normalized);
+        }
+
+        $normalized = preg_replace('/[^0-9.\-]/', '', $normalized);
+        if (! is_string($normalized) || $normalized === '' || $normalized === '-' || $normalized === '.') {
+            return 0.0;
+        }
+
+        return is_numeric($normalized) ? (float) $normalized : 0.0;
     }
 
     /**
