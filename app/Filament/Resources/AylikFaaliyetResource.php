@@ -1173,11 +1173,55 @@ class AylikFaaliyetResource extends Resource
             ])
             ->defaultGroup('user.name')
             ->filters([
-                Tables\Filters\SelectFilter::make('user_id')
-                    ->label('Müdürlük')
-                    ->options(fn (): array => static::reportVisibleMudurlukFilterOptions())
-                    ->searchable()
-                    ->preload(),
+                Tables\Filters\Filter::make('mudurluk_faaliyet_katalog')
+                    ->label('Müdürlük / Faaliyet')
+                    ->form([
+                        Forms\Components\Select::make('mudurluk_user_id')
+                            ->label('Müdürlük')
+                            ->options(fn (): array => static::reportVisibleMudurlukFilterOptions())
+                            ->searchable()
+                            ->preload()
+                            ->live(),
+                        Forms\Components\Select::make('faaliyet_ailesi')
+                            ->label('Faaliyet Ailesi')
+                            ->options(fn (Get $get): array => static::faaliyetAilesiOptionsForFilter($get('mudurluk_user_id')))
+                            ->searchable()
+                            ->preload()
+                            ->live(),
+                        Forms\Components\Select::make('faaliyet_kodu')
+                            ->label('Faaliyet Kodu')
+                            ->options(fn (Get $get): array => static::faaliyetKoduOptionsForFilter(
+                                $get('mudurluk_user_id'),
+                                $get('faaliyet_ailesi')
+                            ))
+                            ->searchable()
+                            ->preload(),
+                    ])
+                    ->columns(1)
+                    ->query(function (Builder $query, array $data): Builder {
+                        $mudurlukUserId = isset($data['mudurluk_user_id']) ? (int) $data['mudurluk_user_id'] : 0;
+                        $faaliyetAilesi = trim((string) ($data['faaliyet_ailesi'] ?? ''));
+                        $faaliyetKodu = trim((string) ($data['faaliyet_kodu'] ?? ''));
+
+                        if ($mudurlukUserId > 0) {
+                            $query->where($query->qualifyColumn('user_id'), $mudurlukUserId);
+                        }
+
+                        if ($faaliyetKodu !== '') {
+                            return static::applyFaaliyetKodlariJsonFilter($query, [$faaliyetKodu]);
+                        }
+
+                        if ($faaliyetAilesi === '') {
+                            return $query;
+                        }
+
+                        $codes = array_keys(static::faaliyetKoduOptionsForFilter(
+                            $mudurlukUserId > 0 ? $mudurlukUserId : null,
+                            $faaliyetAilesi
+                        ));
+
+                        return static::applyFaaliyetKodlariJsonFilter($query, $codes);
+                    }),
                 Tables\Filters\SelectFilter::make('yil')->options([2025 => '2025', 2026 => '2026']),
                 Tables\Filters\SelectFilter::make('ay')
                     ->label('Ay')
@@ -1254,6 +1298,122 @@ class AylikFaaliyetResource extends Resource
             ->whereIn('id', $ids)
             ->pluck('name', 'id')
             ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function faaliyetAilesiOptionsForFilter(mixed $mudurlukUserId): array
+    {
+        $mudurlukOptions = static::reportVisibleMudurlukFilterOptions();
+        $userId = is_numeric((string) $mudurlukUserId) ? (int) $mudurlukUserId : 0;
+        if ($userId > 0) {
+            $mudurlukName = trim((string) ($mudurlukOptions[$userId] ?? ''));
+            if ($mudurlukName === '') {
+                return [];
+            }
+
+            return ActivityCatalog::query()
+                ->where('mudurluk', $mudurlukName)
+                ->whereNotNull('faaliyet_ailesi')
+                ->where('faaliyet_ailesi', '!=', '')
+                ->orderBy('faaliyet_ailesi')
+                ->pluck('faaliyet_ailesi', 'faaliyet_ailesi')
+                ->all();
+        }
+
+        $mudurlukNames = array_values(array_filter(array_map(
+            fn (mixed $name): string => trim((string) $name),
+            array_values($mudurlukOptions)
+        )));
+        if ($mudurlukNames === []) {
+            return [];
+        }
+
+        return ActivityCatalog::query()
+            ->whereIn('mudurluk', $mudurlukNames)
+            ->whereNotNull('faaliyet_ailesi')
+            ->where('faaliyet_ailesi', '!=', '')
+            ->orderBy('faaliyet_ailesi')
+            ->pluck('faaliyet_ailesi', 'faaliyet_ailesi')
+            ->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function faaliyetKoduOptionsForFilter(mixed $mudurlukUserId, mixed $faaliyetAilesi): array
+    {
+        $mudurlukOptions = static::reportVisibleMudurlukFilterOptions();
+        $userId = is_numeric((string) $mudurlukUserId) ? (int) $mudurlukUserId : 0;
+        $family = trim((string) ($faaliyetAilesi ?? ''));
+
+        $catalog = ActivityCatalog::query()
+            ->select(['faaliyet_kodu', 'faaliyet_ailesi', 'mudurluk'])
+            ->whereNotNull('faaliyet_kodu')
+            ->where('faaliyet_kodu', '!=', '');
+
+        if ($userId > 0) {
+            $mudurlukName = trim((string) ($mudurlukOptions[$userId] ?? ''));
+            if ($mudurlukName === '') {
+                return [];
+            }
+            $catalog->where('mudurluk', $mudurlukName);
+        } else {
+            $mudurlukNames = array_values(array_filter(array_map(
+                fn (mixed $name): string => trim((string) $name),
+                array_values($mudurlukOptions)
+            )));
+            if ($mudurlukNames === []) {
+                return [];
+            }
+            $catalog->whereIn('mudurluk', $mudurlukNames);
+        }
+
+        if ($family !== '') {
+            $catalog->where('faaliyet_ailesi', $family);
+        }
+
+        return $catalog
+            ->orderBy('faaliyet_kodu')
+            ->get()
+            ->mapWithKeys(function (ActivityCatalog $row): array {
+                $code = trim((string) ($row->faaliyet_kodu ?? ''));
+                $family = trim((string) ($row->faaliyet_ailesi ?? ''));
+                if ($code === '') {
+                    return [];
+                }
+
+                $label = $family !== '' ? $code.' - '.$family : $code;
+
+                return [$code => $label];
+            })
+            ->all();
+    }
+
+    /**
+     * @param  list<string>  $codes
+     */
+    private static function applyFaaliyetKodlariJsonFilter(Builder $query, array $codes): Builder
+    {
+        $codes = array_values(array_unique(array_filter(array_map(
+            fn (mixed $code): string => trim((string) $code),
+            $codes
+        ))));
+        if ($codes === []) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        $column = $query->qualifyColumn('faaliyetler');
+
+        return $query->where(function (Builder $q) use ($column, $codes): void {
+            foreach ($codes as $code) {
+                $q->orWhereRaw(
+                    "JSON_SEARCH({$column}, 'one', ?, NULL, '$[*].faaliyet_kodu') IS NOT NULL",
+                    [$code]
+                );
+            }
+        });
     }
 
     private static function applyIsDurumOzetiFilter(Builder $query, string $value): Builder
