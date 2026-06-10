@@ -387,12 +387,13 @@ class ListActivityReports extends ListRecords
         }
 
         $this->js(<<<'JS'
-            const applyCollapse = () => {
-                const tableRoot = document.querySelector('[x-data*="collapsedGroups"]');
-                if (!tableRoot || !tableRoot.__x) {
-                    return false;
-                }
-                const titles = Array.from(
+            if (window.__activityReportsCollapseBooted) {
+                window.__activityReportsCollapseNow?.();
+                return;
+            }
+
+            const extractGroupTitles = (tableRoot) => {
+                return Array.from(
                     tableRoot.querySelectorAll('.fi-ta-group-header[x-on\\:click*="toggleCollapseGroup"]')
                 )
                     .map((header) => {
@@ -401,38 +402,55 @@ class ListActivityReports extends ListRecords
                         if (!match || !match[1]) {
                             return '';
                         }
+
                         let raw = match[1].trim();
                         if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
                             raw = raw.slice(1, -1);
                         }
+
                         return raw
                             .replace(/\\"/g, '"')
                             .replace(/\\'/g, "'");
                     })
                     .filter((title) => title.length > 0);
-                if (titles.length === 0) {
-                    return false;
-                }
-                tableRoot.__x.$data.collapsedGroups = [...new Set(titles)];
-
-                // Fallback: if any header is still expanded, collapse via click.
-                tableRoot.querySelectorAll('.fi-ta-group-header').forEach((header) => {
-                    const button = header.querySelector('[aria-expanded="true"]');
-                    if (button) {
-                        header.click();
-                    }
-                });
-
-                return true;
             };
 
-            let tries = 0;
-            const timer = setInterval(() => {
-                tries += 1;
-                if (applyCollapse() || tries >= 12) {
-                    clearInterval(timer);
-                }
-            }, 120);
+            const collapseAllGroups = () => {
+                document.querySelectorAll('[x-data*="collapsedGroups"]').forEach((tableRoot) => {
+                    if (!tableRoot.__x?.$data) {
+                        return;
+                    }
+
+                    const titles = extractGroupTitles(tableRoot);
+                    if (titles.length === 0) {
+                        return;
+                    }
+
+                    tableRoot.__x.$data.collapsedGroups = [...new Set(titles)];
+
+                    // Keep as hard fallback in case local state wasn't reflected yet.
+                    tableRoot.querySelectorAll('.fi-ta-group-header').forEach((header) => {
+                        const button = header.querySelector('[aria-expanded="true"]');
+                        if (button) {
+                            header.click();
+                        }
+                    });
+                });
+            };
+
+            window.__activityReportsCollapseBooted = true;
+            window.__activityReportsCollapseNow = collapseAllGroups;
+
+            collapseAllGroups();
+            setTimeout(collapseAllGroups, 150);
+            setTimeout(collapseAllGroups, 500);
+            setTimeout(collapseAllGroups, 1200);
+
+            if (window.Livewire?.hook) {
+                Livewire.hook('message.processed', () => {
+                    collapseAllGroups();
+                });
+            }
         JS);
     }
 }
