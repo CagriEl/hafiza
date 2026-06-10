@@ -1793,26 +1793,22 @@ class AylikFaaliyetResource extends Resource
         $totalPlanColor = $totalsMissing ? '#b91c1c' : '#9a3412';
 
         $chartMax = max((float) $summary['total_done'], (float) $summary['total_pending'], (float) $summary['total_plan'], 1.0);
-        $doneHeight = (int) round(((float) $summary['total_done'] / $chartMax) * 100);
-        $pendingHeight = (int) round(((float) $summary['total_pending'] / $chartMax) * 100);
-        $planHeight = (int) round(((float) $summary['total_plan'] / $chartMax) * 100);
+        $doneRatio = (int) round(((float) $summary['total_done'] / $chartMax) * 100);
+        $pendingRatio = (int) round(((float) $summary['total_pending'] / $chartMax) * 100);
+        $planRatio = (int) round(((float) $summary['total_plan'] / $chartMax) * 100);
         $chartHtml = '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#fff;margin-top:10px;">'
             .'<div style="font-size:12px;font-weight:700;color:#111827;margin-bottom:8px;">Aylık İş Dağılımı (Chart)</div>'
-            .'<table style="width:100%;border-collapse:separate;border-spacing:10px 0;">'
-            .'<tr style="height:140px;vertical-align:bottom;">'
-            .'<td style="width:33%;text-align:center;background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;padding:6px;">'
-            .'<div style="height:'.$doneHeight.'%;min-height:3px;background:#22c55e;border-radius:6px 6px 0 0;"></div>'
-            .'<div style="font-size:11px;color:#065f46;margin-top:6px;">Yapılan</div><div style="font-size:12px;font-weight:700;color:'.$totalDoneColor.';">'.e($totalDone).'</div>'
-            .'</td>'
-            .'<td style="width:33%;text-align:center;background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;padding:6px;">'
-            .'<div style="height:'.$pendingHeight.'%;min-height:3px;background:#3b82f6;border-radius:6px 6px 0 0;"></div>'
-            .'<div style="font-size:11px;color:#1e3a8a;margin-top:6px;">Açıkta Bekleyen</div><div style="font-size:12px;font-weight:700;color:'.$totalPendingColor.';">'.e($totalPending).'</div>'
-            .'</td>'
-            .'<td style="width:33%;text-align:center;background:#f9fafb;border:1px dashed #d1d5db;border-radius:8px;padding:6px;">'
-            .'<div style="height:'.$planHeight.'%;min-height:3px;background:#a855f7;border-radius:6px 6px 0 0;"></div>'
-            .'<div style="font-size:11px;color:#6b21a8;margin-top:6px;">Toplam</div><div style="font-size:12px;font-weight:700;color:'.$totalPlanColor.';">'.e($totalPlan).'</div>'
-            .'</td>'
-            .'</tr></table>'
+            .'<table style="width:100%;border-collapse:collapse;">'
+            .'<tr><td style="width:120px;font-size:12px;color:#065f46;padding:6px 8px;">Yapılan</td><td style="padding:6px 8px;">'
+            .'<div style="height:10px;background:#e5e7eb;border-radius:9999px;overflow:hidden;"><div style="height:100%;width:'.$doneRatio.'%;background:#22c55e;"></div></div>'
+            .'</td><td style="width:80px;text-align:right;font-size:12px;font-weight:700;color:'.$totalDoneColor.';">'.e($totalDone).'</td></tr>'
+            .'<tr><td style="width:120px;font-size:12px;color:#1e3a8a;padding:6px 8px;">Açıkta Bekleyen</td><td style="padding:6px 8px;">'
+            .'<div style="height:10px;background:#e5e7eb;border-radius:9999px;overflow:hidden;"><div style="height:100%;width:'.$pendingRatio.'%;background:#3b82f6;"></div></div>'
+            .'</td><td style="width:80px;text-align:right;font-size:12px;font-weight:700;color:'.$totalPendingColor.';">'.e($totalPending).'</td></tr>'
+            .'<tr><td style="width:120px;font-size:12px;color:#6b21a8;padding:6px 8px;">Toplam</td><td style="padding:6px 8px;">'
+            .'<div style="height:10px;background:#e5e7eb;border-radius:9999px;overflow:hidden;"><div style="height:100%;width:'.$planRatio.'%;background:#a855f7;"></div></div>'
+            .'</td><td style="width:80px;text-align:right;font-size:12px;font-weight:700;color:'.$totalPlanColor.';">'.e($totalPlan).'</td></tr>'
+            .'</table>'
             .'</div>';
 
         $cardsHtml = '';
@@ -1831,16 +1827,16 @@ class AylikFaaliyetResource extends Resource
                 ? '<span style="font-size:11px;color:#b91c1c;background:#fee2e2;padding:2px 8px;border-radius:9999px;">Bilgilendirme: '.e($infoLevel).'</span>'
                 : '';
 
-            $cardsHtml .= '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff;">'
+            $cardsHtml .= '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff;margin-bottom:8px;box-sizing:border-box;">'
                 .'<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">'
-                .'<div><div style="font-weight:700;color:#111827;">'.e((string) $item['code']).'</div><div style="font-size:12px;color:#4b5563;">'.e((string) $item['title']).'</div></div>'
+                .'<div style="min-width:0;"><div style="font-weight:700;color:#111827;word-break:break-word;">'.e((string) $item['code']).'</div><div style="font-size:12px;color:#4b5563;word-break:break-word;">'.e((string) $item['title']).'</div></div>'
                 .'<span style="font-size:12px;padding:3px 10px;border-radius:9999px;background:'.e((string) $item['badge_bg']).';color:'.e((string) $item['badge_text']).';">'.e((string) $item['status_label']).'</span>'
                 .'</div>'
                 .'<div style="display:block;margin-top:8px;font-size:12px;color:#374151;line-height:1.6;">'
                 .'<div>Yapılan: <b style="color:'.$doneColor.';">'.e($done.$unitSuffix).'</b></div>'
                 .'<div>Açıkta Bekleyen: <b style="color:'.$pendingColor.';">'.e($pending.$unitSuffix).'</b></div>'
                 .'<div>Toplam İş: <b style="color:'.$planColor.';">'.e($plan.$unitSuffix).'</b></div>'
-                .$infoHtml
+                .($infoHtml !== '' ? '<div style="margin-top:4px;">'.$infoHtml.'</div>' : '')
                 .'</div>'
                 .'<div style="margin-top:10px;background:#e5e7eb;height:9px;border-radius:9999px;overflow:hidden;">'
                 .'<div style="height:100%;width:'.$width.'%;background:'.e((string) $item['bar_color']).';"></div>'
@@ -1871,12 +1867,12 @@ class AylikFaaliyetResource extends Resource
             : '<ul style="padding:0;margin:6px 0 0;">'.$riskItems.'</ul>';
 
         return '<div>'
-            .'<table style="width:100%;border-collapse:separate;border-spacing:8px;">'
+            .'<table style="width:100%;border-collapse:separate;border-spacing:8px;table-layout:fixed;">'
             .'<tr>'
-            .'<td style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px;"><div style="font-size:12px;color:#065f46;">Yapılan İş</div><div style="font-size:22px;font-weight:700;color:'.$totalDoneColor.';">'.$totalDone.'</div></td>'
-            .'<td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;"><div style="font-size:12px;color:#1e3a8a;">Açıkta Bekleyen İş</div><div style="font-size:22px;font-weight:700;color:'.$totalPendingColor.';">'.$totalPending.'</div></td>'
-            .'<td style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;"><div style="font-size:12px;color:#9a3412;">Toplam İş</div><div style="font-size:22px;font-weight:700;color:'.$totalPlanColor.';">'.$totalPlan.'</div></td>'
-            .'<td style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px;"><div style="font-size:12px;color:#5b21b6;">Genel Tamamlanma</div><div style="font-size:22px;font-weight:700;color:#5b21b6;">%'.$completion.'</div></td>'
+            .'<td style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#065f46;">Yapılan İş</div><div style="font-size:22px;font-weight:700;color:'.$totalDoneColor.';">'.$totalDone.'</div></td>'
+            .'<td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#1e3a8a;">Açıkta Bekleyen İş</div><div style="font-size:22px;font-weight:700;color:'.$totalPendingColor.';">'.$totalPending.'</div></td>'
+            .'<td style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#9a3412;">Toplam İş</div><div style="font-size:22px;font-weight:700;color:'.$totalPlanColor.';">'.$totalPlan.'</div></td>'
+            .'<td style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#5b21b6;">Genel Tamamlanma</div><div style="font-size:22px;font-weight:700;color:#5b21b6;">%'.$completion.'</div></td>'
             .'</tr></table>'
             .'<div style="font-size:11px;color:#b91c1c;">Eksik alanlar otomatik olarak 0 gösterilir ve kırmızı ile işaretlenir.</div>'
             .$chartHtml
