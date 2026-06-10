@@ -1182,17 +1182,11 @@ class AylikFaaliyetResource extends Resource
                             ->searchable()
                             ->preload()
                             ->live(),
-                        Forms\Components\Select::make('faaliyet_ailesi')
-                            ->label('Faaliyet Ailesi')
-                            ->options(fn (Get $get): array => static::faaliyetAilesiOptionsForFilter($get('mudurluk_user_id')))
-                            ->searchable()
-                            ->preload()
-                            ->live(),
                         Forms\Components\Select::make('faaliyet_kodu')
                             ->label('Faaliyet Kodu')
                             ->options(fn (Get $get): array => static::faaliyetKoduOptionsForFilter(
                                 $get('mudurluk_user_id'),
-                                $get('faaliyet_ailesi')
+                                null
                             ))
                             ->searchable()
                             ->preload(),
@@ -1200,7 +1194,6 @@ class AylikFaaliyetResource extends Resource
                     ->columns(1)
                     ->query(function (Builder $query, array $data): Builder {
                         $mudurlukUserId = isset($data['mudurluk_user_id']) ? (int) $data['mudurluk_user_id'] : 0;
-                        $faaliyetAilesi = trim((string) ($data['faaliyet_ailesi'] ?? ''));
                         $faaliyetKodu = trim((string) ($data['faaliyet_kodu'] ?? ''));
 
                         if ($mudurlukUserId > 0) {
@@ -1211,16 +1204,7 @@ class AylikFaaliyetResource extends Resource
                             return static::applyFaaliyetKodlariJsonFilter($query, [$faaliyetKodu]);
                         }
 
-                        if ($faaliyetAilesi === '') {
-                            return $query;
-                        }
-
-                        $codes = array_keys(static::faaliyetKoduOptionsForFilter(
-                            $mudurlukUserId > 0 ? $mudurlukUserId : null,
-                            $faaliyetAilesi
-                        ));
-
-                        return static::applyFaaliyetKodlariJsonFilter($query, $codes);
+                        return $query;
                     }),
                 Tables\Filters\SelectFilter::make('yil')->options([2025 => '2025', 2026 => '2026']),
                 Tables\Filters\SelectFilter::make('ay')
@@ -1297,45 +1281,6 @@ class AylikFaaliyetResource extends Resource
         return User::query()
             ->whereIn('id', $ids)
             ->pluck('name', 'id')
-            ->all();
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private static function faaliyetAilesiOptionsForFilter(mixed $mudurlukUserId): array
-    {
-        $mudurlukOptions = static::reportVisibleMudurlukFilterOptions();
-        $userId = is_numeric((string) $mudurlukUserId) ? (int) $mudurlukUserId : 0;
-        if ($userId > 0) {
-            $mudurlukName = trim((string) ($mudurlukOptions[$userId] ?? ''));
-            if ($mudurlukName === '') {
-                return [];
-            }
-
-            return ActivityCatalog::query()
-                ->where('mudurluk', $mudurlukName)
-                ->whereNotNull('faaliyet_ailesi')
-                ->where('faaliyet_ailesi', '!=', '')
-                ->orderBy('faaliyet_ailesi')
-                ->pluck('faaliyet_ailesi', 'faaliyet_ailesi')
-                ->all();
-        }
-
-        $mudurlukNames = array_values(array_filter(array_map(
-            fn (mixed $name): string => trim((string) $name),
-            array_values($mudurlukOptions)
-        )));
-        if ($mudurlukNames === []) {
-            return [];
-        }
-
-        return ActivityCatalog::query()
-            ->whereIn('mudurluk', $mudurlukNames)
-            ->whereNotNull('faaliyet_ailesi')
-            ->where('faaliyet_ailesi', '!=', '')
-            ->orderBy('faaliyet_ailesi')
-            ->pluck('faaliyet_ailesi', 'faaliyet_ailesi')
             ->all();
     }
 
