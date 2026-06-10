@@ -393,14 +393,36 @@ class ListActivityReports extends ListRecords
                     return false;
                 }
                 const titles = Array.from(
-                    tableRoot.querySelectorAll('.fi-ta-group-header h4')
+                    tableRoot.querySelectorAll('.fi-ta-group-header[x-on\\:click*="toggleCollapseGroup"]')
                 )
-                    .map((el) => (el.textContent ?? '').trim())
+                    .map((header) => {
+                        const expr = header.getAttribute('x-on:click') ?? '';
+                        const match = expr.match(/toggleCollapseGroup\((.*)\)/);
+                        if (!match || !match[1]) {
+                            return '';
+                        }
+                        let raw = match[1].trim();
+                        if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+                            raw = raw.slice(1, -1);
+                        }
+                        return raw
+                            .replace(/\\"/g, '"')
+                            .replace(/\\'/g, "'");
+                    })
                     .filter((title) => title.length > 0);
                 if (titles.length === 0) {
                     return false;
                 }
-                tableRoot.__x.$data.collapsedGroups = titles;
+                tableRoot.__x.$data.collapsedGroups = [...new Set(titles)];
+
+                // Fallback: if any header is still expanded, collapse via click.
+                tableRoot.querySelectorAll('.fi-ta-group-header').forEach((header) => {
+                    const button = header.querySelector('[aria-expanded="true"]');
+                    if (button) {
+                        header.click();
+                    }
+                });
+
                 return true;
             };
 
