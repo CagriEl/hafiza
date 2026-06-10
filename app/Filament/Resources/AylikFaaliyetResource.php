@@ -1172,7 +1172,6 @@ class AylikFaaliyetResource extends Resource
                     ->collapsible(),
             ])
             ->defaultGroup('user.name')
-            ->groupsOnly()
             ->filters([
                 Tables\Filters\Filter::make('mudurluk_faaliyet_katalog')
                     ->label('Müdürlük / Faaliyet')
