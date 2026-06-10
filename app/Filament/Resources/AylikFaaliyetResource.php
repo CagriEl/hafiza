@@ -1175,10 +1175,41 @@ class AylikFaaliyetResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('user_id')
                     ->label('Müdürlük')
-                    ->relationship('user', 'name')
+                    ->options(fn (): array => static::reportVisibleMudurlukFilterOptions())
                     ->searchable()
                     ->preload(),
                 Tables\Filters\SelectFilter::make('yil')->options([2025 => '2025', 2026 => '2026']),
+                Tables\Filters\SelectFilter::make('ay')
+                    ->label('Ay')
+                    ->options([
+                        '01' => 'Ocak',
+                        '02' => 'Şubat',
+                        '03' => 'Mart',
+                        '04' => 'Nisan',
+                        '05' => 'Mayıs',
+                        '06' => 'Haziran',
+                        '07' => 'Temmuz',
+                        '08' => 'Ağustos',
+                        '09' => 'Eylül',
+                        '10' => 'Ekim',
+                        '11' => 'Kasım',
+                        '12' => 'Aralık',
+                    ]),
+                Tables\Filters\SelectFilter::make('is_durum_ozeti')
+                    ->label('İş Durum Özeti')
+                    ->options([
+                        'tamamlanan_var' => 'Tamamlanan İş Var',
+                        'bekleyen_var' => 'Açıkta Bekleyen İş Var',
+                        'sadece_tamamlanan' => 'Sadece Tamamlanan',
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        $value = $data['value'] ?? null;
+                        if (! is_string($value) || $value === '') {
+                            return $query;
+                        }
+
+                        return static::applyIsDurumOzetiFilter($query, $value);
+                    }),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()
@@ -1188,6 +1219,68 @@ class AylikFaaliyetResource extends Resource
                     ->label('Raporu düzenle')
                     ->visible(fn (AylikFaaliyet $record) => static::canEdit($record)),
             ]);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private static function reportVisibleMudurlukFilterOptions(): array
+    {
+        $u = auth()->user();
+        if (! $u instanceof User) {
+            return [];
+        }
+
+        if ($u->isReportingSuperAdmin()) {
+            return User::queryMudurlukReportingAccounts()
+                ->pluck('name', 'id')
+                ->all();
+        }
+
+        if ($u->isControlTeam()) {
+            return $u->assignedDirectorates()
+                ->pluck('users.name', 'users.id')
+                ->all();
+        }
+
+        $audience = $u->reportAudienceUserIds();
+        if (! is_array($audience) || $audience === []) {
+            return [];
+        }
+
+        $ids = array_values(array_filter(array_map('intval', $audience), fn (int $id): bool => $id > 0));
+
+        return User::query()
+            ->whereIn('id', $ids)
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    private static function applyIsDurumOzetiFilter(Builder $query, string $value): Builder
+    {
+        $faaliyetlerColumn = $query->qualifyColumn('faaliyetler');
+        $doneExpr = "COALESCE(CAST(NULLIF(jt.gerceklesen, '') AS DECIMAL(18,2)), 0)";
+        $planExpr = "COALESCE(CAST(NULLIF(jt.hedef, '') AS DECIMAL(18,2)), CAST(NULLIF(jt.ongorulen, '') AS DECIMAL(18,2)), CAST(NULLIF(jt.deger, '') AS DECIMAL(18,2)), 0)";
+        $pendingExpr = "CASE
+            WHEN jt.bekleyen_is IS NOT NULL AND jt.bekleyen_is != '' THEN COALESCE(CAST(NULLIF(jt.bekleyen_is, '') AS DECIMAL(18,2)), 0)
+            ELSE GREATEST({$planExpr} - {$doneExpr}, 0)
+        END";
+        $jsonTable = "JSON_TABLE({$faaliyetlerColumn}, '$[*]' COLUMNS(
+            gerceklesen VARCHAR(64) PATH '$.gerceklesen',
+            bekleyen_is VARCHAR(64) PATH '$.bekleyen_is',
+            hedef VARCHAR(64) PATH '$.hedef',
+            ongorulen VARCHAR(64) PATH '$.ongorulen',
+            deger VARCHAR(64) PATH '$.deger'
+        )) jt";
+        $existsCompleted = "EXISTS (SELECT 1 FROM {$jsonTable} WHERE {$doneExpr} > 0 AND {$pendingExpr} <= 0)";
+        $existsPending = "EXISTS (SELECT 1 FROM {$jsonTable} WHERE {$pendingExpr} > 0)";
+
+        return match ($value) {
+            'tamamlanan_var' => $query->whereRaw($existsCompleted),
+            'bekleyen_var' => $query->whereRaw($existsPending),
+            'sadece_tamamlanan' => $query->whereRaw($existsCompleted)->whereRaw("NOT ({$existsPending})"),
+            default => $query,
+        };
     }
 
     private static function infolistFaaliyetRowHasKapsamVerileri(TextEntry $component): bool
