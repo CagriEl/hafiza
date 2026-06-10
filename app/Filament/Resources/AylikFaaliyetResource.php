@@ -1067,6 +1067,7 @@ class AylikFaaliyetResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => static::applyMudurlukTreeScope($query))
             ->columns([
                 Tables\Columns\TextColumn::make('yil')->label('Yıl')->badge(),
                 Tables\Columns\TextColumn::make('ay')->label('Ay'),
@@ -1168,7 +1169,7 @@ class AylikFaaliyetResource extends Resource
             ])
             ->groups([
                 TableGroup::make('user.name')
-                    ->label('Müdürlük')
+                    ->label('Dosya Ağacı / Müdürlük')
                     ->collapsible(),
             ])
             ->defaultGroup('user.name')
@@ -1267,6 +1268,8 @@ class AylikFaaliyetResource extends Resource
 
         if ($u->isControlTeam()) {
             return $u->assignedDirectorates()
+                ->orderBy('users.id')
+                ->limit(5)
                 ->pluck('users.name', 'users.id')
                 ->all();
         }
@@ -1282,6 +1285,24 @@ class AylikFaaliyetResource extends Resource
             ->whereIn('id', $ids)
             ->pluck('name', 'id')
             ->all();
+    }
+
+    private static function applyMudurlukTreeScope(Builder $query): Builder
+    {
+        $u = auth()->user();
+        if (! $u instanceof User || ! $u->isControlTeam()) {
+            return $query;
+        }
+
+        $allowedMudurlukIds = array_values(array_map(
+            'intval',
+            array_keys(static::reportVisibleMudurlukFilterOptions())
+        ));
+        if ($allowedMudurlukIds === []) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->whereIn($query->qualifyColumn('user_id'), $allowedMudurlukIds);
     }
 
     /**
