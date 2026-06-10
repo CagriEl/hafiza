@@ -50,6 +50,8 @@ class ListActivityReports extends ListRecords
                 $this->js('console.warn('.json_encode($payload, JSON_UNESCAPED_UNICODE).')');
             }
         }
+
+        $this->collapseAllGroupsInitially();
     }
 
     public function updatedActiveTab(): void
@@ -377,5 +379,23 @@ class ListActivityReports extends ListRecords
         $html .= '</tbody></table></body></html>';
 
         return $html;
+    }
+
+    private function collapseAllGroupsInitially(): void
+    {
+        if (! method_exists($this, 'js')) {
+            return;
+        }
+
+        $this->js(<<<'JS'
+            setTimeout(() => {
+                document.querySelectorAll('.fi-ta-group-header').forEach((header) => {
+                    const button = header.querySelector('[aria-expanded="true"]');
+                    if (button) {
+                        header.click();
+                    }
+                });
+            }, 75);
+        JS);
     }
 }

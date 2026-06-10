@@ -45,6 +45,9 @@ class AylikFaaliyetResource extends Resource
 
     protected static bool $shouldRegisterNavigation = false;
 
+    /** @var array<int, int> */
+    private static array $mudurlukGroupFaaliyetCountCache = [];
+
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
 
     protected static ?string $navigationLabel = 'Aylık Rapor';
@@ -1168,7 +1171,9 @@ class AylikFaaliyetResource extends Resource
             ])
             ->groups([
                 TableGroup::make('user.name')
-                    ->label('Dosya Ağacı / Müdürlük')
+                    ->label('Müdürlük')
+                    ->titlePrefixedWithLabel(false)
+                    ->getTitleFromRecordUsing(fn (AylikFaaliyet $record): string => static::mudurlukGroupTitle($record))
                     ->collapsible(),
             ])
             ->defaultGroup('user.name')
@@ -1247,6 +1252,25 @@ class AylikFaaliyetResource extends Resource
                     ->label('Raporu düzenle')
                     ->visible(fn (AylikFaaliyet $record) => static::canEdit($record)),
             ]);
+    }
+
+    private static function mudurlukGroupTitle(AylikFaaliyet $record): string
+    {
+        $userId = (int) ($record->user_id ?? 0);
+        $name = trim((string) ($record->user?->name ?? 'Müdürlük'));
+        if ($userId <= 0) {
+            return $name;
+        }
+
+        if (! array_key_exists($userId, static::$mudurlukGroupFaaliyetCountCache)) {
+            $total = (int) (static::getEloquentQuery()
+                ->where('user_id', $userId)
+                ->selectRaw('COALESCE(SUM(JSON_LENGTH(faaliyetler)), 0) as toplam')
+                ->value('toplam') ?? 0);
+            static::$mudurlukGroupFaaliyetCountCache[$userId] = max(0, $total);
+        }
+
+        return $name.' ('.static::$mudurlukGroupFaaliyetCountCache[$userId].')';
     }
 
     /**
