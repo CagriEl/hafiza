@@ -25,6 +25,7 @@ class ListActivityReports extends ListRecords
     public function mount(): void
     {
         parent::mount();
+        $this->collapseAllGroupsInitially();
         $legacy = ['my', 'own'];
         if (in_array(session('activity_report_active_tab'), $legacy, true)) {
             session(['activity_report_active_tab' => 'all']);
@@ -50,8 +51,6 @@ class ListActivityReports extends ListRecords
                 $this->js('console.warn('.json_encode($payload, JSON_UNESCAPED_UNICODE).')');
             }
         }
-
-        $this->collapseAllGroupsInitially();
     }
 
     public function updatedActiveTab(): void
@@ -388,14 +387,30 @@ class ListActivityReports extends ListRecords
         }
 
         $this->js(<<<'JS'
-            setTimeout(() => {
-                document.querySelectorAll('.fi-ta-group-header').forEach((header) => {
-                    const button = header.querySelector('[aria-expanded="true"]');
-                    if (button) {
-                        header.click();
-                    }
-                });
-            }, 75);
+            const applyCollapse = () => {
+                const tableRoot = document.querySelector('[x-data*="collapsedGroups"]');
+                if (!tableRoot || !tableRoot.__x) {
+                    return false;
+                }
+                const titles = Array.from(
+                    tableRoot.querySelectorAll('.fi-ta-group-header h4')
+                )
+                    .map((el) => (el.textContent ?? '').trim())
+                    .filter((title) => title.length > 0);
+                if (titles.length === 0) {
+                    return false;
+                }
+                tableRoot.__x.$data.collapsedGroups = titles;
+                return true;
+            };
+
+            let tries = 0;
+            const timer = setInterval(() => {
+                tries += 1;
+                if (applyCollapse() || tries >= 12) {
+                    clearInterval(timer);
+                }
+            }, 120);
         JS);
     }
 }

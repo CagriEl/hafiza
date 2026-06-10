@@ -1263,7 +1263,7 @@ class AylikFaaliyetResource extends Resource
         }
 
         if (! array_key_exists($userId, static::$mudurlukGroupReportCountCache)) {
-            $total = (int) static::getEloquentQuery()
+            $total = (int) AylikFaaliyet::query()
                 ->where('user_id', $userId)
                 ->count();
             static::$mudurlukGroupReportCountCache[$userId] = max(0, $total);
