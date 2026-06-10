@@ -416,7 +416,7 @@ class ListActivityReports extends ListRecords
             };
 
             const collapseAllGroups = () => {
-                document.querySelectorAll('[x-data*="collapsedGroups"]').forEach((tableRoot) => {
+                document.querySelectorAll('.fi-ta[x-data="table"]').forEach((tableRoot) => {
                     if (!tableRoot.__x?.$data) {
                         return;
                     }
