@@ -388,67 +388,39 @@ class ListActivityReports extends ListRecords
 
         $this->js(<<<'JS'
             if (window.__activityReportsCollapseBooted) {
-                window.__activityReportsCollapseNow?.();
+                window.__activityReportsRunCollapseBurst?.();
                 return;
             }
 
-            const extractGroupTitles = (tableRoot) => {
-                return Array.from(
-                    tableRoot.querySelectorAll('.fi-ta-group-header[x-on\\:click*="toggleCollapseGroup"]')
-                )
-                    .map((header) => {
-                        const expr = header.getAttribute('x-on:click') ?? '';
-                        const match = expr.match(/toggleCollapseGroup\((.*)\)/);
-                        if (!match || !match[1]) {
-                            return '';
-                        }
-
-                        let raw = match[1].trim();
-                        if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
-                            raw = raw.slice(1, -1);
-                        }
-
-                        return raw
-                            .replace(/\\"/g, '"')
-                            .replace(/\\'/g, "'");
-                    })
-                    .filter((title) => title.length > 0);
-            };
-
             const collapseAllGroups = () => {
-                document.querySelectorAll('.fi-ta[x-data="table"]').forEach((tableRoot) => {
-                    if (!tableRoot.__x?.$data) {
-                        return;
+                document.querySelectorAll('.fi-ta-group-header').forEach((header) => {
+                    const isOpen = header.querySelector('[aria-expanded="true"]');
+                    if (isOpen) {
+                        header.click();
                     }
-
-                    const titles = extractGroupTitles(tableRoot);
-                    if (titles.length === 0) {
-                        return;
-                    }
-
-                    tableRoot.__x.$data.collapsedGroups = [...new Set(titles)];
-
-                    // Keep as hard fallback in case local state wasn't reflected yet.
-                    tableRoot.querySelectorAll('.fi-ta-group-header').forEach((header) => {
-                        const button = header.querySelector('[aria-expanded="true"]');
-                        if (button) {
-                            header.click();
-                        }
-                    });
                 });
             };
 
-            window.__activityReportsCollapseBooted = true;
-            window.__activityReportsCollapseNow = collapseAllGroups;
+            const runCollapseBurst = () => {
+                let tries = 0;
+                collapseAllGroups();
+                const timer = setInterval(() => {
+                    tries += 1;
+                    collapseAllGroups();
+                    if (tries >= 10) {
+                        clearInterval(timer);
+                    }
+                }, 150);
+            };
 
-            collapseAllGroups();
-            setTimeout(collapseAllGroups, 150);
-            setTimeout(collapseAllGroups, 500);
-            setTimeout(collapseAllGroups, 1200);
+            window.__activityReportsCollapseBooted = true;
+            window.__activityReportsRunCollapseBurst = runCollapseBurst;
+
+            runCollapseBurst();
 
             if (window.Livewire?.hook) {
                 Livewire.hook('message.processed', () => {
-                    collapseAllGroups();
+                    runCollapseBurst();
                 });
             }
         JS);
