@@ -36,7 +36,29 @@ class FeedbackPolicy
 
     public function update(User $user, Feedback $feedback): bool
     {
-        return $this->isAdmin($user);
+        if (in_array(trim((string) ($feedback->status ?? '')), [
+            Feedback::STATUS_CLOSED,
+            Feedback::STATUS_RESOLVED,
+            Feedback::STATUS_REJECTED,
+        ], true)) {
+            return false;
+        }
+
+        if ($this->isAdmin($user)) {
+            return true;
+        }
+
+        if ($this->isControlTeam($user)) {
+            $feedbackUserId = (int) ($feedback->user_id ?? 0);
+
+            return $feedbackUserId > 0 && in_array($feedbackUserId, $this->resolveMudurlukUserIdsForControlTeam($user), true);
+        }
+
+        if ($this->isMudurluk($user) && (int) ($feedback->user_id ?? 0) === (int) $user->id) {
+            return true;
+        }
+
+        return false;
     }
 
     public function delete(User $user, Feedback $feedback): bool

@@ -562,8 +562,7 @@ class AylikFaaliyetResource extends Resource
                                     ->extraAttributes(['class' => 'bg-gray-50']),
 
                                 Repeater::make('kapsam_verileri')
-                                    ->label('Kapsam kalemleri (aynı satırda: öngörülen → ay sonunda gerçekleşen; açıkta kalan otomatik)')
-                                    ->helperText('Plan aşamasında yalnızca öngörülen girilir. Ay sonunda gerçekleşen girilir; açıkta kalan öngörülen − gerçekleşen olarak hesaplanır (elle girilemez).')
+                                    ->label('Kapsam kalemleri (Raporlama sıklığı dikkate alınarak aylık veya haftalık olarak verileri doldurmanız gerekmektedir.)')                                    ->helperText('Yapılan iş raporlama sıklığındaki aylık veya haftalık işler olarak sayılsal veri ile doldurulmalıdır. Başlanmış ancak henüz finalize olmamış işler için açıkta kalan kısmını doldurmanız gereklidir.')
                                     ->dehydrated()
                                     ->schema([
                                         Grid::make(4)->schema([

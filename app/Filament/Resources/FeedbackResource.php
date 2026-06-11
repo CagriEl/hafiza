@@ -65,11 +65,27 @@ class FeedbackResource extends Resource
                     ->rows(8)
                     ->columnSpanFull()
                     ->disabled(fn (string $operation): bool => $operation === 'edit'),
+                Forms\Components\Select::make('status')
+                    ->label('Durum / Geri Bildirimi Kapat')
+                    ->options(fn (): array => static::statusOptionsForCurrentUser())
+                    ->visible(fn (string $operation): bool => $operation === 'edit')
+                    ->disabled(fn (?Feedback $record): bool => static::isClosedFeedback($record))
+                    ->helperText('Analiz ekibi veya geri bildirimi açan kullanıcı "Kapatıldı" seçerek geri bildirimi kapatabilir.')
+                    ->required(),
                 Forms\Components\Textarea::make('admin_note')
-                    ->label('IT Ekibi Notu / Yanıtı')
+                    ->label('Analiz Ekibi Yanıtı')
                     ->rows(6)
                     ->columnSpanFull()
-                    ->visible(fn (): bool => static::isAdmin()),
+                    ->visible(fn (): bool => static::isAdmin() || static::isControlTeamUser())
+                    ->disabled()
+                    ->helperText('Önceki yanıtlar korunur, düzenlenemez. Yeni yanıt için aşağıdaki alanı kullanın.'),
+                Forms\Components\Textarea::make('new_reply')
+                    ->label('Yeni Yanıt')
+                    ->rows(5)
+                    ->columnSpanFull()
+                    ->visible(fn (string $operation): bool => $operation === 'edit' && (static::isAdmin() || static::isControlTeamUser()))
+                    ->disabled(fn (?Feedback $record): bool => static::isClosedFeedback($record))
+                    ->placeholder('Yeni yanıtınızı yazın...'),
             ])
             ->columns(2);
     }
@@ -78,7 +94,7 @@ class FeedbackResource extends Resource
     {
         return $infolist
             ->schema([
-                InfolistSection::make('Geri bildirim')
+                InfolistSection::make('Geri bildirim detayı')
                     ->schema([
                         TextEntry::make('user.name')
                             ->label('Gönderen (Müdürlük)')
@@ -87,21 +103,26 @@ class FeedbackResource extends Resource
                             ->label('Konu'),
                         TextEntry::make('category')
                             ->label('Kategori'),
+                        TextEntry::make('status')
+                            ->label('Durum'),
                         TextEntry::make('message')
                             ->label('Mesaj')
                             ->columnSpanFull(),
-                        TextEntry::make('status')
-                            ->label('Durum'),
-                        TextEntry::make('admin_note')
-                            ->label('IT ekibi notu / yanıtı')
-                            ->columnSpanFull()
-                            ->placeholder('—')
-                            ->visible(fn (): bool => static::isAdmin()),
                         TextEntry::make('created_at')
                             ->label('Gönderim tarihi')
-                            ->dateTime('d.m.Y H:i'),
+                            ->dateTime('d.m.Y H:i')
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
+                InfolistSection::make('Analiz Ekibi Yanıtı')
+                    ->schema([
+                        TextEntry::make('admin_note')
+                            ->hiddenLabel()
+                            ->placeholder('Henüz yanıt yok.')
+                            ->formatStateUsing(fn ($state): string => filled($state) ? nl2br(e((string) $state)) : 'Henüz yanıt yok.')
+                            ->html()
+                            ->columnSpanFull(),
+                    ]),
             ]);
     }
 
@@ -126,6 +147,17 @@ class FeedbackResource extends Resource
                     ->label('Tarih')
                     ->dateTime('d.m.Y H:i')
                     ->sortable(),
+                Tables\Columns\TextColumn::make('status')
+                    ->label('Durum')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        Feedback::STATUS_NEW => 'gray',
+                        Feedback::STATUS_REVIEWING => 'warning',
+                        Feedback::STATUS_RESOLVED => 'success',
+                        Feedback::STATUS_REJECTED => 'danger',
+                        Feedback::STATUS_CLOSED => 'danger',
+                        default => 'gray',
+                    }),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('category')
@@ -177,7 +209,7 @@ class FeedbackResource extends Resource
                 Tables\Actions\ViewAction::make()->label('Görüntüle'),
                 Tables\Actions\EditAction::make()
                     ->label('Düzenle')
-                    ->visible(fn (): bool => static::isAdmin()),
+                    ->visible(fn (Feedback $record): bool => static::canEdit($record)),
             ])
             ->bulkActions([]);
     }
@@ -237,7 +269,23 @@ class FeedbackResource extends Resource
 
     public static function canEdit(Model $record): bool
     {
-        return static::isAdmin();
+        if (! $record instanceof Feedback) {
+            return false;
+        }
+
+        if (static::isClosedFeedback($record)) {
+            return false;
+        }
+
+        if (static::isAdmin()) {
+            return true;
+        }
+
+        if (static::isControlTeamUser()) {
+            return static::canView($record);
+        }
+
+        return (int) ($record->getAttribute('user_id') ?? 0) === (int) auth()->id();
     }
 
     public static function canDelete(Model $record): bool
@@ -335,6 +383,43 @@ class FeedbackResource extends Resource
         $user = auth()->user();
 
         return $user instanceof User && trim((string) $user->role) === User::ROLE_ANALIZ_EKIBI;
+    }
+
+    protected static function isClosedFeedback(?Feedback $feedback): bool
+    {
+        if (! $feedback instanceof Feedback) {
+            return false;
+        }
+
+        $status = trim((string) ($feedback->status ?? ''));
+
+        return in_array($status, [
+            Feedback::STATUS_CLOSED,
+            Feedback::STATUS_RESOLVED,
+            Feedback::STATUS_REJECTED,
+        ], true);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected static function statusOptionsForCurrentUser(): array
+    {
+        $base = [
+            Feedback::STATUS_NEW => Feedback::STATUS_NEW,
+            Feedback::STATUS_REVIEWING => Feedback::STATUS_REVIEWING,
+            Feedback::STATUS_RESOLVED => Feedback::STATUS_RESOLVED,
+            Feedback::STATUS_REJECTED => Feedback::STATUS_REJECTED,
+            Feedback::STATUS_CLOSED => Feedback::STATUS_CLOSED,
+        ];
+
+        if (static::isAdmin() || static::isControlTeamUser()) {
+            return $base;
+        }
+
+        return [
+            Feedback::STATUS_CLOSED => Feedback::STATUS_CLOSED,
+        ];
     }
 
     /**

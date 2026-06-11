@@ -25,6 +25,8 @@ class Feedback extends Model
 
     public const STATUS_REJECTED = 'Reddedildi';
 
+    public const STATUS_CLOSED = 'Kapatıldı';
+
     protected $fillable = [
         'user_id',
         'directorate_id',
