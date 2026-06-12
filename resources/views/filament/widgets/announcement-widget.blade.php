@@ -96,61 +96,63 @@
             x-init="baslat()"
             x-cloak
         >
-            <div
-                x-show="acik"
-                class="fixed inset-0 z-[9999] flex items-end justify-center bg-gray-900/70 p-2 sm:items-center sm:p-4"
-            >
-                <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
-                    <div class="border-b border-gray-200 px-4 py-3 sm:px-6 sm:py-4">
-                        <div class="flex items-start justify-between gap-3 sm:gap-4">
-                            <div class="min-w-0">
-                                <p class="text-xs font-semibold uppercase tracking-wide text-primary-600">
-                                    {{ $popupTypeLabel }}
+            <template x-teleport="body">
+                <div
+                    x-show="acik"
+                    class="fixed inset-0 z-[99999] flex items-end justify-center bg-gray-900/70 p-2 sm:items-center sm:p-4"
+                >
+                    <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
+                        <div class="border-b border-gray-200 px-4 py-3 sm:px-6 sm:py-4">
+                            <div class="flex items-start justify-between gap-3 sm:gap-4">
+                                <div class="min-w-0">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-primary-600">
+                                        {{ $popupTypeLabel }}
+                                    </p>
+                                    <h2 class="mt-1 break-words text-base font-bold text-gray-900 sm:text-lg">
+                                        {{ $popupAnnouncement->title }}
+                                    </h2>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    class="rounded-lg p-2 text-gray-400"
+                                    x-show="kalanSure === 0"
+                                    @click="kapat()"
+                                    aria-label="Kapat"
+                                >
+                                    <x-heroicon-o-x-mark class="h-5 w-5" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="max-h-[60vh] overflow-y-auto px-4 py-4 sm:max-h-[55vh] sm:px-6 sm:py-5">
+                            <div class="prose prose-sm max-w-none break-words text-gray-700">
+                                <div class="[&_*]:max-w-full [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto">
+                                    {!! $popupAnnouncement->content !!}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 px-4 py-3 sm:px-6 sm:py-4">
+                            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <p class="text-sm text-gray-600" x-show="kalanSure > 0">
+                                    Duyuru <span class="font-semibold" x-text="kalanSure"></span> saniye sonra otomatik kapanır.
                                 </p>
-                                <h2 class="mt-1 break-words text-base font-bold text-gray-900 sm:text-lg">
-                                    {{ $popupAnnouncement->title }}
-                                </h2>
+                                <p class="text-sm font-medium text-success-600" x-show="kalanSure === 0">
+                                    Duyuru otomatik kapatıldı.
+                                </p>
+
+                                <x-filament::button
+                                    color="danger"
+                                    @click="kapat()"
+                                >
+                                    Hemen Kapat
+                                </x-filament::button>
                             </div>
-
-                            <button
-                                type="button"
-                                class="rounded-lg p-2 text-gray-400"
-                                x-show="kalanSure === 0"
-                                @click="kapat()"
-                                aria-label="Kapat"
-                            >
-                                <x-heroicon-o-x-mark class="h-5 w-5" />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="max-h-[60vh] overflow-y-auto px-4 py-4 sm:max-h-[55vh] sm:px-6 sm:py-5">
-                        <div class="prose prose-sm max-w-none break-words text-gray-700">
-                            <div class="[&_*]:max-w-full [&_img]:h-auto [&_img]:max-w-full [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto">
-                                {!! $popupAnnouncement->content !!}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="border-t border-gray-200 px-4 py-3 sm:px-6 sm:py-4">
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <p class="text-sm text-gray-600" x-show="kalanSure > 0">
-                                Duyuru <span class="font-semibold" x-text="kalanSure"></span> saniye sonra otomatik kapanır.
-                            </p>
-                            <p class="text-sm font-medium text-success-600" x-show="kalanSure === 0">
-                                Duyuru otomatik kapatıldı.
-                            </p>
-
-                            <x-filament::button
-                                color="danger"
-                                @click="kapat()"
-                            >
-                                Hemen Kapat
-                            </x-filament::button>
                         </div>
                     </div>
                 </div>
-            </div>
+            </template>
         </div>
     @endif
 </x-filament-widgets::widget>
