@@ -98,7 +98,7 @@
         >
             <div
                 x-show="acik"
-                class="fixed inset-0 z-[60] flex items-end justify-center bg-gray-900/70 p-2 sm:items-center sm:p-4"
+                class="fixed inset-0 z-[9999] flex items-end justify-center bg-gray-900/70 p-2 sm:items-center sm:p-4"
             >
                 <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
                     <div class="border-b border-gray-200 px-4 py-3 sm:px-6 sm:py-4">
