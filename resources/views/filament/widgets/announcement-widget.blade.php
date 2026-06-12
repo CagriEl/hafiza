@@ -62,7 +62,7 @@
         <div
             x-data="{
                 acik: false,
-                kalanSure: 10,
+                kalanSure: 45,
                 sayac: null,
                 kullaniciId: @js(auth()->id()),
                 duyuruId: @js($popupAnnouncement->id),
