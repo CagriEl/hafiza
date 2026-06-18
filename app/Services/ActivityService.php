@@ -181,12 +181,24 @@ class ActivityService
             return ['options' => [], 'debug' => $debug];
         }
 
-        $query->orderBy('faaliyet_kodu');
-        if ($codes !== []) {
-            $query->whereIn('faaliyet_kodu', $codes);
-        }
+        $allRows = ActivityCatalog::query()->orderBy('faaliyet_kodu')->get();
+        $rowsFromMudurluk = $allRows
+            ->filter(fn (ActivityCatalog $r) => $this->mudurlukLabelMatchesLoose($mudurlukRaw, (string) $r->mudurluk))
+            ->values();
 
-        $rows = $query->get();
+        $rows = $rowsFromMudurluk;
+        if ($codes !== []) {
+            $rowsFromCodes = $allRows
+                ->filter(fn (ActivityCatalog $r) => in_array((string) $r->faaliyet_kodu, $codes, true))
+                ->values();
+
+            // JSON tarafinda gecikme olsa bile (eski kod listesi), mudurluge eklenen yeni katalog satirlari da gelsin.
+            $rows = $rowsFromCodes
+                ->merge($rowsFromMudurluk)
+                ->unique(fn (ActivityCatalog $r) => (int) $r->id)
+                ->sortBy('faaliyet_kodu')
+                ->values();
+        }
 
         // JSON'da kod var ama katalog satirlari eksikse (deploy sonrasi sync unutulduysa)
         // bir kez otomatik senkron dene ve sonucu tekrar cek.
@@ -202,9 +214,22 @@ class ActivityService
                 app(ActivityCatalogSyncService::class)->regenerateActivitySetsJson($path);
                 $this->forgetCache();
 
-                $query = ActivityCatalog::query()->orderBy('faaliyet_kodu')->whereIn('faaliyet_kodu', $codes);
-                if ($query instanceof Builder) {
-                    $rows = $query->get();
+                $allRows = ActivityCatalog::query()->orderBy('faaliyet_kodu')->get();
+                $rowsFromMudurluk = $allRows
+                    ->filter(fn (ActivityCatalog $r) => $this->mudurlukLabelMatchesLoose($mudurlukRaw, (string) $r->mudurluk))
+                    ->values();
+
+                $rows = $rowsFromMudurluk;
+                if ($codes !== []) {
+                    $rowsFromCodes = $allRows
+                        ->filter(fn (ActivityCatalog $r) => in_array((string) $r->faaliyet_kodu, $codes, true))
+                        ->values();
+
+                    $rows = $rowsFromCodes
+                        ->merge($rowsFromMudurluk)
+                        ->unique(fn (ActivityCatalog $r) => (int) $r->id)
+                        ->sortBy('faaliyet_kodu')
+                        ->values();
                 }
             } catch (\Throwable) {
                 // Fail-safe: otomatik sync basarisiz olsa da sayfa normal akisla devam eder.
@@ -213,14 +238,7 @@ class ActivityService
 
         $debug['catalog_rows_fetched'] = $rows->count();
 
-        if ($codes !== []) {
-            $options = $rows->mapWithKeys(fn (ActivityCatalog $r) => [$r->id => $r->faaliyet_ailesi])->all();
-        } else {
-            $options = $rows
-                ->filter(fn (ActivityCatalog $r) => $this->mudurlukLabelMatchesLoose($mudurlukRaw, (string) $r->mudurluk))
-                ->mapWithKeys(fn (ActivityCatalog $r) => [$r->id => $r->faaliyet_ailesi])
-                ->all();
-        }
+        $options = $rows->mapWithKeys(fn (ActivityCatalog $r) => [$r->id => $r->faaliyet_ailesi])->all();
 
         if ($options === []) {
             if (! $debug['full_json_readable']) {
