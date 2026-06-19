@@ -581,7 +581,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
                                                 ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
-                                                    $c = NonNegativeInput::coercePositiveIntegerLiveState($state);
+                                                    $c = NonNegativeInput::coerceLiveState($state);
                                                     if ($c !== $state) {
                                                         $set('ongorulen', $c);
                                                     }
@@ -600,7 +600,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
                                                 ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
-                                                    $c = NonNegativeInput::coercePositiveIntegerLiveState($state);
+                                                    $c = NonNegativeInput::coerceLiveState($state);
                                                     if ($c !== $state) {
                                                         $set('gerceklesen', $c);
                                                     }
@@ -807,7 +807,7 @@ class AylikFaaliyetResource extends Resource
                                         ->placeholder('Örn: 395')
                                         ->live()
                                         ->afterStateUpdated(function (Set $set, $state): void {
-                                            $c = NonNegativeInput::coercePositiveIntegerLiveState($state);
+                                            $c = NonNegativeInput::coerceLiveState($state);
                                             if ($c !== $state) {
                                                 $set('gerceklesen', $c);
                                             }
