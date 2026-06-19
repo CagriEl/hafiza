@@ -145,11 +145,10 @@ class AylikFaaliyetResource extends Resource
 
     private static function syncKapsamRepeaterAciktaKalanField(Set $set, Get $get): void
     {
-        $set('acikta_kalan', AylikFaaliyetRepeaterLock::kapsamSatirAciktaKalan([
-            'ongorulen' => $get('ongorulen'),
-            'deger' => $get('deger'),
-            'gerceklesen' => $get('gerceklesen'),
-        ]));
+        $plan = static::toFloatNumber($get('ongorulen') ?? $get('deger') ?? 0);
+        $done = static::toFloatNumber($get('gerceklesen') ?? 0);
+        $pending = max(0.0, $plan - $done);
+        $set('acikta_kalan', floor($pending) === $pending ? (int) $pending : $pending);
     }
 
     private static function isGerekliRevizeEnabled(Get $get): bool
@@ -581,10 +580,6 @@ class AylikFaaliyetResource extends Resource
                                                 ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
                                                 ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
-                                                    $c = NonNegativeInput::coerceLiveState($state);
-                                                    if ($c !== $state) {
-                                                        $set('ongorulen', $c);
-                                                    }
                                                     static::syncKapsamRepeaterAciktaKalanField($set, $get);
                                                 })
                                                 ->required(fn (Get $get): bool => trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '')
@@ -600,10 +595,6 @@ class AylikFaaliyetResource extends Resource
                                                 ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
                                                 ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
-                                                    $c = NonNegativeInput::coerceLiveState($state);
-                                                    if ($c !== $state) {
-                                                        $set('gerceklesen', $c);
-                                                    }
                                                     static::syncKapsamRepeaterAciktaKalanField($set, $get);
                                                 })
                                                 ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
@@ -806,12 +797,6 @@ class AylikFaaliyetResource extends Resource
                                             && ! (bool) ($get('ay_sonu_performans_kilitli') ?? false))
                                         ->placeholder('Örn: 395')
                                         ->live()
-                                        ->afterStateUpdated(function (Set $set, $state): void {
-                                            $c = NonNegativeInput::coerceLiveState($state);
-                                            if ($c !== $state) {
-                                                $set('gerceklesen', $c);
-                                            }
-                                        })
                                         ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                             && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get))
                                         ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
@@ -839,12 +824,6 @@ class AylikFaaliyetResource extends Resource
                                         ->extraInputAttributes(['min' => 0])
                                         ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
                                         ->live()
-                                        ->afterStateUpdated(function (Set $set, $state): void {
-                                            $c = NonNegativeInput::coerceLiveState($state);
-                                            if ($c !== $state) {
-                                                $set('bekleyen_is', $c);
-                                            }
-                                        })
                                         ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                             && static::shouldRequireAySonuCompletion($livewire)
                                             && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get)
