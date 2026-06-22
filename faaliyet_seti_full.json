@@ -64,7 +64,7 @@
         "Faaliyet Kodu": "YZM-02",
         "Faaliyet Ailesi": "Evrak Kayıt ve Dağıtım",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Gelen evrak kaydı ve ilgili birimlere dağıtımı ile Posta/KEP giden evrak işlemleri (alt göstergeler: Gelen evrak sayısı, Posta/KEP giden evrak sayısı)",
+        "Kapsam": "Gelen evrak sayısı, Posta/KEP giden evrak sayısı",
         "Ölçü Birimi": "evrak sayısı",
         "Ana KPI / SLA": "zamanında havale ve gönderim oranı",
         "Veri Kaynağı": "EBYS / KEP"
@@ -74,7 +74,7 @@
         "Faaliyet Kodu": "YZM-03",
         "Faaliyet Ailesi": "CİMER / 4982 / 3071 Başvuruları",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Yönlendirme, cevap takibi, cevaplandırılarak sonuçlandırılan başvuru sayısı",
+        "Kapsam": "Yönlendirme sayısı, Cevap takibi sayısı, Cevaplandırılarak sonuçlandırılan başvuru sayısı",
         "Ölçü Birimi": "başvuru sayısı",
         "Ana KPI / SLA": "SLA içinde sonuçlandırılan başvuru oranı",
         "Veri Kaynağı": "EBYS / başvuru sistemi"
@@ -84,7 +84,7 @@
         "Faaliyet Kodu": "YZM-04",
         "Faaliyet Ailesi": "Kurumsal Arşiv ve Bilgi Yönetimi",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Arşiv devir işlemlerinin müdürlük bazında kaydı, dosyalama ve erişim süreçlerinin sayı bazlı takibi (dosyalanan evrak sayısı, dosya/klasör sayısı, arşiv erişim talepleri); imha işlemleri yıllık dönemsel izlenir",
+        "Kapsam": "Arşiv devir yapılan müdürlük sayısı, Dosyalanan evrak sayısı, Dosya/Klasör sayısı, Arşiv erişim talebi sayısı, İmha işlemi (yıllık)",
         "Ölçü Birimi": "müdürlük / evrak / dosya / talep",
         "Ana KPI / SLA": "arşiv işlemlerinde kayıt tamlığı ve zamanında erişim oranı",
         "Veri Kaynağı": "Arşiv kayıtları"
