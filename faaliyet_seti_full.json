@@ -54,9 +54,9 @@
         "Faaliyet Kodu": "YZM-01",
         "Faaliyet Ailesi": "Meclis ve Encümen Sekretaryası",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Gündem, tutanak, karar, komisyon ve tebliğ süreçleri",
+        "Kapsam": "Meclis toplantı sayısı, Meclis karar sayısı, Encümen toplantı sayısı, Encümen karar sayısı",
         "Ölçü Birimi": "toplantı / karar",
-        "Ana KPI / SLA": "aynı gün bildirim oranı",
+        "Ana KPI / SLA": "kararların aynı gün ilgili müdürlüklere iletim oranı",
         "Veri Kaynağı": "EBYS / meclis kayıtları"
     },
     {
@@ -64,9 +64,9 @@
         "Faaliyet Kodu": "YZM-02",
         "Faaliyet Ailesi": "Evrak Kayıt ve Dağıtım",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Gelen-giden evrak, havale, dağıtım ve tebligat",
+        "Kapsam": "Gelen evrak kaydı ve ilgili birimlere dağıtımı ile Posta/KEP giden evrak işlemleri (alt göstergeler: Gelen evrak sayısı, Posta/KEP giden evrak sayısı)",
         "Ölçü Birimi": "evrak sayısı",
-        "Ana KPI / SLA": "1 iş günü havale oranı",
+        "Ana KPI / SLA": "zamanında havale ve gönderim oranı",
         "Veri Kaynağı": "EBYS / KEP"
     },
     {
@@ -74,9 +74,9 @@
         "Faaliyet Kodu": "YZM-03",
         "Faaliyet Ailesi": "CİMER / 4982 / 3071 Başvuruları",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Vatandaş başvurusu kayıt, yönlendirme ve cevap takibi",
+        "Kapsam": "Yönlendirme, cevap takibi, cevaplandırılarak sonuçlandırılan başvuru sayısı",
         "Ölçü Birimi": "başvuru sayısı",
-        "Ana KPI / SLA": "SLA içinde cevap oranı",
+        "Ana KPI / SLA": "SLA içinde sonuçlandırılan başvuru oranı",
         "Veri Kaynağı": "EBYS / başvuru sistemi"
     },
     {
@@ -84,9 +84,9 @@
         "Faaliyet Kodu": "YZM-04",
         "Faaliyet Ailesi": "Kurumsal Arşiv ve Bilgi Yönetimi",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Arşiv devir, erişim, imha, dosyalama",
-        "Ölçü Birimi": "dosya / kutu / işlem",
-        "Ana KPI / SLA": "SDP uygunluk oranı",
+        "Kapsam": "Arşiv devir işlemlerinin müdürlük bazında kaydı, dosyalama ve erişim süreçlerinin sayı bazlı takibi (dosyalanan evrak sayısı, dosya/klasör sayısı, arşiv erişim talepleri); imha işlemleri yıllık dönemsel izlenir",
+        "Ölçü Birimi": "müdürlük / evrak / dosya / talep",
+        "Ana KPI / SLA": "arşiv işlemlerinde kayıt tamlığı ve zamanında erişim oranı",
         "Veri Kaynağı": "Arşiv kayıtları"
     },
     {
@@ -137,7 +137,8 @@
         "Kapsam": "Bordro girdileri, kesenek ve SGK işlemleri",
         "Ölçü Birimi": "personel / belge",
         "Ana KPI / SLA": "zamanında veri aktarımı",
-        "Veri Kaynağı": "KBS / SGK"
+        "Veri Kaynağı": "KBS / SGK",
+        "Raporlama Sıklığı": "Aylık"
     },
     {
         "Müdürlük": "İnsan Kaynakları ve Eğitim Müdürlüğü",
@@ -167,7 +168,8 @@
         "Kapsam": "Risk, muayene, KKD, kurul, ramak kala ve DÖF",
         "Ölçü Birimi": "olay / eğitim / kontrol",
         "Ana KPI / SLA": "açık DÖF, eğitim uygunluğu",
-        "Veri Kaynağı": "İSG kayıtları"
+        "Veri Kaynağı": "İSG kayıtları",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Fen İşleri Müdürlüğü",
