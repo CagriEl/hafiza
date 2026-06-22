@@ -1592,24 +1592,15 @@ class AylikFaaliyetResource extends Resource
             return $rows;
         }
 
+        $record->loadMissing('user');
         $mudurluk = trim((string) ($record->user?->name ?? ''));
-        if ($mudurluk === '') {
-            return $rows;
+        if ($mudurluk === '' && (int) ($record->user_id ?? 0) > 0) {
+            $mudurluk = trim((string) (User::query()->whereKey((int) $record->user_id)->value('name') ?? ''));
         }
-
-        $catalogOptions = ActivityCatalogFormatter::selectOptionsForMudurluk($mudurluk);
-        if ($catalogOptions === []) {
-            return $rows;
-        }
-
-        $catalogIds = array_values(array_map('intval', array_keys($catalogOptions)));
-        $catalogRows = ActivityCatalog::query()
-            ->whereIn('id', $catalogIds)
-            ->orderBy('faaliyet_kodu')
-            ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'kapsam', 'olcu_birimi', 'baskanlik_bilgilendirme_seviyesi']);
 
         $existingByCatalogId = [];
         $existingByCode = [];
+        $codePrefixes = [];
         foreach ($rows as $row) {
             $catalogId = (int) ($row['activity_catalog_id'] ?? 0);
             if ($catalogId > 0) {
@@ -1618,8 +1609,64 @@ class AylikFaaliyetResource extends Resource
             $code = trim((string) ($row['faaliyet_kodu'] ?? ''));
             if ($code !== '') {
                 $existingByCode[$code] = true;
+                $parts = explode('-', $code);
+                $prefix = trim((string) ($parts[0] ?? ''));
+                if ($prefix !== '') {
+                    $codePrefixes[$prefix] = true;
+                }
             }
         }
+
+        $catalogRows = collect();
+        if ($mudurluk !== '') {
+            $catalogOptions = ActivityCatalogFormatter::selectOptionsForMudurluk($mudurluk);
+            if ($catalogOptions !== []) {
+                $catalogIds = array_values(array_map('intval', array_keys($catalogOptions)));
+                $catalogRows = ActivityCatalog::query()
+                    ->whereIn('id', $catalogIds)
+                    ->orderBy('faaliyet_kodu')
+                    ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'kapsam', 'olcu_birimi', 'baskanlik_bilgilendirme_seviyesi']);
+            }
+        }
+
+        // Müdürlük adı "Md." gibi kısaltmalıysa eşleşme kaçabiliyor; mevcut kod öneklerinden tüm kataloğu tamamla.
+        if ($codePrefixes !== []) {
+            $prefixRows = collect();
+            foreach (array_keys($codePrefixes) as $prefix) {
+                $prefixRows = $prefixRows->merge(
+                    ActivityCatalog::query()
+                        ->where('faaliyet_kodu', 'like', $prefix.'-%')
+                        ->orderBy('faaliyet_kodu')
+                        ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'kapsam', 'olcu_birimi', 'baskanlik_bilgilendirme_seviyesi'])
+                );
+            }
+            $catalogRows = $catalogRows->merge($prefixRows);
+        }
+
+        if ($mudurluk !== '') {
+            $normalizedMudurluk = TurkishString::normalizeForFuzzyMatch($mudurluk);
+            if ($normalizedMudurluk !== '') {
+                $mudurlukRows = ActivityCatalog::query()
+                    ->orderBy('faaliyet_kodu')
+                    ->get(['id', 'mudurluk', 'faaliyet_kodu', 'faaliyet_ailesi', 'kapsam', 'olcu_birimi', 'baskanlik_bilgilendirme_seviyesi'])
+                    ->filter(function (ActivityCatalog $catalog) use ($normalizedMudurluk): bool {
+                        $catalogMudurluk = TurkishString::normalizeForFuzzyMatch((string) $catalog->mudurluk);
+                        if ($catalogMudurluk === '') {
+                            return false;
+                        }
+
+                        return str_contains($catalogMudurluk, $normalizedMudurluk)
+                            || str_contains($normalizedMudurluk, $catalogMudurluk);
+                    })
+                    ->values();
+                $catalogRows = $catalogRows->merge($mudurlukRows);
+            }
+        }
+
+        $catalogRows = $catalogRows
+            ->unique(fn (ActivityCatalog $row) => (int) $row->id)
+            ->sortBy('faaliyet_kodu')
+            ->values();
 
         foreach ($catalogRows as $catalog) {
             $catalogId = (int) $catalog->id;
