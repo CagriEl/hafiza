@@ -1522,6 +1522,7 @@ class AylikFaaliyetResource extends Resource
                     ->visible(fn (?AylikFaaliyet $record): bool => ! static::shouldShowIncomingCoordinationOnly($record))
                     ->schema([
                         RepeatableEntry::make('faaliyetler')
+                            ->getStateUsing(fn (?AylikFaaliyet $record): array => static::rowsForReportPresentation($record))
                             ->schema([
                                 TextEntry::make('faaliyet_kodu')->label('Kod')
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
@@ -1573,6 +1574,84 @@ class AylikFaaliyetResource extends Resource
                             ->columns(2),
                     ]),
             ]);
+    }
+
+    /**
+     * Rapor satırlarını, müdürlüğe ait katalogdaki eksik faaliyetlerle tamamlar.
+     * Böylece raporda yalnızca kaydedilen satırlar değil, o müdürlüğün tüm faaliyetleri görünür.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function rowsForReportPresentation(?AylikFaaliyet $record): array
+    {
+        $rows = is_array($record?->faaliyetler)
+            ? array_values(array_filter($record->faaliyetler, fn ($row): bool => is_array($row)))
+            : [];
+
+        if (! $record instanceof AylikFaaliyet) {
+            return $rows;
+        }
+
+        $mudurluk = trim((string) ($record->user?->name ?? ''));
+        if ($mudurluk === '') {
+            return $rows;
+        }
+
+        $catalogOptions = ActivityCatalogFormatter::selectOptionsForMudurluk($mudurluk);
+        if ($catalogOptions === []) {
+            return $rows;
+        }
+
+        $catalogIds = array_values(array_map('intval', array_keys($catalogOptions)));
+        $catalogRows = ActivityCatalog::query()
+            ->whereIn('id', $catalogIds)
+            ->orderBy('faaliyet_kodu')
+            ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'kapsam', 'olcu_birimi', 'baskanlik_bilgilendirme_seviyesi']);
+
+        $existingByCatalogId = [];
+        $existingByCode = [];
+        foreach ($rows as $row) {
+            $catalogId = (int) ($row['activity_catalog_id'] ?? 0);
+            if ($catalogId > 0) {
+                $existingByCatalogId[$catalogId] = true;
+            }
+            $code = trim((string) ($row['faaliyet_kodu'] ?? ''));
+            if ($code !== '') {
+                $existingByCode[$code] = true;
+            }
+        }
+
+        foreach ($catalogRows as $catalog) {
+            $catalogId = (int) $catalog->id;
+            $code = trim((string) $catalog->faaliyet_kodu);
+            if (isset($existingByCatalogId[$catalogId]) || ($code !== '' && isset($existingByCode[$code]))) {
+                continue;
+            }
+
+            $rows[] = [
+                'activity_catalog_id' => $catalogId,
+                'faaliyet_kodu' => $code,
+                'faaliyet_turu' => 'Operasyonel',
+                'kapsam_icerigi' => (string) $catalog->faaliyet_ailesi,
+                'olcu_birimi' => (string) $catalog->olcu_birimi,
+                'baskanlik_bilgilendirme_seviyesi' => (string) $catalog->baskanlik_bilgilendirme_seviyesi,
+                'kapsam_verileri' => static::syncKapsamVerileri(
+                    static::parseKapsamKalemleri((string) ($catalog->kapsam ?? '')),
+                    []
+                ),
+                'gerceklesen' => null,
+                'bekleyen_is' => null,
+            ];
+        }
+
+        usort($rows, function (array $a, array $b): int {
+            return strcmp(
+                trim((string) ($a['faaliyet_kodu'] ?? '')),
+                trim((string) ($b['faaliyet_kodu'] ?? ''))
+            );
+        });
+
+        return $rows;
     }
 
     public static function getEloquentQuery(): Builder
@@ -1997,7 +2076,7 @@ class AylikFaaliyetResource extends Resource
      */
     private static function summarizeReportForPresentation(?AylikFaaliyet $record): array
     {
-        $rows = is_array($record?->faaliyetler) ? $record->faaliyetler : [];
+        $rows = static::rowsForReportPresentation($record);
         $items = [];
         $totalDone = 0.0;
         $totalPending = 0.0;
