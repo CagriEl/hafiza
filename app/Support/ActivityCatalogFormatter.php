@@ -12,6 +12,13 @@ use App\Services\ActivityService;
  */
 final class ActivityCatalogFormatter
 {
+    /** @var list<string> */
+    private const HIDDEN_ACTIVITY_CODES = [
+        'MHM-07',
+        'MHM-08',
+        'MHM-09',
+    ];
+
     public static function selectOptionsForMudurluk(string $mudurlukAdi): array
     {
         $raw = app(ActivityService::class)->getCatalogOptionsForMudurluk($mudurlukAdi);
@@ -26,6 +33,10 @@ final class ActivityCatalogFormatter
 
         $out = [];
         foreach ($rows as $row) {
+            $code = trim((string) ($row->faaliyet_kodu ?? ''));
+            if ($code !== '' && in_array($code, self::HIDDEN_ACTIVITY_CODES, true)) {
+                continue;
+            }
             $out[(int) $row->id] = static::buildCatalogLabel($row);
         }
 
