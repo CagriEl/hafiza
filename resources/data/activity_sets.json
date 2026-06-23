@@ -1024,7 +1024,7 @@
                     "faaliyet_kodu": "MZM-01",
                     "faaliyet_ailesi": "Defin ve Cenaze Hizmeti",
                     "kategori": "Operasyonel Hizmet",
-                    "kapsam": "Cenaze açma",
+                    "kapsam": "Defin, Cenaze açma",
                     "olcu_birimi": "defin sayısı",
                     "kpi_sla": "talebin zamanında karşılanması",
                     "raporlama_sikligi": "",
