@@ -1904,8 +1904,16 @@ class AylikFaaliyetResource extends Resource
             }
         }
 
+        $allowedIds = [];
+        $trimMudurluk = trim((string) ($mudurlukAdi ?? ''));
+        if ($trimMudurluk !== '') {
+            $allowedIds = array_map('intval', array_keys(ActivityCatalogFormatter::selectOptionsForMudurluk($trimMudurluk)));
+        }
+
         $catalogQuery = ActivityCatalog::query();
-        if ($catalogIds !== [] || $codes !== []) {
+        if ($allowedIds !== []) {
+            $catalogQuery->whereIn('id', array_values(array_unique($allowedIds)));
+        } elseif ($catalogIds !== [] || $codes !== []) {
             $catalogQuery->where(function (Builder $q) use ($catalogIds, $codes): void {
                 if ($catalogIds !== []) {
                     $q->orWhereIn('id', array_values(array_unique($catalogIds)));
@@ -1946,6 +1954,8 @@ class AylikFaaliyetResource extends Resource
             }
 
             if (! $catalog instanceof ActivityCatalog) {
+                // Müdürlük güncel kataloğunda artık olmayan eski satırları (örn. kaldırılan kodlar) formdan düşür.
+                unset($data['faaliyetler'][$i]);
                 continue;
             }
 
@@ -1957,6 +1967,11 @@ class AylikFaaliyetResource extends Resource
                 is_array($existingKapsamRows) ? $existingKapsamRows : []
             );
         }
+
+        $data['faaliyetler'] = array_values(array_filter(
+            $data['faaliyetler'],
+            fn ($row): bool => is_array($row)
+        ));
 
         return $data;
     }
