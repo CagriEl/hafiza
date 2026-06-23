@@ -74,7 +74,7 @@
         "Faaliyet Kodu": "YZM-03",
         "Faaliyet Ailesi": "CİMER / 4982 / 3071 Başvuruları",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Yönlendirme sayısı, Cevap takibi sayısı, Cevaplandırılarak sonuçlandırılan başvuru sayısı",
+        "Kapsam": "CİMER gelen, CİMER yönlendirilen",
         "Ölçü Birimi": "başvuru sayısı",
         "Ana KPI / SLA": "SLA içinde sonuçlandırılan başvuru oranı",
         "Veri Kaynağı": "EBYS / başvuru sistemi"
