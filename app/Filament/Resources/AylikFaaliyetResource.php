@@ -1605,7 +1605,7 @@ class AylikFaaliyetResource extends Resource
                                 TextEntry::make('kapsam_icerigi')->label('Kapsam İçeriği')->placeholder('—')
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('kapsam_verileri')
-                                    ->label('Kapsam kalemleri (öngörülen / gerçekleşen / açıkta kalan)')
+                                    ->label('Kapsam kalemleri (gerçekleşen / açıkta kalan)')
                                     ->placeholder('—')
                                     ->getStateUsing(function (InfolistComponent $component): string {
                                         $row = $component->getContainer()->getState();
@@ -1952,10 +1952,8 @@ class AylikFaaliyetResource extends Resource
                 continue;
             }
 
-            $ong = $row['ongorulen'] ?? $row['deger'] ?? null;
             $ger = $row['gerceklesen'] ?? null;
             $acik = $row['acikta_kalan'] ?? null;
-            $ongText = filled($ong) ? (string) $ong : '—';
             $gerText = filled($ger) ? (string) $ger : '—';
             $acikText = filled($acik) ? (string) $acik : '—';
 
@@ -1963,7 +1961,6 @@ class AylikFaaliyetResource extends Resource
                 '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:6px;background:#ffffff;">'
                 .'<div style="font-weight:600;color:#111827;margin-bottom:4px;">'.e($kalem).'</div>'
                 .'<div style="font-size:12px;line-height:1.5;color:#374151;">'
-                .'Öngörülen: <b>'.e($ongText).'</b> &nbsp;|&nbsp; '
                 .'Gerçekleşen: <b>'.e($gerText).'</b> &nbsp;|&nbsp; '
                 .'Açıkta Kalan: <b>'.e($acikText).'</b>'
                 .'</div>'
