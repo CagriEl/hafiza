@@ -327,9 +327,9 @@
             "activities": [
                 {
                     "faaliyet_kodu": "GLR-01",
-                    "faaliyet_ailesi": "Sicil, Beyan ve Düzeltme",
+                    "faaliyet_ailesi": "Kira Ecrimisil İşgaliye",
                     "kategori": "Başvuru \/ İşlem",
-                    "kapsam": "Sicil açılış-kapanış, beyan, düzeltme",
+                    "kapsam": "Kira, Ecrimisil, İşgaliye, Sicil açılış",
                     "olcu_birimi": "işlem sayısı",
                     "kpi_sla": "zamanında işlenen kayıt oranı",
                     "raporlama_sikligi": "",
@@ -339,7 +339,7 @@
                     "faaliyet_kodu": "GLR-02",
                     "faaliyet_ailesi": "Tahakkuk İşlemleri",
                     "kategori": "Başvuru \/ İşlem",
-                    "kapsam": "Emlak, ÇTV, harç, katılma payı, ücret",
+                    "kapsam": "İlan Reklam, Eğlence, Para Cezası",
                     "olcu_birimi": "tahakkuk \/ sicil",
                     "kpi_sla": "tahakkuk tutarı \/ sayısı",
                     "raporlama_sikligi": "",
@@ -367,9 +367,9 @@
                 },
                 {
                     "faaliyet_kodu": "GLR-05",
-                    "faaliyet_ailesi": "Kira, Ecrimisil ve İşgaliye",
+                    "faaliyet_ailesi": "Kira Ecrimisil İşgaliye",
                     "kategori": "Başvuru \/ İşlem",
-                    "kapsam": "Kira\/ecrimisil tahakkuk ve takipleri",
+                    "kapsam": "Kira, Ecrimisil, İşgaliye, Sicil açılış",
                     "olcu_birimi": "dosya \/ TL",
                     "kpi_sla": "tahsilat performansı",
                     "raporlama_sikligi": "",

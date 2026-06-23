@@ -1094,9 +1094,9 @@
     {
         "Müdürlük": "Gelirler Müdürlüğü",
         "Faaliyet Kodu": "GLR-01",
-        "Faaliyet Ailesi": "Sicil, Beyan ve Düzeltme",
+        "Faaliyet Ailesi": "Kira Ecrimisil İşgaliye",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Sicil açılış-kapanış, beyan, düzeltme",
+        "Kapsam": "Kira, Ecrimisil, İşgaliye, Sicil açılış",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "zamanında işlenen kayıt oranı",
         "Veri Kaynağı": "Gelir sistemi"
@@ -1106,7 +1106,7 @@
         "Faaliyet Kodu": "GLR-02",
         "Faaliyet Ailesi": "Tahakkuk İşlemleri",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Emlak, ÇTV, harç, katılma payı, ücret",
+        "Kapsam": "İlan Reklam, Eğlence, Para Cezası",
         "Ölçü Birimi": "tahakkuk / sicil",
         "Ana KPI / SLA": "tahakkuk tutarı / sayısı",
         "Veri Kaynağı": "Gelir sistemi"
@@ -1134,9 +1134,9 @@
     {
         "Müdürlük": "Gelirler Müdürlüğü",
         "Faaliyet Kodu": "GLR-05",
-        "Faaliyet Ailesi": "Kira, Ecrimisil ve İşgaliye",
+        "Faaliyet Ailesi": "Kira Ecrimisil İşgaliye",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Kira/ecrimisil tahakkuk ve takipleri",
+        "Kapsam": "Kira, Ecrimisil, İşgaliye, Sicil açılış",
         "Ölçü Birimi": "dosya / TL",
         "Ana KPI / SLA": "tahsilat performansı",
         "Veri Kaynağı": "Gelir sistemi / tutanak"
