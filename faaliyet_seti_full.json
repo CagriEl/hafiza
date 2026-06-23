@@ -536,7 +536,7 @@
         "Faaliyet Kodu": "ITM-01",
         "Faaliyet Ailesi": "Yangın Müdahaleleri",
         "Kategori": "Olağanüstü / Kriz / Acil",
-        "Kapsam": "Ev, araç, trafo, çöp, tesis yangınları",
+        "Kapsam": "Ev yangınları, Araç yangınları, Trafo yangınları, Çöp yangınları, Anız/arazi yangınları, Tesis yangınları (fabrika/işyeri)",
         "Ölçü Birimi": "vaka sayısı",
         "Ana KPI / SLA": "ortalama çıkış-varış süresi",
         "Veri Kaynağı": "112 / vaka kayıtları"
@@ -576,7 +576,7 @@
         "Faaliyet Kodu": "ITM-05",
         "Faaliyet Ailesi": "112 Koordinasyon ve Zaman Damgası",
         "Kategori": "Olağanüstü / Kriz / Acil",
-        "Kapsam": "Çağrı, sevk, kayıt doğrulama, karşılıklı destek",
+        "Kapsam": "Çağrı, Sevk, Danışma bilgi",
         "Ölçü Birimi": "çağrı / sevk",
         "Ana KPI / SLA": "zaman damgası doğruluk oranı",
         "Veri Kaynağı": "ATS / 112"
@@ -590,6 +590,26 @@
         "Ölçü Birimi": "araç / cihaz",
         "Ana KPI / SLA": "hazır araç oranı",
         "Veri Kaynağı": "Bakım kayıtları"
+    },
+    {
+        "Müdürlük": "İtfaiye Müdürlüğü",
+        "Faaliyet Kodu": "ITM-07",
+        "Faaliyet Ailesi": "Ücretli İtfaiye Hizmetleri Tahakkuk ve Takibi",
+        "Kategori": "Başvuru / İşlem",
+        "Kapsam": "Yangın eğitimi, tatbikat, itfaiye araç bedeli, su verme, Yangın Güvenlik Raporu Belgesi Hizmet Ücreti ve benzeri ücretli hizmetlerin tahakkuk/tahsilat takibi",
+        "Ölçü Birimi": "işlem / tahakkuk",
+        "Ana KPI / SLA": "tahsilat oranı",
+        "Veri Kaynağı": "Tahakkuk kayıtları"
+    },
+    {
+        "Müdürlük": "İtfaiye Müdürlüğü",
+        "Faaliyet Kodu": "ITM-08",
+        "Faaliyet Ailesi": "Destek Görevleri Veri Girişi",
+        "Kategori": "Operasyonel Hizmet",
+        "Kapsam": "Araç Destek Talepleri, Bayrak asma ve Kontrolü, Merdiven açma talepleri, Su verme, Yol sulama",
+        "Ölçü Birimi": "görev sayısı",
+        "Ana KPI / SLA": "zamanında tamamlanan görev oranı",
+        "Veri Kaynağı": "Saha görev kayıtları"
     },
     {
         "Müdürlük": "Afet İşleri ve Risk Yönetimi Müdürlüğü",

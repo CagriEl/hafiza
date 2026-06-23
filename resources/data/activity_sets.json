@@ -744,7 +744,7 @@
                     "faaliyet_kodu": "ITM-01",
                     "faaliyet_ailesi": "Yangın Müdahaleleri",
                     "kategori": "Olağanüstü \/ Kriz \/ Acil",
-                    "kapsam": "Ev, araç, trafo, çöp, tesis yangınları",
+                    "kapsam": "Ev yangınları, Araç yangınları, Trafo yangınları, Çöp yangınları, Anız\/arazi yangınları, Tesis yangınları (fabrika\/işyeri)",
                     "olcu_birimi": "vaka sayısı",
                     "kpi_sla": "ortalama çıkış-varış süresi",
                     "raporlama_sikligi": "",
@@ -784,7 +784,7 @@
                     "faaliyet_kodu": "ITM-05",
                     "faaliyet_ailesi": "112 Koordinasyon ve Zaman Damgası",
                     "kategori": "Olağanüstü \/ Kriz \/ Acil",
-                    "kapsam": "Çağrı, sevk, kayıt doğrulama, karşılıklı destek",
+                    "kapsam": "Çağrı, Sevk, Danışma bilgi",
                     "olcu_birimi": "çağrı \/ sevk",
                     "kpi_sla": "zaman damgası doğruluk oranı",
                     "raporlama_sikligi": "",
@@ -804,11 +804,21 @@
                     "faaliyet_kodu": "ITM-07",
                     "faaliyet_ailesi": "Ücretli İtfaiye Hizmetleri Tahakkuk ve Takibi",
                     "kategori": "Başvuru \/ İşlem",
-                    "kapsam": "Yangın eğitimi, tatbikat, itfaiye araç bedeli, su verme ve benzeri ücretli hizmetlerin tahakkuk\/tahsilat takibi",
+                    "kapsam": "Yangın eğitimi, tatbikat, itfaiye araç bedeli, su verme, Yangın Güvenlik Raporu Belgesi Hizmet Ücreti ve benzeri ücretli hizmetlerin tahakkuk\/tahsilat takibi",
                     "olcu_birimi": "işlem \/ tahakkuk",
                     "kpi_sla": "tahsilat oranı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": "Takip Edilecek"
+                    "raporlama_sikligi": "",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "ITM-08",
+                    "faaliyet_ailesi": "Destek Görevleri Veri Girişi",
+                    "kategori": "Operasyonel Hizmet",
+                    "kapsam": "Araç Destek Talepleri, Bayrak asma ve Kontrolü, Merdiven açma talepleri, Su verme, Yol sulama",
+                    "olcu_birimi": "görev sayısı",
+                    "kpi_sla": "zamanında tamamlanan görev oranı",
+                    "raporlama_sikligi": "",
+                    "baskanlik_bilgilendirme_seviyesi": ""
                 }
             ]
         },
