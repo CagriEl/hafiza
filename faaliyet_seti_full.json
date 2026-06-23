@@ -836,7 +836,7 @@
         "Faaliyet Kodu": "ZBM-01",
         "Faaliyet Ailesi": "İşyeri Ruhsat Uyum Denetimi",
         "Kategori": "Denetim / Uyum",
-        "Kapsam": "Ruhsat uyumu, Verilen ruhsat, Yeniden kontrol, Kapanan işyerleri",
+        "Kapsam": "Ruhsat uyumu, Verilen ruhsat, Kapanan işyerleri",
         "Ölçü Birimi": "denetim sayısı",
         "Ana KPI / SLA": "uygunsuzluk kapanış oranı",
         "Veri Kaynağı": "Denetim tutanakları"

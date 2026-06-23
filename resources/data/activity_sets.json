@@ -1519,7 +1519,7 @@
                     "faaliyet_kodu": "ZBM-01",
                     "faaliyet_ailesi": "İşyeri Ruhsat Uyum Denetimi",
                     "kategori": "Denetim \/ Uyum",
-                    "kapsam": "Ruhsat uyumu, Verilen ruhsat, Yeniden kontrol, Kapanan işyerleri",
+                    "kapsam": "Ruhsat uyumu, Verilen ruhsat, Kapanan işyerleri",
                     "olcu_birimi": "denetim sayısı",
                     "kpi_sla": "uygunsuzluk kapanış oranı",
                     "raporlama_sikligi": "",
