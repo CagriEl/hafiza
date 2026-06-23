@@ -48,6 +48,9 @@ class AylikFaaliyetResource extends Resource
     /** @var array<int, int> */
     private static array $mudurlukGroupReportCountCache = [];
 
+    /** @var array<string, int> */
+    private static array $mudurlukAyGroupReportCountCache = [];
+
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
 
     protected static ?string $navigationLabel = 'Aylık Rapor';
@@ -393,7 +396,7 @@ class AylikFaaliyetResource extends Resource
                 Section::make('Uyarı')
                     ->schema([
                         Forms\Components\Placeholder::make('rapor_olusturma_uyarisi')
-                            ->content('Rapor oluştururken ilgili dönemdeki tüm faaliyetleri "İş Listesi" içine ekleyiniz. Müdürlükler aynı yıl/ay döneminde birden fazla rapor oluşturabilir.')
+                            ->content('Her müdürlük için aynı yıl/ay döneminde yalnızca 1 rapor oluşturulur. Sonraki güncellemeleri yeni rapor açmadan mevcut raporda "İş Listesi" alanına ekleyiniz.')
                             ->extraAttributes(['class' => 'text-amber-700'])
                             ->columnSpanFull(),
                     ])
@@ -1251,6 +1254,56 @@ class AylikFaaliyetResource extends Resource
         return $name.' ('.static::$mudurlukGroupReportCountCache[$userId].')';
     }
 
+    private static function mudurlukAyGroupKey(AylikFaaliyet $record): string
+    {
+        $userId = (int) ($record->user_id ?? 0);
+        $yil = (int) ($record->yil ?? 0);
+        $ay = str_pad(trim((string) ($record->ay ?? '')), 2, '0', STR_PAD_LEFT);
+
+        return $userId.'|'.$yil.'|'.$ay;
+    }
+
+    private static function mudurlukAyGroupTitle(AylikFaaliyet $record): string
+    {
+        $userId = (int) ($record->user_id ?? 0);
+        $name = trim((string) ($record->user?->name ?? 'Müdürlük'));
+        $yil = (int) ($record->yil ?? 0);
+        $ay = str_pad(trim((string) ($record->ay ?? '')), 2, '0', STR_PAD_LEFT);
+
+        if ($userId <= 0) {
+            return $name.' / '.$yil.'-'.$ay;
+        }
+
+        $key = static::mudurlukAyGroupKey($record);
+        if (! array_key_exists($key, static::$mudurlukAyGroupReportCountCache)) {
+            $total = (int) AylikFaaliyet::query()
+                ->where('user_id', $userId)
+                ->where('yil', $yil)
+                ->where('ay', $ay)
+                ->count();
+            static::$mudurlukAyGroupReportCountCache[$key] = max(0, $total);
+        }
+
+        return $name.' / '.$yil.'-'.$ay.' ('.static::$mudurlukAyGroupReportCountCache[$key].')';
+    }
+
+    private static function scopeMudurlukAyGroupQueryByKey(Builder $query, string $key): Builder
+    {
+        $parts = explode('|', $key);
+        $userId = isset($parts[0]) ? (int) $parts[0] : 0;
+        $yil = isset($parts[1]) ? (int) $parts[1] : 0;
+        $ay = isset($parts[2]) ? str_pad(trim((string) $parts[2]), 2, '0', STR_PAD_LEFT) : '';
+
+        if ($userId <= 0 || $yil <= 0 || $ay === '') {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query
+            ->where($query->qualifyColumn('user_id'), $userId)
+            ->where($query->qualifyColumn('yil'), $yil)
+            ->where($query->qualifyColumn('ay'), $ay);
+    }
+
     /**
      * @return array<int, string>
      */
@@ -1560,7 +1613,8 @@ class AylikFaaliyetResource extends Resource
                                         return static::normalizeKapsamVerileriText(
                                             is_array($row) ? ($row['kapsam_verileri'] ?? null) : null
                                         );
-                                    }),
+                                    })
+                                    ->html(),
                                 TextEntry::make('sapma_nedeni')->label('Sapma')->placeholder('—')
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                                 TextEntry::make('gerekli_revize')
@@ -1571,7 +1625,7 @@ class AylikFaaliyetResource extends Resource
                                 TextEntry::make('karar_ihtiyaci')->label('Karar ihtiyacı')->placeholder('—')
                                     ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                             ])
-                            ->columns(2),
+                            ->columns(1),
                     ]),
             ]);
     }
@@ -1886,7 +1940,7 @@ class AylikFaaliyetResource extends Resource
             $state = [$state];
         }
 
-        $parts = [];
+        $items = [];
 
         foreach ($state as $row) {
             if (! is_array($row)) {
@@ -1901,10 +1955,26 @@ class AylikFaaliyetResource extends Resource
             $ong = $row['ongorulen'] ?? $row['deger'] ?? null;
             $ger = $row['gerceklesen'] ?? null;
             $acik = $row['acikta_kalan'] ?? null;
-            $parts[] = $kalem.': öngörülen '.(filled($ong) ? (string) $ong : '-').' / gerçekleşen '.(filled($ger) ? (string) $ger : '-').' / açıkta kalan '.(filled($acik) ? (string) $acik : '-');
+            $ongText = filled($ong) ? (string) $ong : '—';
+            $gerText = filled($ger) ? (string) $ger : '—';
+            $acikText = filled($acik) ? (string) $acik : '—';
+
+            $items[] =
+                '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:6px;background:#ffffff;">'
+                .'<div style="font-weight:600;color:#111827;margin-bottom:4px;">'.e($kalem).'</div>'
+                .'<div style="font-size:12px;line-height:1.5;color:#374151;">'
+                .'Öngörülen: <b>'.e($ongText).'</b> &nbsp;|&nbsp; '
+                .'Gerçekleşen: <b>'.e($gerText).'</b> &nbsp;|&nbsp; '
+                .'Açıkta Kalan: <b>'.e($acikText).'</b>'
+                .'</div>'
+                .'</div>';
         }
 
-        return $parts === [] ? '—' : implode(' | ', $parts);
+        if ($items === []) {
+            return '—';
+        }
+
+        return '<div style="display:block;">'.implode('', $items).'</div>';
     }
 
     private static function visualPerformanceSummaryHtml(?AylikFaaliyet $record): string

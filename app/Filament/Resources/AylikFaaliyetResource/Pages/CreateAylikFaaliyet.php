@@ -5,6 +5,7 @@ namespace App\Filament\Resources\AylikFaaliyetResource\Pages;
 use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
 use App\Filament\Resources\AylikFaaliyetResource;
+use App\Models\AylikFaaliyet;
 use App\Models\User;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\AylikFaaliyetRepeaterLock;
@@ -35,6 +36,36 @@ class CreateAylikFaaliyet extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $userId = (int) (auth()->id() ?? 0);
+        $yil = (int) ($data['yil'] ?? 0);
+        $ay = str_pad(trim((string) ($data['ay'] ?? '')), 2, '0', STR_PAD_LEFT);
+
+        if ($userId > 0 && $yil > 0 && $ay !== '') {
+            $existing = AylikFaaliyet::query()
+                ->where('user_id', $userId)
+                ->where('yil', $yil)
+                ->where('ay', $ay)
+                ->first();
+
+            if ($existing instanceof AylikFaaliyet) {
+                $editUrl = ActivityReportResource::getUrl('edit', ['record' => $existing]);
+
+                Notification::make()
+                    ->warning()
+                    ->title('Bu ay için rapor zaten var')
+                    ->body("{$yil}-{$ay} dönemi için yeni rapor açılamaz. Mevcut rapora yönlendiriliyorsunuz; İş Listesi alanına ekleme yapabilirsiniz.")
+                    ->actions([
+                        Action::make('raporaGit')
+                            ->label('Mevcut Raporu Aç')
+                            ->url($editUrl),
+                    ])
+                    ->send();
+
+                $this->redirect($editUrl);
+                $this->halt();
+            }
+        }
+
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
 
         return AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data);
