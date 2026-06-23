@@ -1963,6 +1963,10 @@ class AylikFaaliyetResource extends Resource
             $unit = trim((string) ($item['unit'] ?? ''));
             $unitSuffix = $unit !== '' ? ' '.$unit : '';
             $infoLevel = trim((string) ($item['info_level'] ?? ''));
+            $sapmaNedeni = trim((string) ($item['sapma_nedeni'] ?? ''));
+            $revizeSebebi = trim((string) ($item['revize_sebebi'] ?? ''));
+            $kararIhtiyaci = trim((string) ($item['karar_ihtiyaci'] ?? ''));
+            $gerekliRevize = (bool) ($item['gerekli_revize'] ?? false);
             $infoHtml = $infoLevel !== ''
                 ? '<span style="font-size:11px;color:#b91c1c;background:#fee2e2;padding:2px 8px;border-radius:9999px;">Bilgilendirme: '.e($infoLevel).'</span>'
                 : '';
@@ -1976,6 +1980,10 @@ class AylikFaaliyetResource extends Resource
                 .'<div>Yapılan: <b style="color:'.$doneColor.';">'.e($done.$unitSuffix).'</b></div>'
                 .'<div>Açıkta Bekleyen: <b style="color:'.$pendingColor.';">'.e($pending.$unitSuffix).'</b></div>'
                 .'<div>Toplam İş: <b style="color:'.$planColor.';">'.e($plan.$unitSuffix).'</b></div>'
+                .'<div>Sapma: <b>'.e($sapmaNedeni !== '' ? $sapmaNedeni : '—').'</b></div>'
+                .'<div>Revize: <b>'.e($gerekliRevize ? 'Evet' : 'Hayır').'</b></div>'
+                .'<div>Revize sebebi: <b>'.e($revizeSebebi !== '' ? $revizeSebebi : '—').'</b></div>'
+                .'<div>Karar ihtiyacı: <b>'.e($kararIhtiyaci !== '' ? $kararIhtiyaci : '—').'</b></div>'
                 .($infoHtml !== '' ? '<div style="margin-top:4px;">'.$infoHtml.'</div>' : '')
                 .'</div>'
                 .'<div style="margin-top:10px;background:#e5e7eb;height:9px;border-radius:9999px;overflow:hidden;">'
@@ -2192,6 +2200,10 @@ class AylikFaaliyetResource extends Resource
                 'title' => static::resolveReportRowTitle($row),
                 'unit' => trim((string) ($row['olcu_birimi'] ?? '')),
                 'info_level' => trim((string) ($row['baskanlik_bilgilendirme_seviyesi'] ?? '')),
+                'sapma_nedeni' => trim((string) ($row['sapma_nedeni'] ?? '')),
+                'gerekli_revize' => (bool) ($row['gerekli_revize'] ?? false),
+                'revize_sebebi' => trim((string) ($row['revize_sebebi'] ?? '')),
+                'karar_ihtiyaci' => trim((string) ($row['karar_ihtiyaci'] ?? '')),
                 'done' => $done,
                 'pending' => $pending,
                 'plan' => $plan,
