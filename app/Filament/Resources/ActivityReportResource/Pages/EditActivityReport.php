@@ -4,8 +4,8 @@ namespace App\Filament\Resources\ActivityReportResource\Pages;
 
 use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
+use App\Filament\Resources\AylikFaaliyetResource;
 use App\Models\User;
-use App\Support\ActivityCatalogFormatter;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\AylikFaaliyetRepeaterLock;
 use Filament\Actions;
@@ -51,7 +51,7 @@ class EditActivityReport extends EditRecord
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
         $data = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
 
-        return ActivityCatalogFormatter::hydrateActivityCatalogIdsInFaaliyetler(
+        return AylikFaaliyetResource::syncFaaliyetlerWithCurrentCatalog(
             $data,
             $this->getRecord()->user?->name
         );

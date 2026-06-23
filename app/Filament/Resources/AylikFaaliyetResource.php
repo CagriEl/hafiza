@@ -1873,6 +1873,94 @@ class AylikFaaliyetResource extends Resource
         return $text === '' ? '—' : $text;
     }
 
+    /**
+     * Edit ekranı açılırken faaliyet satırlarını güncel katalog kapsam kalemleriyle hizalar.
+     * Eski kayıtlardaki mevcut sayısal değerleri korur, eksik yeni kalemleri otomatik ekler.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function syncFaaliyetlerWithCurrentCatalog(array $data, ?string $mudurlukAdi): array
+    {
+        $data = ActivityCatalogFormatter::hydrateActivityCatalogIdsInFaaliyetler($data, $mudurlukAdi);
+
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        $catalogIds = [];
+        $codes = [];
+        foreach ($data['faaliyetler'] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $catalogId = (int) ($row['activity_catalog_id'] ?? 0);
+            if ($catalogId > 0) {
+                $catalogIds[] = $catalogId;
+            }
+            $code = trim((string) ($row['faaliyet_kodu'] ?? ''));
+            if ($code !== '') {
+                $codes[] = $code;
+            }
+        }
+
+        $catalogQuery = ActivityCatalog::query();
+        if ($catalogIds !== [] || $codes !== []) {
+            $catalogQuery->where(function (Builder $q) use ($catalogIds, $codes): void {
+                if ($catalogIds !== []) {
+                    $q->orWhereIn('id', array_values(array_unique($catalogIds)));
+                }
+                if ($codes !== []) {
+                    $q->orWhereIn('faaliyet_kodu', array_values(array_unique($codes)));
+                }
+            });
+        } else {
+            return $data;
+        }
+
+        $catalogRows = $catalogQuery->get(['id', 'faaliyet_kodu', 'kapsam']);
+        $catalogById = [];
+        $catalogByCode = [];
+        foreach ($catalogRows as $catalog) {
+            $catalogById[(int) $catalog->id] = $catalog;
+            $code = trim((string) $catalog->faaliyet_kodu);
+            if ($code !== '') {
+                $catalogByCode[$code] = $catalog;
+            }
+        }
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $catalog = null;
+            $catalogId = (int) ($row['activity_catalog_id'] ?? 0);
+            if ($catalogId > 0 && isset($catalogById[$catalogId])) {
+                $catalog = $catalogById[$catalogId];
+            } else {
+                $code = trim((string) ($row['faaliyet_kodu'] ?? ''));
+                if ($code !== '' && isset($catalogByCode[$code])) {
+                    $catalog = $catalogByCode[$code];
+                }
+            }
+
+            if (! $catalog instanceof ActivityCatalog) {
+                continue;
+            }
+
+            $existingKapsamRows = $row['kapsam_verileri'] ?? [];
+            $data['faaliyetler'][$i]['activity_catalog_id'] = (int) $catalog->id;
+            $data['faaliyetler'][$i]['faaliyet_kodu'] = (string) $catalog->faaliyet_kodu;
+            $data['faaliyetler'][$i]['kapsam_verileri'] = static::syncKapsamVerileri(
+                static::parseKapsamKalemleri((string) ($catalog->kapsam ?? '')),
+                is_array($existingKapsamRows) ? $existingKapsamRows : []
+            );
+        }
+
+        return $data;
+    }
+
     private static function normalizeKapsamVerileriText(mixed $state): string
     {
         if (! is_array($state) || $state === []) {
