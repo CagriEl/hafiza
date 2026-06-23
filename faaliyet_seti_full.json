@@ -1156,9 +1156,9 @@
         "Faaliyet Kodu": "MHM-01",
         "Faaliyet Ailesi": "Muhasebe ve Ödeme İşlemleri",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Ödeme emri, MİF, banka ve muhasebeleştirme",
-        "Ölçü Birimi": "belge / ödeme",
-        "Ana KPI / SLA": "zamanında ödeme oranı",
+        "Kapsam": "Ödeme emri adedi, Banka mutabakatları, Ödeme emri olmayan muhasebe işlemleri",
+        "Ölçü Birimi": "adet",
+        "Ana KPI / SLA": "zamanında tamamlanan işlem oranı",
         "Veri Kaynağı": "Muhasebe sistemi"
     },
     {
@@ -1166,9 +1166,9 @@
         "Faaliyet Kodu": "MHM-02",
         "Faaliyet Ailesi": "Bütçe ve Ödenek Yönetimi",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Bütçe, ödenek gönderme/aktarma, harcama programı",
-        "Ölçü Birimi": "işlem / rapor",
-        "Ana KPI / SLA": "ödenek gerçekleşme",
+        "Kapsam": "Ödenek kontrolü, Ödenek aktarma",
+        "Ölçü Birimi": "haftalık işlem / adet",
+        "Ana KPI / SLA": "zamanında ödenek kontrol ve aktarma oranı",
         "Veri Kaynağı": "Bütçe sistemi"
     },
     {
@@ -1176,9 +1176,9 @@
         "Faaliyet Kodu": "MHM-03",
         "Faaliyet Ailesi": "Stratejik Plan ve Performans Koordinasyonu",
         "Kategori": "Strateji / İyileştirme / Eğitim",
-        "Kapsam": "Performans programı, hedef, gösterge, raporlama",
-        "Ölçü Birimi": "rapor / veri seti",
-        "Ana KPI / SLA": "zamanında veri toplama oranı",
+        "Kapsam": "6 aylık gerçekleşen performans yüzdesi, 12 aylık gerçekleşen performans yüzdesi",
+        "Ölçü Birimi": "yüzde (%)",
+        "Ana KPI / SLA": "6/12 aylık performans gerçekleşme yüzdesi",
         "Veri Kaynağı": "EBYS / strateji dosyası"
     },
     {
@@ -1186,17 +1186,17 @@
         "Faaliyet Kodu": "MHM-04",
         "Faaliyet Ailesi": "Ön Mali Kontrol",
         "Kategori": "Denetim / Uyum",
-        "Kapsam": "Taahhüt dosyası, hakediş, doğrudan temin ödeme kontrolü",
-        "Ölçü Birimi": "dosya sayısı",
-        "Ana KPI / SLA": "iade-eksik belge oranı",
+        "Kapsam": "Doğrudan temin sayısı",
+        "Ölçü Birimi": "adet",
+        "Ana KPI / SLA": "doğrudan temin işlemlerinin zamanında kontrol oranı",
         "Veri Kaynağı": "ÖMK kayıtları"
     },
     {
         "Müdürlük": "Mali Hizmetler Müdürlüğü",
         "Faaliyet Kodu": "MHM-05",
-        "Faaliyet Ailesi": "Teminat, Emanet ve Ön Ödeme",
+        "Faaliyet Ailesi": "Avans, Kredi ve Mahsup İşlemleri",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Teminat, emanet, avans-kredi ve mahsup süreçleri",
+        "Kapsam": "Avans-kredi işlemleri, Mahsup işlemleri",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "zamanında mahsup oranı",
         "Veri Kaynağı": "Muhasebe sistemi"
@@ -1206,9 +1206,10 @@
         "Faaliyet Kodu": "MHM-06",
         "Faaliyet Ailesi": "Mali Tablolar ve Kesin Hesap",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Mizan, bilanço, faaliyet sonuçları, kesin hesap",
+        "Kapsam": "Mizan, bilanço, faaliyet sonuçları, kesin hesap (yılda 1 kez)",
         "Ölçü Birimi": "rapor / tablo",
         "Ana KPI / SLA": "zamanında rapor üretimi",
+        "Raporlama Sıklığı": "Yıllık",
         "Veri Kaynağı": "Muhasebe sistemi"
     },
     {
