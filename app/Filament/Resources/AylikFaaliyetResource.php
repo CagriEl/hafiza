@@ -2070,9 +2070,39 @@ class AylikFaaliyetResource extends Resource
             $revizeSebebi = trim((string) ($item['revize_sebebi'] ?? ''));
             $kararIhtiyaci = trim((string) ($item['karar_ihtiyaci'] ?? ''));
             $gerekliRevize = (bool) ($item['gerekli_revize'] ?? false);
+            $kapsamRows = is_array($item['kapsam_rows'] ?? null) ? $item['kapsam_rows'] : [];
             $infoHtml = $infoLevel !== ''
                 ? '<span style="font-size:11px;color:#b91c1c;background:#fee2e2;padding:2px 8px;border-radius:9999px;">Bilgilendirme: '.e($infoLevel).'</span>'
                 : '';
+            $kapsamHtml = '';
+            if ($kapsamRows !== []) {
+                $rowsHtml = '';
+                foreach ($kapsamRows as $krow) {
+                    if (! is_array($krow)) {
+                        continue;
+                    }
+                    $kalem = trim((string) ($krow['kalem'] ?? ''));
+                    if ($kalem === '') {
+                        continue;
+                    }
+                    $kDone = number_format((float) ($krow['gerceklesen'] ?? 0), 0, ',', '.');
+                    $kPending = number_format((float) ($krow['acikta_kalan'] ?? 0), 0, ',', '.');
+                    $rowsHtml .= '<tr>'
+                        .'<td style="padding:4px 6px;border:1px solid #e5e7eb;">'.e($kalem).'</td>'
+                        .'<td style="padding:4px 6px;border:1px solid #e5e7eb;text-align:right;">'.e($kDone).'</td>'
+                        .'<td style="padding:4px 6px;border:1px solid #e5e7eb;text-align:right;">'.e($kPending).'</td>'
+                        .'</tr>';
+                }
+                if ($rowsHtml !== '') {
+                    $kapsamHtml = '<div style="margin-top:8px;">'
+                        .'<div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:4px;">Kalem Kalem Girdi</div>'
+                        .'<table style="width:100%;border-collapse:collapse;font-size:11px;">'
+                        .'<thead><tr style="background:#f9fafb;"><th style="padding:4px 6px;border:1px solid #e5e7eb;text-align:left;">Kalem</th><th style="padding:4px 6px;border:1px solid #e5e7eb;text-align:right;">Gerçekleşen</th><th style="padding:4px 6px;border:1px solid #e5e7eb;text-align:right;">Açıkta</th></tr></thead>'
+                        .'<tbody>'.$rowsHtml.'</tbody>'
+                        .'</table>'
+                        .'</div>';
+                }
+            }
 
             $cardsHtml .= '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff;margin-bottom:8px;box-sizing:border-box;">'
                 .'<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">'
@@ -2088,6 +2118,7 @@ class AylikFaaliyetResource extends Resource
                 .'<div>Revize sebebi: <b>'.e($revizeSebebi !== '' ? $revizeSebebi : '—').'</b></div>'
                 .'<div>Karar ihtiyacı: <b>'.e($kararIhtiyaci !== '' ? $kararIhtiyaci : '—').'</b></div>'
                 .($infoHtml !== '' ? '<div style="margin-top:4px;">'.$infoHtml.'</div>' : '')
+                .$kapsamHtml
                 .'</div>'
                 .'<div style="margin-top:10px;background:#e5e7eb;height:9px;border-radius:9999px;overflow:hidden;">'
                 .'<div style="height:100%;width:'.$width.'%;background:'.e((string) $item['bar_color']).';"></div>'
@@ -2307,6 +2338,7 @@ class AylikFaaliyetResource extends Resource
                 'gerekli_revize' => (bool) ($row['gerekli_revize'] ?? false),
                 'revize_sebebi' => trim((string) ($row['revize_sebebi'] ?? '')),
                 'karar_ihtiyaci' => trim((string) ($row['karar_ihtiyaci'] ?? '')),
+                'kapsam_rows' => static::kapsamRowsForSummary($row),
                 'done' => $done,
                 'pending' => $pending,
                 'plan' => $plan,
@@ -2405,6 +2437,41 @@ class AylikFaaliyetResource extends Resource
             'missing_pending' => ! $pendingProvided,
             'missing_plan' => ! $targetProvided && ! $doneProvided && ! $pendingProvided,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @return list<array{kalem:string, gerceklesen:float, acikta_kalan:float}>
+     */
+    private static function kapsamRowsForSummary(array $row): array
+    {
+        $kapsamRows = $row['kapsam_verileri'] ?? null;
+        if (! is_array($kapsamRows) || $kapsamRows === []) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($kapsamRows as $kapsamRow) {
+            if (! is_array($kapsamRow)) {
+                continue;
+            }
+            $kalem = trim((string) ($kapsamRow['kalem'] ?? ''));
+            if ($kalem === '') {
+                continue;
+            }
+            $done = static::toFloatNumber($kapsamRow['gerceklesen'] ?? 0);
+            $pending = array_key_exists('acikta_kalan', $kapsamRow)
+                ? static::toFloatNumber($kapsamRow['acikta_kalan'] ?? 0)
+                : static::toFloatNumber(AylikFaaliyetRepeaterLock::kapsamSatirAciktaKalan($kapsamRow));
+
+            $out[] = [
+                'kalem' => $kalem,
+                'gerceklesen' => max(0.0, $done),
+                'acikta_kalan' => max(0.0, $pending),
+            ];
+        }
+
+        return $out;
     }
 
     /**
