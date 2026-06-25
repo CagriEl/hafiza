@@ -237,7 +237,7 @@
         "Faaliyet Ailesi": "Arıtma, Su Kalitesi ve Üretim",
         "Kategori": "Operasyonel Hizmet",
         "Kapsam": "Arıtma, dezenfeksiyon, analiz ve depolama",
-        "Ölçü Birimi": "numune / m3",
+        "Ölçü Birimi": "numune / adet",
         "Ana KPI / SLA": "uygun numune oranı",
         "Veri Kaynağı": "SCADA / laboratuvar"
     },
@@ -737,7 +737,7 @@
         "Faaliyet Ailesi": "Atıksu Arıtma ve Su Kalitesi",
         "Kategori": "Operasyonel Hizmet",
         "Kapsam": "AAT işletimi, analiz, deşarj ve bakım",
-        "Ölçü Birimi": "numune / m3",
+        "Ölçü Birimi": "numune / adet",
         "Ana KPI / SLA": "uygun deşarj oranı",
         "Veri Kaynağı": "SCADA / laboratuvar"
     },
@@ -1094,9 +1094,9 @@
     {
         "Müdürlük": "Gelirler Müdürlüğü",
         "Faaliyet Kodu": "GLR-01",
-        "Faaliyet Ailesi": "Kira Ecrimisil İşgaliye",
+        "Faaliyet Ailesi": "Sicil, Beyan ve Düzeltme",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Kira, Ecrimisil, İşgaliye, Sicil açılış",
+        "Kapsam": "Sicil açılış-kapanış, beyan, düzeltme",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "zamanında işlenen kayıt oranı",
         "Veri Kaynağı": "Gelir sistemi"

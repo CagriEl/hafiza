@@ -327,9 +327,9 @@
             "activities": [
                 {
                     "faaliyet_kodu": "GLR-01",
-                    "faaliyet_ailesi": "Kira Ecrimisil İşgaliye",
+                    "faaliyet_ailesi": "Sicil, Beyan ve Düzeltme",
                     "kategori": "Başvuru \/ İşlem",
-                    "kapsam": "Kira, Ecrimisil, İşgaliye, Sicil açılış",
+                    "kapsam": "Sicil açılış-kapanış, beyan, düzeltme",
                     "olcu_birimi": "işlem sayısı",
                     "kpi_sla": "zamanında işlenen kayıt oranı",
                     "raporlama_sikligi": "",
@@ -520,7 +520,7 @@
                     "faaliyet_ailesi": "Atıksu Arıtma ve Su Kalitesi",
                     "kategori": "Operasyonel Hizmet",
                     "kapsam": "AAT işletimi, analiz, deşarj ve bakım",
-                    "olcu_birimi": "numune \/ m3",
+                    "olcu_birimi": "numune \/ adet",
                     "kpi_sla": "uygun deşarj oranı",
                     "raporlama_sikligi": "",
                     "baskanlik_bilgilendirme_seviyesi": ""
@@ -1155,7 +1155,7 @@
                     "faaliyet_ailesi": "Arıtma, Su Kalitesi ve Üretim",
                     "kategori": "Operasyonel Hizmet",
                     "kapsam": "Arıtma, dezenfeksiyon, analiz ve depolama",
-                    "olcu_birimi": "numune \/ m3",
+                    "olcu_birimi": "numune \/ adet",
                     "kpi_sla": "uygun numune oranı",
                     "raporlama_sikligi": "",
                     "baskanlik_bilgilendirme_seviyesi": ""
