@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Analiz Ekibi Örnek Raporu</title>
+    <style>
+        :root {
+            --bg: #f6f8fb;
+            --card: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --ok: #16a34a;
+            --warn: #d97706;
+            --danger: #dc2626;
+            --info: #2563eb;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .container {
+            max-width: 1200px;
+            margin: 24px auto;
+            padding: 0 16px;
+        }
+        .title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .title h1 {
+            margin: 0;
+            font-size: 22px;
+        }
+        .subtitle {
+            color: var(--muted);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+        .filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .chip {
+            border: 1px solid var(--line);
+            background: #fff;
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 12px;
+            color: #374151;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px;
+        }
+        .kpi-label {
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .kpi-note {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #374151;
+        }
+        .ok { color: var(--ok); }
+        .warn { color: var(--warn); }
+        .danger { color: var(--danger); }
+        .info { color: var(--info); }
+        .section {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .section h2 {
+            margin: 0 0 10px;
+            font-size: 16px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border-bottom: 1px solid var(--line);
+            padding: 10px 8px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 13px;
+        }
+        th { color: #374151; background: #f9fafb; }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-ok { background: #dcfce7; color: #166534; }
+        .badge-warn { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .actions {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .actions li {
+            border: 1px dashed var(--line);
+            border-left: 4px solid var(--danger);
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #fff;
+            font-size: 13px;
+        }
+        .muted { color: var(--muted); }
+        .row-flex {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .progress-wrap {
+            margin-top: 8px;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+        .progress {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            overflow: hidden;
+        }
+        .progress > span {
+            display: block;
+            height: 100%;
+            border-radius: 999px;
+        }
+        .heat-list {
+            display: grid;
+            gap: 8px;
+        }
+        .heat-item {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 10px;
+            background: #fff;
+            font-size: 13px;
+        }
+        .heat-item strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+        .heat-low { border-left: 4px solid var(--ok); }
+        .heat-mid { border-left: 4px solid var(--warn); }
+        .heat-high { border-left: 4px solid var(--danger); }
+        @media (max-width: 900px) {
+            .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .row-flex { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="title">
+        <div>
+            <h1>Analiz Ekibi Örnek Raporu</h1>
+            <div class="subtitle">Bağlı müdürlük performans özeti, kalem bazlı analiz ve aksiyon listesi (örnek veri)</div>
+        </div>
+        <div class="filters">
+            <span class="chip">Dönem: 2026-06</span>
+            <span class="chip">Müdürlük: Fen İşleri Müdürlüğü</span>
+            <span class="chip">Faaliyet Kodu: FNM-03</span>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="kpi-label">Yapılan İş</div>
+            <div class="kpi-value ok">12</div>
+            <div class="kpi-note">Geçen aya göre +2</div>
+        </div>
+        <div class="card">
+            <div class="kpi-label">Açıkta Bekleyen İş</div>
+            <div class="kpi-value danger">5</div>
+            <div class="kpi-note">Kritik kalem: stok planı</div>
+        </div>
+        <div class="card">
+            <div class="kpi-label">Tamamlanma Oranı</div>
+            <div class="kpi-value info">%71</div>
+            <div class="kpi-note">12 / 17 toplam iş</div>
+        </div>
+        <div class="card">
+            <div class="kpi-label">Revize + Karar İhtiyacı</div>
+            <div class="kpi-value warn">3</div>
+            <div class="kpi-note">2 revize, 1 karar ihtiyacı</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Kalem Kalem Analiz (FNM-03)</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Kalem</th>
+                <th>Gerçekleşen</th>
+                <th>Açıkta</th>
+                <th>Durum</th>
+                <th>Sapma / Not</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Şantiye operasyon planı</td>
+                <td>4</td>
+                <td>0</td>
+                <td><span class="badge badge-ok">Tamamlandı</span></td>
+                <td class="muted">-</td>
+            </tr>
+            <tr>
+                <td>Üretim saha takibi</td>
+                <td>3</td>
+                <td>1</td>
+                <td><span class="badge badge-warn">Kısmi</span></td>
+                <td>Yağış nedeniyle saha vardiyası gecikti</td>
+            </tr>
+            <tr>
+                <td>Stok planı</td>
+                <td>1</td>
+                <td>3</td>
+                <td><span class="badge badge-danger">Riskli</span></td>
+                <td>Tedarik süresi uzadı, revize talebi açıldı</td>
+            </tr>
+            <tr>
+                <td>Ekip görev planı</td>
+                <td>4</td>
+                <td>1</td>
+                <td><span class="badge badge-warn">Kısmi</span></td>
+                <td>Ek personel ihtiyacı için karar bekleniyor</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Öncelikli Aksiyon Listesi</h2>
+        <ul class="actions">
+            <li><strong>Stok planı</strong> için tedarik takvimi revizesi 48 saat içinde netleştirilsin.</li>
+            <li><strong>Ekip görev planı</strong> için ek vardiya onayı alınsın (karar ihtiyacı açık).</li>
+            <li><strong>Üretim saha takibi</strong> kaleminde gecikme nedeni kapatılıp yeni hedef tarih işlensin.</li>
+        </ul>
+    </div>
+
+    <div class="row-flex">
+        <div class="section">
+            <h2>Olgunluk Göstergesi</h2>
+            <div class="progress-wrap">
+                <div class="progress-label"><span>Veri Kalitesi</span><strong>%82</strong></div>
+                <div class="progress"><span style="width:82%; background:#22c55e;"></span></div>
+            </div>
+            <div class="progress-wrap">
+                <div class="progress-label"><span>Zamanında Kapanış</span><strong>%68</strong></div>
+                <div class="progress"><span style="width:68%; background:#3b82f6;"></span></div>
+            </div>
+            <div class="progress-wrap">
+                <div class="progress-label"><span>Risk Yönetimi</span><strong>%54</strong></div>
+                <div class="progress"><span style="width:54%; background:#f59e0b;"></span></div>
+            </div>
+            <div class="progress-wrap">
+                <div class="progress-label"><span>Aksiyon Kapanış Disiplini</span><strong>%41</strong></div>
+                <div class="progress"><span style="width:41%; background:#ef4444;"></span></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Risk Isı Haritası</h2>
+            <div class="heat-list">
+                <div class="heat-item heat-high">
+                    <strong>Stok Planı</strong>
+                    Açıkta 3 iş, revize talebi var.
+                </div>
+                <div class="heat-item heat-mid">
+                    <strong>Ekip Görev Planı</strong>
+                    Açıkta 1 iş, karar ihtiyacı bekliyor.
+                </div>
+                <div class="heat-item heat-low">
+                    <strong>Şantiye Operasyon Planı</strong>
+                    Tüm kalemler zamanında tamamlandı.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>İleri Analiz İmkanları</h2>
+        <table>
+            <thead>
+            <tr>
+                <th>Analiz Başlığı</th>
+                <th>Ne Ölçer?</th>
+                <th>Yönetim Faydası</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>Veri Kalitesi Skoru</td>
+                <td>Eksik kalem, boş alan, sadece 0 giriş oranı</td>
+                <td>Düşük kaliteli raporu erken tespit eder</td>
+            </tr>
+            <tr>
+                <td>Kök Neden Analizi</td>
+                <td>Sapma/revize nedenlerinin kategori dağılımı</td>
+                <td>Tekrarlayan sorunların ana kaynağını gösterir</td>
+            </tr>
+            <tr>
+                <td>Erken Uyarı Sistemi</td>
+                <td>2 dönem üst üste artan açıkta iş kalemleri</td>
+                <td>Kritikleşmeden önce müdahale sağlar</td>
+            </tr>
+            <tr>
+                <td>Trend Karşılaştırma (3-6-12 Ay)</td>
+                <td>Kısa/orta/uzun dönem performans eğilimi</td>
+                <td>Tek ay yanılgısını azaltır, eğilimi görür</td>
+            </tr>
+            <tr>
+                <td>Kapasite ve İş Yükü Analizi</td>
+                <td>İş adedi / ekip kapasitesi oranı</td>
+                <td>Personel veya kaynak ihtiyacını kanıtlar</td>
+            </tr>
+            <tr>
+                <td>Benchmark (Müdürlük Kıyas)</td>
+                <td>Aynı faaliyet kodunun müdürlük bazlı karşılaştırması</td>
+                <td>İyi uygulamaları yaygınlaştırır</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="subtitle">Not: Bu sayfa örnek taslaktır. Gerçek veri entegrasyonu sonrası kartlar ve tablolar otomatik doldurulabilir.</div>
+</div>
+</body>
+</html>

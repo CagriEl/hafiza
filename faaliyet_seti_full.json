@@ -100,16 +100,6 @@
         "Veri Kaynağı": "Evlendirme kayıtları"
     },
     {
-        "Müdürlük": "Yazı İşleri Müdürlüğü",
-        "Faaliyet Kodu": "YZM-06",
-        "Faaliyet Ailesi": "EBYS Süreç Desteği",
-        "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Yetki, akış, sınıflandırma ve klasör doğruluğu",
-        "Ölçü Birimi": "talep sayısı",
-        "Ana KPI / SLA": "kapanış süresi",
-        "Veri Kaynağı": "EBYS destek kayıtları"
-    },
-    {
         "Müdürlük": "İnsan Kaynakları ve Eğitim Müdürlüğü",
         "Faaliyet Kodu": "IKM-01",
         "Faaliyet Ailesi": "Özlük, Atama ve Sicil",
@@ -1096,7 +1086,7 @@
         "Faaliyet Kodu": "GLR-01",
         "Faaliyet Ailesi": "Sicil, Beyan ve Düzeltme",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Sicil açılış-kapanış, beyan, düzeltme",
+        "Kapsam": "Sicil açılış, beyan, düzeltme",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "zamanında işlenen kayıt oranı",
         "Veri Kaynağı": "Gelir sistemi"
@@ -1106,7 +1096,7 @@
         "Faaliyet Kodu": "GLR-02",
         "Faaliyet Ailesi": "Tahakkuk İşlemleri",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "İlan Reklam, Eğlence, Para Cezası",
+        "Kapsam": "İlan Reklam, Eğlence, Para Cezası, Emlak, ÇTV, Harç, Ücret",
         "Ölçü Birimi": "tahakkuk / sicil",
         "Ana KPI / SLA": "tahakkuk tutarı / sayısı",
         "Veri Kaynağı": "Gelir sistemi"
@@ -1156,7 +1146,7 @@
         "Faaliyet Kodu": "MHM-01",
         "Faaliyet Ailesi": "Muhasebe ve Ödeme İşlemleri",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Ödeme emri adedi, Banka mutabakatları, Ödeme emri olmayan muhasebe işlemleri",
+        "Kapsam": "Ödeme emri adedi, Muhasebe işlem fişi, Banka mutabakatları, Ödeme emri olmayan muhasebe işlemleri, Muhasebe işlem fişi",
         "Ölçü Birimi": "adet",
         "Ana KPI / SLA": "zamanında tamamlanan işlem oranı",
         "Veri Kaynağı": "Muhasebe sistemi"
@@ -1166,7 +1156,7 @@
         "Faaliyet Kodu": "MHM-02",
         "Faaliyet Ailesi": "Bütçe ve Ödenek Yönetimi",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Ödenek kontrolü, Ödenek aktarma",
+        "Kapsam": "Ödenek kontrolü, Ödenek aktarma, Taahhüt kartı işlemleri",
         "Ölçü Birimi": "haftalık işlem / adet",
         "Ana KPI / SLA": "zamanında ödenek kontrol ve aktarma oranı",
         "Veri Kaynağı": "Bütçe sistemi"
@@ -1196,7 +1186,7 @@
         "Faaliyet Kodu": "MHM-05",
         "Faaliyet Ailesi": "Avans, Kredi ve Mahsup İşlemleri",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Avans-kredi işlemleri, Mahsup işlemleri",
+        "Kapsam": "Avans-kredi işlemleri, Mahsup işlemleri, Kesin teminat, Geçici teminat",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "zamanında mahsup oranı",
         "Veri Kaynağı": "Muhasebe sistemi"
