@@ -18,11 +18,19 @@
     </style>
 </head>
 <body>
-    <h2>{{ $rapor->yil }} / {{ $rapor->ay }}. Ay Faaliyet Raporu</h2>
+@php
+    use App\Support\ReportPeriodWeeks;
+    $raporYil = (int) ($rapor->yil ?? 0);
+    $raporAy = (int) preg_replace('/\D/', '', (string) ($rapor->ay ?? ''));
+@endphp
+    <h2>{{ $raporYil > 0 && $raporAy >= 1 ? ReportPeriodWeeks::monthPeriodLabel($raporYil, $raporAy) : ($rapor->yil.' / '.$rapor->ay) }} Faaliyet Raporu</h2>
     
     <div class="bilgi-kutusu">
         <strong>Birim:</strong> {{ $rapor->user->name }} <br>
-        <strong>Oluşturulma Tarihi:</strong> {{ $rapor->created_at->format('d.m.Y') }}
+        <strong>Oluşturulma Tarihi:</strong> {{ $rapor->created_at->format('d.m.Y H:i') }} <br>
+        @if($raporYil > 0 && $raporAy >= 1)
+            <strong>Hafta Aralıkları:</strong> {{ ReportPeriodWeeks::weeksOverviewText($raporYil, $raporAy) }}
+        @endif
     </div>
 
     <h3>1. Personel Durumu</h3>
@@ -65,7 +73,12 @@
             @if(is_array($rapor->faaliyetler))
                 @foreach($rapor->faaliyetler as $is)
                     <tr>
-                        <td style="text-align: center;">{{ $is['hafta'] }}. Hafta</td>
+                        <td style="text-align: center;">
+                            @php
+                                $haftaLabel = ReportPeriodWeeks::weekLabelForRecord($raporYil, $raporAy, $is['hafta'] ?? null);
+                            @endphp
+                            {{ $haftaLabel ?? (($is['hafta'] ?? '—').'. Hafta') }}
+                        </td>
                         <td>{{ $is['konu'] }}</td>
                         <td style="text-align: center;">
                             @php

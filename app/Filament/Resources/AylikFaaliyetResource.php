@@ -13,6 +13,7 @@ use App\Support\AylikFaaliyetRepeaterLock;
 use App\Support\CoordinationAccess;
 use App\Support\NonNegativeInput;
 use App\Support\QuerySafety;
+use App\Support\ReportPeriodWeeks;
 use App\Support\ReportingModelReader;
 use App\Support\TurkishString;
 use Carbon\Carbon;
@@ -37,6 +38,7 @@ use Filament\Tables\Grouping\Group as TableGroup;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\Rule;
 
 class AylikFaaliyetResource extends Resource
@@ -387,11 +389,39 @@ class AylikFaaliyetResource extends Resource
                         Grid::make(2)->schema([
                             Forms\Components\Select::make('yil')
                                 ->options([2025 => '2025', 2026 => '2026'])
-                                ->default(now()->year)->required(),
+                                ->default(now()->year)
+                                ->required()
+                                ->live(),
                             Forms\Components\Select::make('ay')
                                 ->options(['01' => 'Ocak', '02' => 'Şubat', '03' => 'Mart', '04' => 'Nisan', '05' => 'Mayıs', '06' => 'Haziran', '07' => 'Temmuz', '08' => 'Ağustos', '09' => 'Eylül', '10' => 'Ekim', '11' => 'Kasım', '12' => 'Aralık'])
-                                ->default(now()->format('m'))->required(),
+                                ->default(now()->format('m'))
+                                ->required()
+                                ->live(),
                         ]),
+                        Forms\Components\Placeholder::make('donem_tarih_araligi')
+                            ->label('Dönem Tarih Aralığı')
+                            ->content(function (Get $get): string {
+                                $yil = (int) ($get('yil') ?? now()->year);
+                                $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? now()->format('m')));
+
+                                if ($yil <= 0 || $ay < 1 || $ay > 12) {
+                                    return '—';
+                                }
+
+                                return ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
+                            }),
+                        Forms\Components\Placeholder::make('hafta_tarih_ozeti')
+                            ->label('Aylık Hafta Aralıkları')
+                            ->content(function (Get $get): HtmlString {
+                                $yil = (int) ($get('yil') ?? now()->year);
+                                $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? now()->format('m')));
+
+                                if ($yil <= 0 || $ay < 1 || $ay > 12) {
+                                    return new HtmlString('—');
+                                }
+
+                                return new HtmlString(ReportPeriodWeeks::weeksOverviewHtml($yil, $ay));
+                            }),
                     ])->compact(),
                 Section::make('Uyarı')
                     ->schema([
@@ -562,6 +592,24 @@ class AylikFaaliyetResource extends Resource
                                     ->dehydrated()
                                     ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
                                     ->extraAttributes(['class' => 'bg-gray-50']),
+
+                                Forms\Components\Select::make('hafta')
+                                    ->label('Rapor Haftası')
+                                    ->options(function (Get $get): array {
+                                        $yil = (int) ($get('../../yil') ?? 0);
+                                        $ay = (int) preg_replace('/\D/', '', (string) ($get('../../ay') ?? ''));
+
+                                        if ($yil <= 0 || $ay < 1 || $ay > 12) {
+                                            return [];
+                                        }
+
+                                        return ReportPeriodWeeks::selectOptions($yil, $ay);
+                                    })
+                                    ->helperText('Haftalık raporlama sıklığındaki faaliyetler için ilgili hafta ve tarih aralığını seçin.')
+                                    ->visible(fn (Get $get): bool => ReportPeriodWeeks::isWeeklyReportingFrequency($get('raporlama_sikligi')))
+                                    ->required(fn (Get $get): bool => ReportPeriodWeeks::isWeeklyReportingFrequency($get('raporlama_sikligi')))
+                                    ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
+                                    ->dehydrated(true),
 
                                 Repeater::make('kapsam_verileri')
                                     ->label('Kapsam kalemleri (Raporlama sıklığı dikkate alınarak aylık veya haftalık olarak verileri doldurmanız gerekmektedir.)')                                    ->helperText('Yapılan iş raporlama sıklığındaki aylık veya haftalık işler olarak sayılsal veri ile doldurulmalıdır. Başlanmış ancak henüz finalize olmamış işler için açıkta kalan kısmını doldurmanız gereklidir.')
@@ -1543,6 +1591,40 @@ class AylikFaaliyetResource extends Resource
                             ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
                         TextEntry::make('ay')->label('Ay')
                             ->formatStateUsing(fn ($state): string => static::normalizeInfolistTextState($state)),
+                        TextEntry::make('donem_tarih_araligi')
+                            ->label('Dönem Tarih Aralığı')
+                            ->getStateUsing(function (?AylikFaaliyet $record): string {
+                                if (! $record instanceof AylikFaaliyet) {
+                                    return '—';
+                                }
+
+                                $yil = (int) ($record->yil ?? 0);
+                                $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? ''));
+
+                                if ($yil <= 0 || $ay < 1 || $ay > 12) {
+                                    return '—';
+                                }
+
+                                return ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
+                            }),
+                        TextEntry::make('hafta_tarih_ozeti')
+                            ->label('Aylık Hafta Aralıkları')
+                            ->getStateUsing(function (?AylikFaaliyet $record): HtmlString {
+                                if (! $record instanceof AylikFaaliyet) {
+                                    return new HtmlString('—');
+                                }
+
+                                $yil = (int) ($record->yil ?? 0);
+                                $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? ''));
+
+                                if ($yil <= 0 || $ay < 1 || $ay > 12) {
+                                    return new HtmlString('—');
+                                }
+
+                                return new HtmlString(ReportPeriodWeeks::weeksOverviewHtml($yil, $ay));
+                            })
+                            ->html()
+                            ->columnSpanFull(),
                     ])
                     ->columns(3),
                 InfolistSection::make('Koordinasyon Detayı')
@@ -2106,7 +2188,11 @@ class AylikFaaliyetResource extends Resource
 
             $cardsHtml .= '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff;margin-bottom:8px;box-sizing:border-box;">'
                 .'<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">'
-                .'<div style="min-width:0;"><div style="font-weight:700;color:#111827;word-break:break-word;">'.e((string) $item['code']).'</div><div style="font-size:12px;color:#4b5563;word-break:break-word;">'.e((string) $item['title']).'</div></div>'
+                .'<div style="min-width:0;"><div style="font-weight:700;color:#111827;word-break:break-word;">'.e((string) $item['code']).'</div><div style="font-size:12px;color:#4b5563;word-break:break-word;">'.e((string) $item['title']).'</div>'
+                .(trim((string) ($item['week_label'] ?? '')) !== '' && trim((string) ($item['week_label'] ?? '')) !== '—'
+                    ? '<div style="font-size:11px;color:#6b7280;margin-top:2px;">'.e((string) $item['week_label']).'</div>'
+                    : '')
+                .'</div>'
                 .'<span style="font-size:12px;padding:3px 10px;border-radius:9999px;background:'.e((string) $item['badge_bg']).';color:'.e((string) $item['badge_text']).';">'.e((string) $item['status_label']).'</span>'
                 .'</div>'
                 .'<div style="display:block;margin-top:8px;font-size:12px;color:#374151;line-height:1.6;">'
@@ -2171,7 +2257,14 @@ class AylikFaaliyetResource extends Resource
     {
         $summary = static::summarizeReportForPresentation($record);
         $mudurluk = trim((string) ($record?->user?->name ?? 'Belirtilmemiş'));
-        $period = trim((string) (($record?->yil ?? '—').' / '.str_pad((string) ($record?->ay ?? '—'), 2, '0', STR_PAD_LEFT)));
+        $yil = (int) ($record?->yil ?? 0);
+        $ay = (int) preg_replace('/\D/', '', (string) ($record?->ay ?? ''));
+        $period = $yil > 0 && $ay >= 1 && $ay <= 12
+            ? ReportPeriodWeeks::monthPeriodLabel($yil, $ay)
+            : trim((string) (($record?->yil ?? '—').' / '.str_pad((string) ($record?->ay ?? '—'), 2, '0', STR_PAD_LEFT)));
+        $weeksOverview = $yil > 0 && $ay >= 1 && $ay <= 12
+            ? ReportPeriodWeeks::weeksOverviewText($yil, $ay)
+            : '';
         $rowsHtml = '';
 
         foreach ($summary['items'] as $item) {
@@ -2180,6 +2273,7 @@ class AylikFaaliyetResource extends Resource
             $planColor = (bool) ($item['missing_plan'] ?? false) ? '#b91c1c' : '#111827';
             $rowsHtml .= '<tr>'
                 .'<td>'.e((string) $item['code']).'</td>'
+                .'<td>'.e((string) ($item['week_label'] ?? '—')).'</td>'
                 .'<td>'.e((string) $item['title']).'</td>'
                 .'<td style="color:'.$doneColor.';">'.e(number_format((float) $item['done'], 0, ',', '.')).'</td>'
                 .'<td style="color:'.$pendingColor.';">'.e(number_format((float) $item['pending'], 0, ',', '.')).'</td>'
@@ -2191,7 +2285,7 @@ class AylikFaaliyetResource extends Resource
         }
 
         if ($rowsHtml === '') {
-            $rowsHtml = '<tr><td colspan="8">Kayıtlı faaliyet bulunamadı.</td></tr>';
+            $rowsHtml = '<tr><td colspan="9">Kayıtlı faaliyet bulunamadı.</td></tr>';
         }
 
         return '<!DOCTYPE html>
@@ -2201,7 +2295,8 @@ class AylikFaaliyetResource extends Resource
     <style>
         body { font-family: "DejaVu Sans", sans-serif; font-size: 11px; color: #111827; }
         .title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-        .meta { font-size: 11px; color: #4b5563; margin-bottom: 12px; }
+        .meta { font-size: 11px; color: #4b5563; margin-bottom: 6px; }
+        .weeks { font-size: 10px; color: #4b5563; margin-bottom: 12px; }
         .cards { width: 100%; margin-bottom: 12px; }
         .cards td { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; width: 25%; }
         .cards .k { font-size: 10px; color: #374151; }
@@ -2214,6 +2309,7 @@ class AylikFaaliyetResource extends Resource
 <body>
     <div class="title">Faaliyet Raporu - Görsel Özet</div>
     <div class="meta">Müdürlük: '.e($mudurluk).' | Dönem: '.e($period).' | Oluşturulma: '.e(now()->format('d.m.Y H:i')).'</div>
+    '.($weeksOverview !== '' ? '<div class="weeks">'.e($weeksOverview).'</div>' : '').'
 
     <table class="cards">
         <tr>
@@ -2228,6 +2324,7 @@ class AylikFaaliyetResource extends Resource
         <thead>
             <tr>
                 <th>Kod</th>
+                <th>Hafta / Tarih Aralığı</th>
                 <th>Faaliyet</th>
                 <th>Yapılan</th>
                 <th>Açıkta Bekleyen</th>
@@ -2284,6 +2381,8 @@ class AylikFaaliyetResource extends Resource
         $completedRows = 0;
         $pendingRows = 0;
         $totalsMissing = false;
+        $recordYil = (int) ($record?->yil ?? 0);
+        $recordAy = (int) preg_replace('/\D/', '', (string) ($record?->ay ?? ''));
 
         foreach ($rows as $row) {
             if (! is_array($row)) {
@@ -2329,9 +2428,12 @@ class AylikFaaliyetResource extends Resource
                 $pendingRows++;
             }
 
+            $weekLabel = ReportPeriodWeeks::weekLabelForRecord($recordYil, $recordAy, $row['hafta'] ?? null) ?? '—';
+
             $items[] = [
                 'code' => trim((string) ($row['faaliyet_kodu'] ?? 'Faaliyet')),
-                'title' => static::resolveReportRowTitle($row),
+                'title' => static::resolveReportRowTitle($row, $recordYil, $recordAy),
+                'week_label' => $weekLabel,
                 'unit' => trim((string) ($row['olcu_birimi'] ?? '')),
                 'info_level' => trim((string) ($row['baskanlik_bilgilendirme_seviyesi'] ?? '')),
                 'sapma_nedeni' => trim((string) ($row['sapma_nedeni'] ?? '')),
@@ -2477,11 +2579,17 @@ class AylikFaaliyetResource extends Resource
     /**
      * @param  array<string, mixed>  $row
      */
-    private static function resolveReportRowTitle(array $row): string
+    private static function resolveReportRowTitle(array $row, ?int $year = null, ?int $month = null): string
     {
+        $weekLabel = ReportPeriodWeeks::weekLabelForRecord($year, $month, $row['hafta'] ?? null);
+
         $scope = trim((string) ($row['kapsam_icerigi'] ?? ''));
         if ($scope !== '') {
-            return $scope;
+            return $weekLabel ? $scope.' | '.$weekLabel : $scope;
+        }
+
+        if ($weekLabel) {
+            return $weekLabel;
         }
 
         $week = trim((string) ($row['hafta'] ?? ''));
