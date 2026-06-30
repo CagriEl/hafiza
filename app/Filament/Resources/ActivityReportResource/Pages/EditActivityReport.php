@@ -51,9 +51,11 @@ class EditActivityReport extends EditRecord
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
         $data = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
 
-        return AylikFaaliyetResource::syncFaaliyetlerWithCurrentCatalog(
-            $data,
-            $this->getRecord()->user?->name
+        return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
+            AylikFaaliyetResource::syncFaaliyetlerWithCurrentCatalog(
+                $data,
+                $this->getRecord()->user?->name
+            )
         );
     }
 
@@ -85,12 +87,16 @@ class EditActivityReport extends EditRecord
         }
 
         if (! $user instanceof User) {
-            return AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data);
+            return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
+                AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data)
+            );
         }
 
         if ($user->isMudurlukReportingAccount()
             && AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($this->record, $user)) {
-            return AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data);
+            return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
+                AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data)
+            );
         }
 
         $original = is_array($this->record->faaliyetler) ? $this->record->faaliyetler : [];
@@ -123,7 +129,9 @@ class EditActivityReport extends EditRecord
             }
         }
 
-        return AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data);
+        return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
+            AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data)
+        );
     }
 
     protected function afterSave(): void

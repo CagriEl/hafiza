@@ -593,41 +593,18 @@ class AylikFaaliyetResource extends Resource
                                     ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
                                     ->extraAttributes(['class' => 'bg-gray-50']),
 
-                                Forms\Components\Select::make('hafta')
-                                    ->label('Rapor Haftası')
-                                    ->options(function (Get $get): array {
-                                        $yil = (int) ($get('../../yil') ?? 0);
-                                        $ay = (int) preg_replace('/\D/', '', (string) ($get('../../ay') ?? ''));
-
-                                        if ($yil <= 0 || $ay < 1 || $ay > 12) {
-                                            return [];
-                                        }
-
-                                        return ReportPeriodWeeks::selectOptions($yil, $ay);
+                                Forms\Components\Placeholder::make('otomatik_hafta_gosterimi')
+                                    ->label('Otomatik Rapor Haftası')
+                                    ->content(function (Get $get, $livewire): string {
+                                        return static::autoWeekLabelForFormContext($get, $livewire) ?? '—';
                                     })
-                                    ->live()
-                                    ->helperText('Her faaliyet satırı için ilgili hafta ve tarih aralığını seçin.')
-                                    ->required(fn (Get $get, $livewire): bool => ! AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
-                                    ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
-                                    ->dehydrated(true),
-
-                                Forms\Components\Placeholder::make('secili_hafta_tarih_araligi')
-                                    ->label('Seçili Hafta Tarih Aralığı')
-                                    ->content(function (Get $get): string {
-                                        $yil = (int) ($get('../../yil') ?? 0);
-                                        $ay = (int) preg_replace('/\D/', '', (string) ($get('../../ay') ?? ''));
-                                        $week = (int) ($get('hafta') ?? 0);
-
-                                        return ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $week) ?? 'Hafta seçilmedi';
-                                    })
-                                    ->visible(fn (Get $get): bool => filled($get('hafta'))),
+                                    ->helperText('Bugünün tarihine göre ilgili hafta ve tarih aralığı otomatik belirlenir.')
+                                    ->columnSpanFull(),
 
                                 Repeater::make('kapsam_verileri')
-                                    ->label(function (Get $get): string {
+                                    ->label(function (Get $get, $livewire): string {
                                         $base = 'Kapsam kalemleri';
-                                        $yil = (int) ($get('../../yil') ?? 0);
-                                        $ay = (int) preg_replace('/\D/', '', (string) ($get('../../ay') ?? ''));
-                                        $weekLabel = ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $get('../hafta') ?? $get('hafta'));
+                                        $weekLabel = static::autoWeekLabelForFormContext($get, $livewire);
 
                                         if ($weekLabel) {
                                             return $base.' ('.$weekLabel.')';
@@ -1015,7 +992,21 @@ class AylikFaaliyetResource extends Resource
                                     }
                                 }
 
-                                $weekLabel = ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $state['hafta'] ?? null);
+                                $weekLabel = null;
+                                if ($yil > 0 && $ay !== '') {
+                                    $month = (int) preg_replace('/\D/', '', $ay);
+                                    if ($month >= 1 && $month <= 12) {
+                                        if ((bool) ($state['ay_sonu_performans_kilitli'] ?? false) && filled($state['hafta'] ?? null)) {
+                                            $weekLabel = ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $state['hafta']);
+                                        } else {
+                                            $weekLabel = ReportPeriodWeeks::weekLabelForRecord(
+                                                $yil,
+                                                $ay,
+                                                ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $month)
+                                            );
+                                        }
+                                    }
+                                }
                                 if ($weekLabel) {
                                     $label .= ' | '.$weekLabel;
                                 }
@@ -2491,7 +2482,11 @@ class AylikFaaliyetResource extends Resource
                 $pendingRows++;
             }
 
-            $weekLabel = ReportPeriodWeeks::weekLabelForRecord($recordYil, $recordAy, $row['hafta'] ?? null) ?? '—';
+            $weekNumber = $row['hafta'] ?? null;
+            if (! filled($weekNumber) && $recordYil > 0 && $recordAy >= 1 && $recordAy <= 12) {
+                $weekNumber = ReportPeriodWeeks::resolveWeekForReportPeriod($recordYil, $recordAy);
+            }
+            $weekLabel = ReportPeriodWeeks::weekLabelForRecord($recordYil, $recordAy, $weekNumber) ?? '—';
 
             $items[] = [
                 'code' => trim((string) ($row['faaliyet_kodu'] ?? 'Faaliyet')),
@@ -2929,6 +2924,68 @@ class AylikFaaliyetResource extends Resource
         }
 
         return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function applyAutoHaftaToFaaliyetler(array $data): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        $yil = (int) ($data['yil'] ?? 0);
+        $ay = (int) preg_replace('/\D/', '', (string) ($data['ay'] ?? ''));
+        if ($yil <= 0 || $ay < 1 || $ay > 12) {
+            return $data;
+        }
+
+        $autoWeek = ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay);
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $locked = (bool) ($row['ay_sonu_performans_kilitli'] ?? false);
+            if ($locked && filled($row['hafta'] ?? null)) {
+                continue;
+            }
+
+            $data['faaliyetler'][$i]['hafta'] = $autoWeek;
+        }
+
+        return $data;
+    }
+
+    private static function autoWeekLabelForFormContext(Get $get, mixed $livewire = null): ?string
+    {
+        $yil = (int) ($get('../../yil') ?? $get('../../../yil') ?? 0);
+        $ay = (int) preg_replace('/\D/', '', (string) ($get('../../ay') ?? $get('../../../ay') ?? ''));
+
+        if (($yil <= 0 || $ay < 1 || $ay > 12) && is_object($livewire)) {
+            if (method_exists($livewire, 'getRecord')) {
+                $record = $livewire->getRecord();
+                if ($record instanceof AylikFaaliyet) {
+                    $yil = (int) ($record->yil ?? $yil);
+                    $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? $ay));
+                }
+            }
+            if (($yil <= 0 || $ay < 1) && property_exists($livewire, 'data') && is_array($livewire->data)) {
+                $yil = (int) ($livewire->data['yil'] ?? $yil);
+                $ay = (int) preg_replace('/\D/', '', (string) ($livewire->data['ay'] ?? $ay));
+            }
+        }
+
+        if ($yil <= 0 || $ay < 1 || $ay > 12) {
+            return null;
+        }
+
+        $week = ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay);
+
+        return ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $week);
     }
 
     public static function getPages(): array

@@ -34,7 +34,9 @@ class CreateActivityReport extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data);
+        return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
+            AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data)
+        );
     }
 
     protected function afterCreate(): void

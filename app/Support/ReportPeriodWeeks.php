@@ -102,6 +102,36 @@ final class ReportPeriodWeeks
         return $date->format('d.m.Y');
     }
 
+    /**
+     * Rapor dönemi ve bugünün tarihine göre otomatik hafta numarası (1–4).
+     */
+    public static function resolveWeekForReportPeriod(int $year, int $month, ?Carbon $date = null): int
+    {
+        $weeks = self::weeksForMonth($year, $month);
+        if ($weeks === []) {
+            return 1;
+        }
+
+        $date = ($date ?? now())->copy()->startOfDay();
+        $bounds = self::monthBounds($year, $month);
+
+        if ($date->lt($bounds['start'])) {
+            return 1;
+        }
+
+        if ($date->gt($bounds['end'])) {
+            return (int) $weeks[array_key_last($weeks)]['hafta'];
+        }
+
+        foreach ($weeks as $week) {
+            if ($date->greaterThanOrEqualTo($week['baslangic']) && $date->lessThanOrEqualTo($week['bitis'])) {
+                return (int) $week['hafta'];
+            }
+        }
+
+        return 1;
+    }
+
     public static function weekShortLabel(int $year, int $month, int $week): string
     {
         $weekData = self::weekByNumber($year, $month, $week);

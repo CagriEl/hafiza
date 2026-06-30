@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Support\ReportPeriodWeeks;
+use Carbon\Carbon;
 use PHPUnit\Framework\TestCase;
 
 class ReportPeriodWeeksTest extends TestCase
@@ -32,6 +33,24 @@ class ReportPeriodWeeksTest extends TestCase
 
         $this->assertArrayHasKey(2, $options);
         $this->assertSame('2. Hafta (08.03.2026 - 14.03.2026)', $options[2]);
+    }
+
+    public function test_resolve_week_for_current_date_in_report_period(): void
+    {
+        $today = Carbon::create(2026, 6, 10)->startOfDay();
+        $this->assertSame(2, ReportPeriodWeeks::resolveWeekForReportPeriod(2026, 6, $today));
+    }
+
+    public function test_resolve_week_before_report_period_defaults_to_first_week(): void
+    {
+        $today = Carbon::create(2026, 5, 31)->startOfDay();
+        $this->assertSame(1, ReportPeriodWeeks::resolveWeekForReportPeriod(2026, 6, $today));
+    }
+
+    public function test_resolve_week_after_report_period_defaults_to_last_week(): void
+    {
+        $today = Carbon::create(2026, 7, 1)->startOfDay();
+        $this->assertSame(4, ReportPeriodWeeks::resolveWeekForReportPeriod(2026, 6, $today));
     }
 
     public function test_record_period_label_formats_month_range(): void
