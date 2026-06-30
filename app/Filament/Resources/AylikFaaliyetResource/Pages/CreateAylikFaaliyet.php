@@ -68,7 +68,9 @@ class CreateAylikFaaliyet extends CreateRecord
 
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
 
-        return AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data);
+        return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
+            AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data)
+        );
     }
 
     // --- BU FONKSİYONU EKLEYİN ---

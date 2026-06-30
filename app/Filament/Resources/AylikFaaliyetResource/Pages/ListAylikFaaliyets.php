@@ -6,6 +6,7 @@ use App\Filament\Resources\AylikFaaliyetResource;
 use App\Models\ExtraordinarySituation;
 use App\Models\User;
 use App\Services\ActivityService;
+use App\Support\ReportPeriodWeeks;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Filament\Actions\Action;
@@ -167,8 +168,15 @@ class ListAylikFaaliyets extends ListRecords
                         }
                     }
 
+                    $haftaLabel = ReportPeriodWeeks::weekLabelForRecord(
+                        (int) ($record->yil ?? 0),
+                        $record->ay ?? null,
+                        $is['hafta'] ?? null
+                    );
+
                     $isDetaylari .= "<div style='margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;'>
                                         <b>[".e($durum).']</b> '.e($baslik).'
+                                        '.($haftaLabel ? '<br><b>Hafta:</b> '.e($haftaLabel) : '').'
                                         <br><b>Ay sonu gerçekleşen / Ay sonu bekleyen:</b> '.e((string) $gerceklesen).' / '.e((string) $bekleyen).'
                                         '.($olcuBirimi !== '' ? '<br><b>Ölçü birimi:</b> '.e($olcuBirimi) : '').'
                                         '.($kapsamIcerigi !== '' ? '<br><b>Kapsam:</b> '.e($kapsamIcerigi) : '').'
@@ -179,9 +187,15 @@ class ListAylikFaaliyets extends ListRecords
                 }
             }
 
+            $yil = (int) ($record->yil ?? 0);
+            $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? ''));
+            $donem = $yil > 0 && $ay >= 1 && $ay <= 12
+                ? e(ReportPeriodWeeks::monthPeriodLabel($yil, $ay))
+                : e((string) ($record->yil.' / '.$record->ay));
+
             $html .= '<tr>
                         <td>'.e($record->user->name ?? 'Belirtilmemiş').'</td>
-                        <td>'.$record->yil.' / '.$record->ay.'</td>
+                        <td>'.$donem.'</td>
                         <td>'.($isDetaylari ?: 'Kayıtlı faaliyet yok.').'</td>
                       </tr>';
         }

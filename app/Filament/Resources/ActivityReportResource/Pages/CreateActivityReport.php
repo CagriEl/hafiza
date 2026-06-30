@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ActivityReportResource\Pages;
 
 use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
+use App\Filament\Resources\AylikFaaliyetResource;
 use App\Models\User;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\AylikFaaliyetRepeaterLock;
@@ -34,7 +35,9 @@ class CreateActivityReport extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data);
+        return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
+            AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data)
+        );
     }
 
     protected function afterCreate(): void
