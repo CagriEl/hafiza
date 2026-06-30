@@ -605,14 +605,37 @@ class AylikFaaliyetResource extends Resource
 
                                         return ReportPeriodWeeks::selectOptions($yil, $ay);
                                     })
-                                    ->helperText('Haftalık raporlama sıklığındaki faaliyetler için ilgili hafta ve tarih aralığını seçin.')
-                                    ->visible(fn (Get $get): bool => ReportPeriodWeeks::isWeeklyReportingFrequency($get('raporlama_sikligi')))
-                                    ->required(fn (Get $get): bool => ReportPeriodWeeks::isWeeklyReportingFrequency($get('raporlama_sikligi')))
+                                    ->live()
+                                    ->helperText('Her faaliyet satırı için ilgili hafta ve tarih aralığını seçin.')
+                                    ->required(fn (Get $get, $livewire): bool => ! AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
                                     ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
                                     ->dehydrated(true),
 
+                                Forms\Components\Placeholder::make('secili_hafta_tarih_araligi')
+                                    ->label('Seçili Hafta Tarih Aralığı')
+                                    ->content(function (Get $get): string {
+                                        $yil = (int) ($get('../../yil') ?? 0);
+                                        $ay = (int) preg_replace('/\D/', '', (string) ($get('../../ay') ?? ''));
+                                        $week = (int) ($get('hafta') ?? 0);
+
+                                        return ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $week) ?? 'Hafta seçilmedi';
+                                    })
+                                    ->visible(fn (Get $get): bool => filled($get('hafta'))),
+
                                 Repeater::make('kapsam_verileri')
-                                    ->label('Kapsam kalemleri (Raporlama sıklığı dikkate alınarak aylık veya haftalık olarak verileri doldurmanız gerekmektedir.)')                                    ->helperText('Yapılan iş raporlama sıklığındaki aylık veya haftalık işler olarak sayılsal veri ile doldurulmalıdır. Başlanmış ancak henüz finalize olmamış işler için açıkta kalan kısmını doldurmanız gereklidir.')
+                                    ->label(function (Get $get): string {
+                                        $base = 'Kapsam kalemleri';
+                                        $yil = (int) ($get('../../yil') ?? 0);
+                                        $ay = (int) preg_replace('/\D/', '', (string) ($get('../../ay') ?? ''));
+                                        $weekLabel = ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $get('../hafta') ?? $get('hafta'));
+
+                                        if ($weekLabel) {
+                                            return $base.' ('.$weekLabel.')';
+                                        }
+
+                                        return $base;
+                                    })
+                                    ->helperText('Yapılan iş raporlama sıklığındaki aylık veya haftalık işler olarak sayılsal veri ile doldurulmalıdır. Başlanmış ancak henüz finalize olmamış işler için açıkta kalan kısmını doldurmanız gereklidir.')
                                     ->dehydrated()
                                     ->schema([
                                         Grid::make(4)->schema([
@@ -970,10 +993,31 @@ class AylikFaaliyetResource extends Resource
                                         ->extraAttributes(['class' => 'bg-green-50 border-l-4 border-green-500']),
                                 ]),
                             ])
-                            ->itemLabel(function (array $state): ?string {
+                            ->itemLabel(function (array $state, $livewire): ?string {
                                 $label = $state['faaliyet_kodu'] ?? 'Yeni Faaliyet Girisi';
                                 if ((bool) ($state['gerekli_revize'] ?? false)) {
-                                    return '[REVIZE] '.$label;
+                                    $label = '[REVIZE] '.$label;
+                                }
+
+                                $yil = 0;
+                                $ay = '';
+                                if (is_object($livewire)) {
+                                    if (method_exists($livewire, 'getRecord')) {
+                                        $record = $livewire->getRecord();
+                                        if ($record instanceof AylikFaaliyet) {
+                                            $yil = (int) ($record->yil ?? 0);
+                                            $ay = (string) ($record->ay ?? '');
+                                        }
+                                    }
+                                    if ($yil <= 0 && property_exists($livewire, 'data') && is_array($livewire->data)) {
+                                        $yil = (int) ($livewire->data['yil'] ?? 0);
+                                        $ay = (string) ($livewire->data['ay'] ?? '');
+                                    }
+                                }
+
+                                $weekLabel = ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $state['hafta'] ?? null);
+                                if ($weekLabel) {
+                                    $label .= ' | '.$weekLabel;
                                 }
 
                                 return $label;
@@ -1101,8 +1145,27 @@ class AylikFaaliyetResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('yil')->label('Yıl')->badge(),
-                Tables\Columns\TextColumn::make('ay')->label('Ay'),
+                Tables\Columns\TextColumn::make('donem_tarih_araligi')
+                    ->label('Dönem')
+                    ->getStateUsing(function (AylikFaaliyet $record): string {
+                        return ReportPeriodWeeks::recordPeriodLabel(
+                            (int) ($record->yil ?? 0),
+                            $record->ay ?? null
+                        ) ?? trim((string) (($record->yil ?? '—').' / '.($record->ay ?? '—')));
+                    })
+                    ->wrap()
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query
+                            ->where('yil', 'like', "%{$search}%")
+                            ->orWhere('ay', 'like', "%{$search}%");
+                    }),
+                Tables\Columns\TextColumn::make('yil')
+                    ->label('Yıl')
+                    ->badge()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('ay')
+                    ->label('Ay')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('user.name')->label('Müdürlük')->searchable(),
                 Tables\Columns\TextColumn::make('talep_tarihi')
                     ->label('Talep Tarihi')
@@ -1332,7 +1395,7 @@ class AylikFaaliyetResource extends Resource
             static::$mudurlukAyGroupReportCountCache[$key] = max(0, $total);
         }
 
-        return $name.' / '.$yil.'-'.$ay.' ('.static::$mudurlukAyGroupReportCountCache[$key].')';
+        return $name.' / '.(ReportPeriodWeeks::recordPeriodLabel($yil, $ay) ?? ($yil.'-'.$ay)).' ('.static::$mudurlukAyGroupReportCountCache[$key].')';
     }
 
     private static function scopeMudurlukAyGroupQueryByKey(Builder $query, string $key): Builder

@@ -34,6 +34,14 @@ class ReportPeriodWeeksTest extends TestCase
         $this->assertSame('2. Hafta (08.03.2026 - 14.03.2026)', $options[2]);
     }
 
+    public function test_record_period_label_formats_month_range(): void
+    {
+        $this->assertSame(
+            'Mart 2026 (01.03.2026 - 31.03.2026)',
+            ReportPeriodWeeks::recordPeriodLabel(2026, '03')
+        );
+    }
+
     public function test_detects_weekly_reporting_frequency(): void
     {
         $this->assertTrue(ReportPeriodWeeks::isWeeklyReportingFrequency('Haftalık / Aylık'));

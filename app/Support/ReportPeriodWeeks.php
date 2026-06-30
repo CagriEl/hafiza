@@ -186,6 +186,18 @@ final class ReportPeriodWeeks
         return self::weekShortLabel($yearNumber, $monthNumber, $weekNumber);
     }
 
+    public static function recordPeriodLabel(?int $year, mixed $month): ?string
+    {
+        $yearNumber = (int) $year;
+        $monthNumber = (int) preg_replace('/\D/', '', (string) $month);
+
+        if ($yearNumber <= 0 || $monthNumber < 1 || $monthNumber > 12) {
+            return null;
+        }
+
+        return self::monthPeriodLabel($yearNumber, $monthNumber);
+    }
+
     public static function isWeeklyReportingFrequency(?string $frequency): bool
     {
         $normalized = mb_strtolower(trim((string) $frequency));

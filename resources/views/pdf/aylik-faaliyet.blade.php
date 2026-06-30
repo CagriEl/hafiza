@@ -63,7 +63,7 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 10%;">Hafta</th>
+                <th style="width: 10%;">Hafta / Tarih Aralığı</th>
                 <th style="width: 40%;">Konu / Yapılacak İş</th>
                 <th style="width: 15%;">Durum</th>
                 <th style="width: 35%;">Gerçekleşme Sonucu / Açıklama</th>
