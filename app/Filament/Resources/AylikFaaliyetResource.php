@@ -158,6 +158,13 @@ class AylikFaaliyetResource extends Resource
         $set('acikta_kalan', floor($pending) === $pending ? (int) $pending : $pending);
     }
 
+    private static function aciktaKalanDuzenleLabel(float $pending): string
+    {
+        $count = floor($pending) === $pending ? (int) $pending : (int) ceil($pending);
+
+        return $count.' açık işi düzenle';
+    }
+
     private static function uiFieldHasValue(mixed $state): bool
     {
         return $state !== null && $state !== '';
@@ -401,6 +408,54 @@ class AylikFaaliyetResource extends Resource
     public static function hydrateRaporHaftasiField(array $data): array
     {
         return static::hydrateFaaliyetHaftaFields($data);
+    }
+
+    public static function reportRecordSavedAtLabel(?AylikFaaliyet $record): ?string
+    {
+        if (! $record instanceof AylikFaaliyet) {
+            return null;
+        }
+
+        $at = $record->updated_at ?? $record->created_at;
+        if ($at === null) {
+            return null;
+        }
+
+        return $at->format('d.m.Y H:i');
+    }
+
+    /**
+     * Rapordaki iş satırlarında seçilen hafta dönemlerinin özeti.
+     */
+    public static function reportAssignedWeeksSummary(?AylikFaaliyet $record): ?string
+    {
+        if (! $record instanceof AylikFaaliyet) {
+            return null;
+        }
+
+        $yil = (int) ($record->yil ?? 0);
+        $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? ''));
+        if ($yil <= 0 || $ay < 1 || $ay > 12) {
+            return null;
+        }
+
+        $labels = [];
+        $rows = is_array($record->faaliyetler) ? $record->faaliyetler : [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $label = ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $row['hafta'] ?? null);
+            if ($label !== null && $label !== '') {
+                $labels[$label] = true;
+            }
+        }
+
+        if ($labels === []) {
+            return null;
+        }
+
+        return implode(' · ', array_keys($labels));
     }
 
     /**
@@ -1003,6 +1058,31 @@ class AylikFaaliyetResource extends Resource
 
                                 return ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
                             }),
+                        Forms\Components\Placeholder::make('rapor_kayit_bilgisi')
+                            ->label('Sisteme Kayıt')
+                            ->content(function ($livewire): string {
+                                if (! is_object($livewire) || ! method_exists($livewire, 'getRecord')) {
+                                    return 'Kayıt sonrası atanır.';
+                                }
+                                $record = $livewire->getRecord();
+                                if (! $record instanceof AylikFaaliyet || ! $record->exists) {
+                                    return 'Kayıt sonrası atanır.';
+                                }
+                                $savedAt = static::reportRecordSavedAtLabel($record) ?? '—';
+                                $weeks = static::reportAssignedWeeksSummary($record);
+                                $out = 'Kayıt tarihi: '.$savedAt;
+                                if ($weeks !== null && $weeks !== '') {
+                                    $out .= ' | Rapor haftası: '.$weeks;
+                                }
+
+                                return $out;
+                            })
+                            ->helperText('Tarih raporun sisteme son kaydedildiği anı gösterir. Hafta bilgisi iş satırlarındaki «Rapor Dönemi» seçiminden gelir.')
+                            ->visible(fn ($livewire): bool => is_object($livewire)
+                                && method_exists($livewire, 'getRecord')
+                                && ($livewire->getRecord() instanceof AylikFaaliyet)
+                                && $livewire->getRecord()->exists)
+                            ->columnSpanFull(),
                         Forms\Components\Placeholder::make('hafta_tarih_ozeti')
                             ->label('Aylık Hafta Aralıkları')
                             ->content(function (Get $get): HtmlString {
@@ -1210,10 +1290,10 @@ class AylikFaaliyetResource extends Resource
                                     ->helperText(function (Get $get, $livewire): string {
                                         $week = static::currentReportWeekForForm($get, $livewire);
                                         if ($week > 1) {
-                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Hafta aralıkları iş günlerini (Pazartesi–Cuma) kapsar; hafta sonları rapor dönemine dahil edilmez. Yapılma tarihi kayıt anında otomatik eklenir.';
+                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Hafta aralıkları iş günlerini (Pazartesi–Cuma) kapsar. Kayıt tarihi sisteme kaydedildiği gerçek gündür; rapor dönemi yukarıdaki hafta seçiminden belirlenir.';
                                         }
 
-                                        return 'Önce yapılan işi girip kaydedin. Kayıttan sonra aynı raporda tamamlanan iş alanı açılır; eşit değilse fark açıkta kalan olarak hesaplanır.';
+                                        return 'Önce yapılan işi girip kaydedin. Kayıttan sonra aynı raporda tamamlanan iş alanı açılır; eşit değilse fark açıkta kalan olarak hesaplanır. Kayıt tarihi sisteme kaydedildiği gerçek gündür.';
                                     })
                                     ->dehydrated()
                                     ->schema([
@@ -1324,13 +1404,12 @@ class AylikFaaliyetResource extends Resource
                                                 ->label('Açıkta Bekleyen İş')
                                                 ->content(function (Get $get): HtmlString {
                                                     $pending = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get));
-                                                    $unit = static::resolveOlcuBirimiForRow($get);
-                                                    $suffix = $unit !== null && $unit !== '' ? ' '.$unit : '';
-                                                    $formatted = floor($pending) === $pending ? (string) (int) $pending : (string) $pending;
 
                                                     if ($pending <= 0.0) {
-                                                        return new HtmlString(e('0'.$suffix));
+                                                        return new HtmlString(e('0'));
                                                     }
+
+                                                    $label = static::aciktaKalanDuzenleLabel($pending);
 
                                                     return new HtmlString(
                                                         '<button type="button" class="text-primary-600 font-semibold underline decoration-dotted underline-offset-2 cursor-pointer"'
@@ -1338,9 +1417,9 @@ class AylikFaaliyetResource extends Resource
                                                         .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-revize-panel]\')?.scrollIntoView({behavior:\'smooth\',block:\'nearest\'});'
                                                         .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-revize-panel] .fi-section-header\')?.click();'
                                                         .'">'
-                                                        .e($formatted.$suffix)
+                                                        .e($label)
                                                         .'</button>'
-                                                        .'<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Tıklayarak bu kalem için revize notu ekleyin</div>'
+                                                        .'<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Tıklayarak açık işi düzenleyin veya revize notu ekleyin</div>'
                                                     );
                                                 })
                                                 ->helperText('Yapılan iş − tamamlanan iş (eşit değilse açıkta kalan).')
@@ -1453,35 +1532,46 @@ class AylikFaaliyetResource extends Resource
                                                 ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'bu_hafta_aciklama', 'bu_hafta_aciklama_ui'))
                                                 ->dehydrated(false),
                                             Forms\Components\Placeholder::make('yapilma_tarihi_otomatik')
-                                                ->label('Yapılma Tarihi')
-                                                ->content(fn (): string => ReportPeriodWeeks::reportingReferenceDate()->format('d.m.Y'))
-                                                ->helperText('Kayıt sırasında otomatik atanır (hafta sonu ise son Cuma).')
+                                                ->label('Kayıt Tarihi')
+                                                ->content(fn (): string => ReportPeriodWeeks::systemRecordDate()->format('d.m.Y'))
+                                                ->helperText(function (Get $get, $livewire): string {
+                                                    $weekLabel = static::selectedRaporHaftasiLabelForFormContext($get, $livewire);
+                                                    $base = 'Sisteme kaydedildiği gerçek tarih atanır.';
+
+                                                    return $weekLabel !== null && $weekLabel !== ''
+                                                        ? $base.' Rapor dönemi: '.$weekLabel.'.'
+                                                        : $base;
+                                                })
                                                 ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
                                                     && static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
                                         ])->columnSpanFull(),
                                         Forms\Components\Placeholder::make('son_yapilma_tarihi_goster')
-                                            ->label('Son Yapılma Tarihi')
+                                            ->label('Son Kayıt Tarihi')
                                             ->content(fn (Get $get): string => AylikFaaliyetWeeklyCarryover::formatDisplayDate($get('son_yapilma_tarihi')) ?? '—')
                                             ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
                                                 && filled($get('son_yapilma_tarihi')))
                                             ->columnSpanFull(),
                                         Forms\Components\Placeholder::make('haftalik_kayit_ozeti')
                                             ->label('Haftalık İlerleme Kayıtları')
-                                            ->content(function (Get $get): HtmlString {
+                                            ->content(function (Get $get, $livewire): HtmlString {
                                                 $kayitlar = $get('haftalik_kayitlar');
                                                 if (! is_array($kayitlar) || $kayitlar === []) {
                                                     return new HtmlString('—');
                                                 }
+                                                [$yil, $ay] = static::resolveReportPeriodFromLivewire($livewire);
                                                 $lines = [];
                                                 foreach ($kayitlar as $kayit) {
                                                     if (! is_array($kayit)) {
                                                         continue;
                                                     }
                                                     $hafta = (int) ($kayit['hafta'] ?? 0);
+                                                    $weekLabel = ($yil > 0 && $ay >= 1 && $ay <= 12 && $hafta >= 1)
+                                                        ? (ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $hafta) ?? ('Hafta '.$hafta))
+                                                        : ('Hafta '.$hafta);
                                                     $miktar = $kayit['miktar'] ?? '—';
                                                     $tarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($kayit['yapilma_tarihi'] ?? null) ?? '—';
                                                     $aciklama = e(trim((string) ($kayit['aciklama'] ?? '')));
-                                                    $lines[] = '<div style="margin-bottom:4px;"><b>Hafta '.$hafta.'</b> · '.$miktar.' · '.$tarih.'<br><span style="color:#4b5563;">'.$aciklama.'</span></div>';
+                                                    $lines[] = '<div style="margin-bottom:4px;"><b>'.e($weekLabel).'</b> · Kayıt: '.$tarih.' · '.$miktar.'<br><span style="color:#4b5563;">'.$aciklama.'</span></div>';
                                                 }
 
                                                 return new HtmlString(implode('', $lines));
@@ -1956,6 +2046,17 @@ class AylikFaaliyetResource extends Resource
                     ->label('Ay')
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('user.name')->label('Müdürlük')->searchable(),
+                Tables\Columns\TextColumn::make('son_kayit_tarihi')
+                    ->label('Kayıt Tarihi')
+                    ->getStateUsing(fn (AylikFaaliyet $record): string => static::reportRecordSavedAtLabel($record) ?? '—')
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy('updated_at', $direction);
+                    }),
+                Tables\Columns\TextColumn::make('rapor_haftalari')
+                    ->label('Rapor Haftası')
+                    ->getStateUsing(fn (AylikFaaliyet $record): string => static::reportAssignedWeeksSummary($record) ?? '—')
+                    ->wrap()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('talep_tarihi')
                     ->label('Talep Tarihi')
                     ->getStateUsing(fn (AylikFaaliyet $record): string => optional($record->created_at)?->format('d.m.Y') ?? '—')
@@ -3277,6 +3378,8 @@ class AylikFaaliyetResource extends Resource
         $period = $yil > 0 && $ay >= 1 && $ay <= 12
             ? ReportPeriodWeeks::monthPeriodLabel($yil, $ay)
             : trim((string) (($record?->yil ?? '—').' / '.str_pad((string) ($record?->ay ?? '—'), 2, '0', STR_PAD_LEFT)));
+        $savedAt = static::reportRecordSavedAtLabel($record) ?? now()->format('d.m.Y H:i');
+        $reportWeeks = static::reportAssignedWeeksSummary($record);
         $rowsHtml = '';
 
         foreach ($summary['items'] as $item) {
@@ -3294,9 +3397,14 @@ class AylikFaaliyetResource extends Resource
                         continue;
                     }
                     $tarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($kayit['yapilma_tarihi'] ?? null) ?? '—';
+                    $haftaNo = (int) ($kayit['hafta'] ?? 0);
+                    $weekLabel = ($yil > 0 && $ay >= 1 && $ay <= 12 && $haftaNo >= 1)
+                        ? (ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $haftaNo) ?? ('H'.$haftaNo))
+                        : ('H'.$haftaNo);
                     $weeklyNotes .= '<div style="font-size:6.5px;color:#374151;">'
-                        .e((string) ($kapsam['kalem'] ?? '')).': H'.(int) ($kayit['hafta'] ?? 0)
-                        .' · '.e((string) ($kayit['miktar'] ?? '')).' · '.$tarih
+                        .e((string) ($kapsam['kalem'] ?? '')).': '.e($weekLabel)
+                        .' · Kayıt: '.$tarih
+                        .' · '.e((string) ($kayit['miktar'] ?? ''))
                         .' — '.e((string) ($kayit['aciklama'] ?? ''))
                         .'</div>';
                 }
@@ -3345,7 +3453,8 @@ class AylikFaaliyetResource extends Resource
 </head>
 <body>
     <div class="title">Faaliyet Raporu — '.e($mudurluk).'</div>
-    <div class="meta">Dönem: '.e($period).' | Oluşturulma: '.e(now()->format('d.m.Y H:i')).'</div>
+    <div class="meta">Dönem: '.e($period).' | Kayıt tarihi: '.e($savedAt)
+        .($reportWeeks !== null && $reportWeeks !== '' ? ' | Rapor haftası: '.e($reportWeeks) : '').'</div>
     <div class="summary">Yapılan: <b>'.e(number_format((float) $summary['total_done'], 0, ',', '.')).'</b>
         · Açıkta: <b>'.e(number_format((float) $summary['total_pending'], 0, ',', '.')).'</b>
         · Toplam: <b>'.e(number_format((float) $summary['total_plan'], 0, ',', '.')).'</b>
@@ -3362,7 +3471,7 @@ class AylikFaaliyetResource extends Resource
                 <th style="width:7%;">Toplam</th>
                 <th style="width:7%;">%</th>
                 <th style="width:9%;">Durum</th>
-                <th style="width:9%;">Son Tarih</th>
+                <th style="width:9%;">Kayıt Tarihi</th>
             </tr>
         </thead>
         <tbody>

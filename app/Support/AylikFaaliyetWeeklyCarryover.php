@@ -95,7 +95,7 @@ final class AylikFaaliyetWeeklyCarryover
             return $data;
         }
 
-        $today = ReportPeriodWeeks::reportingReferenceDate()->toDateString();
+        $today = ReportPeriodWeeks::systemRecordDateString();
 
         foreach ($data['faaliyetler'] as $i => $row) {
             if (! is_array($row) || (bool) ($row['ay_sonu_performans_kilitli'] ?? false)) {
@@ -184,7 +184,7 @@ final class AylikFaaliyetWeeklyCarryover
             return $data;
         }
 
-        $today = ReportPeriodWeeks::reportingReferenceDate()->toDateString();
+        $today = ReportPeriodWeeks::systemRecordDateString();
 
         foreach ($data['faaliyetler'] as $i => $row) {
             if (! is_array($row) || (bool) ($row['ay_sonu_performans_kilitli'] ?? false)) {

@@ -76,6 +76,19 @@ final class ReportPeriodWeeks
     }
 
     /**
+     * Sisteme kayıt anındaki gerçek takvim tarihi (hafta sonu kaydırması yok).
+     */
+    public static function systemRecordDate(?Carbon $date = null): Carbon
+    {
+        return ($date ?? now())->copy()->startOfDay();
+    }
+
+    public static function systemRecordDateString(?Carbon $date = null): string
+    {
+        return self::systemRecordDate($date)->toDateString();
+    }
+
+    /**
      * Ayı 4 rapor haftasına böler: her hafta iş günü (Pzt–Cum).
      * 1. hafta ayın ilk iş gününden o haftanın Cumasına; 2–3. tam hafta; 4. kalan iş günleri.
      *

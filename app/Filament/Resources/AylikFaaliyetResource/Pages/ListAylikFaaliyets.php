@@ -194,10 +194,12 @@ class ListAylikFaaliyets extends ListRecords
             $donem = $yil > 0 && $ay >= 1 && $ay <= 12
                 ? e(ReportPeriodWeeks::monthPeriodLabel($yil, $ay))
                 : e((string) ($record->yil.' / '.$record->ay));
+            $kayitTarihi = e(AylikFaaliyetResource::reportRecordSavedAtLabel($record) ?? '—');
+            $raporHaftalari = e(AylikFaaliyetResource::reportAssignedWeeksSummary($record) ?? '—');
 
             $html .= '<tr>
                         <td>'.e($record->user->name ?? 'Belirtilmemiş').'</td>
-                        <td>'.$donem.'</td>
+                        <td>'.$donem.'<br><small>Kayıt: '.$kayitTarihi.'</small><br><small>Hafta: '.$raporHaftalari.'</small></td>
                         <td>'.($isDetaylari ?: 'Kayıtlı faaliyet yok.').'</td>
                       </tr>';
         }

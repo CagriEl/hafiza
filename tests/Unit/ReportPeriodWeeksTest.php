@@ -85,6 +85,14 @@ class ReportPeriodWeeksTest extends TestCase
         $this->assertSame('12.06.2026', ReportPeriodWeeks::formatDate(ReportPeriodWeeks::reportingReferenceDate($sunday)));
     }
 
+    public function test_system_record_date_keeps_actual_calendar_day_on_weekend(): void
+    {
+        $saturday = Carbon::create(2026, 6, 13)->startOfDay();
+
+        $this->assertSame('2026-06-13', ReportPeriodWeeks::systemRecordDateString($saturday));
+        $this->assertSame('13.06.2026', ReportPeriodWeeks::formatDate(ReportPeriodWeeks::systemRecordDate($saturday)));
+    }
+
     public function test_record_period_label_formats_month_range(): void
     {
         $this->assertSame(
