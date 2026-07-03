@@ -158,6 +158,30 @@ class AylikFaaliyetResource extends Resource
         $set('acikta_kalan', floor($pending) === $pending ? (int) $pending : $pending);
     }
 
+    private static function uiFieldHasValue(mixed $state): bool
+    {
+        return $state !== null && $state !== '';
+    }
+
+    private static function hydrateUiFromHiddenField(Set $set, Get $get, mixed $uiState, string $hiddenKey, string $uiKey): void
+    {
+        if (static::uiFieldHasValue($uiState)) {
+            return;
+        }
+
+        $stored = $get($hiddenKey);
+        if (! filled($stored)) {
+            return;
+        }
+
+        $set($uiKey, $stored);
+    }
+
+    private static function syncHiddenFieldFromUi(Set $set, mixed $state, string $hiddenKey): void
+    {
+        $set($hiddenKey, $state === '' || $state === null ? null : $state);
+    }
+
     public static function currentReportWeekForForm(Get $get, mixed $livewire = null): int
     {
         $yil = (int) ($get('yil') ?? $get('../../yil') ?? $get('../../../yil') ?? 0);
@@ -1239,17 +1263,13 @@ class AylikFaaliyetResource extends Resource
                                                     'style' => 'min-height: 3rem; padding-top: 0.75rem; padding-bottom: 0.75rem; font-size: 1.0625rem;',
                                                 ])
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
-                                                    $set('ongorulen', NonNegativeInput::normalizeIntegerScalar($state));
-                                                    static::syncKapsamRepeaterAciktaKalanField($set, $get);
+                                                    static::syncHiddenFieldFromUi($set, $state, 'ongorulen');
+                                                    $plan = static::toFloatNumber($state ?? $get('deger') ?? 0);
+                                                    $done = static::toFloatNumber($get('gerceklesen') ?? 0);
+                                                    $pending = max(0.0, $plan - $done);
+                                                    $set('acikta_kalan', floor($pending) === $pending ? (int) $pending : $pending);
                                                 })
-                                                ->afterStateHydrated(function (Set $set, Get $get, $state): void {
-                                                    $stored = $get('ongorulen');
-                                                    if (filled($stored)) {
-                                                        $set('ongorulen_ui', $stored);
-                                                    } elseif (filled($state)) {
-                                                        $set('ongorulen', NonNegativeInput::normalizeIntegerScalar($state));
-                                                    }
-                                                })
+                                                ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'ongorulen', 'ongorulen_ui'))
                                                 ->required(fn (Get $get): bool => trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '')
                                                 ->readOnly(fn (Get $get, $livewire): bool => ! static::kapsamOngorulenEditable($get, $livewire))
                                                 ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamOngorulenEditable($get, $livewire))
@@ -1275,17 +1295,13 @@ class AylikFaaliyetResource extends Resource
                                                 ->rules(['integer', 'min:0'])
                                                 ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
-                                                    $set('gerceklesen', NonNegativeInput::normalizeIntegerScalar($state));
-                                                    static::syncKapsamRepeaterAciktaKalanField($set, $get);
+                                                    static::syncHiddenFieldFromUi($set, $state, 'gerceklesen');
+                                                    $plan = static::toFloatNumber($get('ongorulen') ?? $get('deger') ?? 0);
+                                                    $done = static::toFloatNumber($state ?? 0);
+                                                    $pending = max(0.0, $plan - $done);
+                                                    $set('acikta_kalan', floor($pending) === $pending ? (int) $pending : $pending);
                                                 })
-                                                ->afterStateHydrated(function (Set $set, Get $get, $state): void {
-                                                    $stored = $get('gerceklesen');
-                                                    if (filled($stored)) {
-                                                        $set('gerceklesen_ui', $stored);
-                                                    } elseif (filled($state)) {
-                                                        $set('gerceklesen', NonNegativeInput::normalizeIntegerScalar($state));
-                                                    }
-                                                })
+                                                ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'gerceklesen', 'gerceklesen_ui'))
                                                 ->required(fn (Get $get, $livewire): bool => (static::kapsamShowsWeeklyEntryFields($get, $livewire)
                                                         && static::kapsamGerceklesenEditable($get, $livewire))
                                                     || (static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
@@ -1354,16 +1370,8 @@ class AylikFaaliyetResource extends Resource
                                                             $state = ReportPeriodWeeks::reportingReferenceDate($parsed)->toDateString();
                                                         }
                                                         $set('acikta_revize_tarihi', $state);
-                                                        $set('acikta_revize_tarihi_ui', $state);
                                                     })
-                                                    ->afterStateHydrated(function (Set $set, Get $get, $state): void {
-                                                        $stored = $get('acikta_revize_tarihi');
-                                                        if (filled($stored)) {
-                                                            $set('acikta_revize_tarihi_ui', $stored);
-                                                        } elseif (filled($state)) {
-                                                            $set('acikta_revize_tarihi', $state);
-                                                        }
-                                                    })
+                                                    ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'acikta_revize_tarihi', 'acikta_revize_tarihi_ui'))
                                                     ->dehydrated(false)
                                                     ->helperText('Hafta sonu tarihleri seçilemez; otomatik olarak önceki Cuma atanır.'),
                                                 Forms\Components\Textarea::make('acikta_revize_notu_ui')
@@ -1372,15 +1380,8 @@ class AylikFaaliyetResource extends Resource
                                                     ->rows(2)
                                                     ->columnSpanFull()
                                                     ->disabled(fn (Get $get, $livewire): bool => static::kapsamRevizeAlaniDisabled($get, $livewire))
-                                                    ->afterStateUpdated(fn (Set $set, $state): mixed => $set('acikta_revize_notu', $state))
-                                                    ->afterStateHydrated(function (Set $set, Get $get, $state): void {
-                                                        $stored = $get('acikta_revize_notu');
-                                                        if (filled($stored)) {
-                                                            $set('acikta_revize_notu_ui', $stored);
-                                                        } elseif (filled($state)) {
-                                                            $set('acikta_revize_notu', $state);
-                                                        }
-                                                    })
+                                                    ->afterStateUpdated(fn (Set $set, $state): mixed => static::syncHiddenFieldFromUi($set, $state, 'acikta_revize_notu'))
+                                                    ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'acikta_revize_notu', 'acikta_revize_notu_ui'))
                                                     ->dehydrated(false),
                                             ])
                                             ->columns(2)
@@ -1404,15 +1405,8 @@ class AylikFaaliyetResource extends Resource
                                                     ->columnSpanFull()
                                                     ->required(fn (Get $get): bool => (bool) ($get('acikta_is_kapatiliyor') ?? false))
                                                     ->visible(fn (Get $get): bool => (bool) ($get('acikta_is_kapatiliyor') ?? false))
-                                                    ->afterStateUpdated(fn (Set $set, $state): mixed => $set('acikta_kapatma_notu', $state))
-                                                    ->afterStateHydrated(function (Set $set, Get $get, $state): void {
-                                                        $stored = $get('acikta_kapatma_notu');
-                                                        if (filled($stored)) {
-                                                            $set('acikta_kapatma_notu_ui', $stored);
-                                                        } elseif (filled($state)) {
-                                                            $set('acikta_kapatma_notu', $state);
-                                                        }
-                                                    })
+                                                    ->afterStateUpdated(fn (Set $set, $state): mixed => static::syncHiddenFieldFromUi($set, $state, 'acikta_kapatma_notu'))
+                                                    ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'acikta_kapatma_notu', 'acikta_kapatma_notu_ui'))
                                                     ->dehydrated(false),
                                             ])
                                             ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
@@ -1444,15 +1438,8 @@ class AylikFaaliyetResource extends Resource
                                                     && filled($get('bu_hafta_aciklama')))
                                                 ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
                                                     && static::kapsamShowsWeeklyFollowUpFields($get, $livewire))
-                                                ->afterStateUpdated(fn (Set $set, $state): mixed => $set('bu_hafta_tamamlanan', NonNegativeInput::normalizeIntegerScalar($state)))
-                                                ->afterStateHydrated(function (Set $set, Get $get, $state): void {
-                                                    $stored = $get('bu_hafta_tamamlanan');
-                                                    if (filled($stored)) {
-                                                        $set('bu_hafta_tamamlanan_ui', $stored);
-                                                    } elseif (filled($state)) {
-                                                        $set('bu_hafta_tamamlanan', NonNegativeInput::normalizeIntegerScalar($state));
-                                                    }
-                                                })
+                                                ->afterStateUpdated(fn (Set $set, $state): mixed => static::syncHiddenFieldFromUi($set, $state, 'bu_hafta_tamamlanan'))
+                                                ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'bu_hafta_tamamlanan', 'bu_hafta_tamamlanan_ui'))
                                                 ->dehydrated(false),
                                             Forms\Components\Textarea::make('bu_hafta_aciklama_ui')
                                                 ->label('Açıklama')
@@ -1462,15 +1449,8 @@ class AylikFaaliyetResource extends Resource
                                                     && (float) ($get('bu_hafta_tamamlanan') ?? 0) > 0)
                                                 ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
                                                     && static::kapsamShowsWeeklyFollowUpFields($get, $livewire))
-                                                ->afterStateUpdated(fn (Set $set, $state): mixed => $set('bu_hafta_aciklama', $state))
-                                                ->afterStateHydrated(function (Set $set, Get $get, $state): void {
-                                                    $stored = $get('bu_hafta_aciklama');
-                                                    if (filled($stored)) {
-                                                        $set('bu_hafta_aciklama_ui', $stored);
-                                                    } elseif (filled($state)) {
-                                                        $set('bu_hafta_aciklama', $state);
-                                                    }
-                                                })
+                                                ->afterStateUpdated(fn (Set $set, $state): mixed => static::syncHiddenFieldFromUi($set, $state, 'bu_hafta_aciklama'))
+                                                ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'bu_hafta_aciklama', 'bu_hafta_aciklama_ui'))
                                                 ->dehydrated(false),
                                             Forms\Components\Placeholder::make('yapilma_tarihi_otomatik')
                                                 ->label('Yapılma Tarihi')
