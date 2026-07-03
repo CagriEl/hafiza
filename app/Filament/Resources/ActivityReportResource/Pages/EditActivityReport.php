@@ -23,17 +23,6 @@ class EditActivityReport extends EditRecord
     {
         parent::mount($record);
         $this->getRecord()->loadMissing('user');
-        if (ActivityReportResource::isReportPeriodClosed($this->getRecord())) {
-            $this->redirect(
-                ActivityReportResource::getUrl('view', [
-                    'record' => $this->getRecord(),
-                    'tab' => (string) request()->query('tab', 'all'),
-                ])
-            );
-
-            return;
-        }
-
         $mudurluk = $this->getRecord()->user?->name ?? auth()->user()?->name ?? '';
         $this->warnIfActivityCatalogEmpty($mudurluk);
     }
