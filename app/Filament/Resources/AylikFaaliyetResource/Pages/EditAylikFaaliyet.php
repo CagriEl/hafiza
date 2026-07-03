@@ -40,7 +40,7 @@ class EditAylikFaaliyet extends EditRecord
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
         $data = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
 
-        return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
+        return AylikFaaliyetResource::hydrateRaporHaftasiField(
             AylikFaaliyetResource::syncFaaliyetlerWithCurrentCatalog(
                 $data,
                 $this->getRecord()->user?->name
@@ -66,64 +66,45 @@ class EditAylikFaaliyet extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $user = auth()->user();
-        if ($user instanceof User) {
-            $data = AylikFaaliyetRepeaterLock::stripAySonuFieldsFromUnpersistedMudurlukRows($this->record, $user, $data);
-        }
-
-        $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
-        $data = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
-
-        if ($user instanceof User) {
-            $data = AylikFaaliyetRepeaterLock::enforceMudurlukLocks($this->record, $user, $data);
-            $data = AylikFaaliyetRepeaterLock::applyAySonuPerformansKilitAfterMudurlukSave($this->record, $user, $data);
-        }
 
         if (! $user instanceof User) {
-            return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
-                AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data)
-            );
+            return AylikFaaliyetResource::prepareFaaliyetlerForSave($data, $this->record, null);
         }
 
         if ($user->isMudurlukReportingAccount()
             && AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($this->record, $user)) {
-            return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
-                AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data)
-            );
+            return AylikFaaliyetResource::prepareFaaliyetlerForSave($data, $this->record, $user);
         }
 
         $original = is_array($this->record->faaliyetler) ? $this->record->faaliyetler : [];
         $rows = $data['faaliyetler'] ?? null;
-        if (! is_array($rows)) {
-            return $data;
-        }
+        if (is_array($rows)) {
+            $keysToPreserve = [
+                'faaliyet_turu',
+                'isbirligi_hedef_mudurluk_user_ids',
+                'isbirligi_talepleri',
+                'isbirligi_hangi_ihtiyac',
+                'isbirligi_hedef_tarih',
+                'isbirligi_bitis_suresi',
+            ];
 
-        $keysToPreserve = [
-            'faaliyet_turu',
-            'isbirligi_hedef_mudurluk_user_ids',
-            'isbirligi_talepleri',
-            'isbirligi_hangi_ihtiyac',
-            'isbirligi_hedef_tarih',
-            'isbirligi_bitis_suresi',
-        ];
-
-        foreach ($rows as $i => $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-            $orig = $original[$i] ?? [];
-            if (! is_array($orig)) {
-                continue;
-            }
-            foreach ($keysToPreserve as $k) {
-                if (array_key_exists($k, $orig)) {
-                    $data['faaliyetler'][$i][$k] = $orig[$k];
+            foreach ($rows as $i => $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $orig = $original[$i] ?? [];
+                if (! is_array($orig)) {
+                    continue;
+                }
+                foreach ($keysToPreserve as $k) {
+                    if (array_key_exists($k, $orig)) {
+                        $data['faaliyetler'][$i][$k] = $orig[$k];
+                    }
                 }
             }
         }
 
-        return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
-            AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data)
-        );
+        return AylikFaaliyetResource::prepareFaaliyetlerForSave($data, $this->record, $user);
     }
 
     protected function afterSave(): void

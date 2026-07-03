@@ -68,8 +68,10 @@ class CreateAylikFaaliyet extends CreateRecord
 
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
 
-        return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
-            AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data)
+        return AylikFaaliyetResource::prepareFaaliyetlerForSave(
+            AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data),
+            null,
+            auth()->user() instanceof User ? auth()->user() : null
         );
     }
 

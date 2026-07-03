@@ -35,8 +35,10 @@ class CreateActivityReport extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return AylikFaaliyetResource::applyAutoHaftaToFaaliyetler(
-            AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data)
+        return AylikFaaliyetResource::prepareFaaliyetlerForSave(
+            AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data),
+            null,
+            auth()->user() instanceof User ? auth()->user() : null
         );
     }
 

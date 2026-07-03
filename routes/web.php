@@ -1,7 +1,10 @@
 <?php
 
+use App\Filament\Resources\ControlTeamAuditNoteResource;
 use App\Models\AylikFaaliyet;
+use App\Models\ControlTeamAuditNote;
 use App\Models\User;
+use App\Support\AnalizEkibiOrnekRaporExcel;
 use App\Support\CoordinationAccess;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
@@ -29,4 +32,25 @@ Route::middleware(['web', 'auth'])->group(function () {
 
         return $pdf->download($rapor->user->name.'-'.$rapor->ay.'-faaliyet-raporu.pdf');
     })->name('aylik-faaliyet.pdf');
+
+    Route::get('/analiz-ekibi/ornek-rapor-sablonu.xlsx', function () {
+        $user = Auth::user();
+        abort_unless(
+            $user instanceof User && ($user->isReportingSuperAdmin() || $user->isControlTeam()),
+            403
+        );
+
+        return AnalizEkibiOrnekRaporExcel::downloadResponse();
+    })->name('analiz-ekibi.ornek-rapor-sablon');
+
+    Route::get('/analiz-notlari/{note}/excel', function (ControlTeamAuditNote $note) {
+        $user = Auth::user();
+        abort_unless($user instanceof User, 403);
+        abort_unless(
+            ControlTeamAuditNoteResource::getEloquentQuery()->whereKey($note->getKey())->exists(),
+            403
+        );
+
+        return AnalizEkibiOrnekRaporExcel::exportNoteDownloadResponse($note);
+    })->name('analiz-notlari.excel');
 });

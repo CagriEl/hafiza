@@ -120,6 +120,13 @@ final class AylikFaaliyetRepeaterLock
                 if (array_key_exists('gerceklesen', $incomingKv[$idx])) {
                     $original['kapsam_verileri'][$idx]['gerceklesen'] = $incomingKv[$idx]['gerceklesen'];
                 }
+                if (array_key_exists('haftalik_kayitlar', $incomingKv[$idx])
+                    && is_array($incomingKv[$idx]['haftalik_kayitlar'])) {
+                    $original['kapsam_verileri'][$idx]['haftalik_kayitlar'] = $incomingKv[$idx]['haftalik_kayitlar'];
+                }
+                if (array_key_exists('son_yapilma_tarihi', $incomingKv[$idx])) {
+                    $original['kapsam_verileri'][$idx]['son_yapilma_tarihi'] = $incomingKv[$idx]['son_yapilma_tarihi'];
+                }
                 $original['kapsam_verileri'][$idx]['acikta_kalan'] = self::kapsamSatirAciktaKalan(
                     $original['kapsam_verileri'][$idx]
                 );

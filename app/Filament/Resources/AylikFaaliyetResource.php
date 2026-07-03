@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\AylikFaaliyetRepeaterLock;
+use App\Support\AylikFaaliyetWeeklyCarryover;
 use App\Support\CoordinationAccess;
 use App\Support\NonNegativeInput;
 use App\Support\QuerySafety;
@@ -154,6 +155,257 @@ class AylikFaaliyetResource extends Resource
         $done = static::toFloatNumber($get('gerceklesen') ?? 0);
         $pending = max(0.0, $plan - $done);
         $set('acikta_kalan', floor($pending) === $pending ? (int) $pending : $pending);
+    }
+
+    public static function currentReportWeekForForm(Get $get, mixed $livewire = null): int
+    {
+        $yil = (int) ($get('yil') ?? $get('../../yil') ?? $get('../../../yil') ?? 0);
+        $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? $get('../../ay') ?? $get('../../../ay') ?? ''));
+
+        if (($yil <= 0 || $ay < 1 || $ay > 12) && is_object($livewire)) {
+            if (method_exists($livewire, 'getRecord')) {
+                $record = $livewire->getRecord();
+                if ($record instanceof AylikFaaliyet) {
+                    $yil = (int) ($record->yil ?? $yil);
+                    $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? $ay));
+                }
+            }
+            if (($yil <= 0 || $ay < 1) && property_exists($livewire, 'data') && is_array($livewire->data)) {
+                $yil = (int) ($livewire->data['yil'] ?? $yil);
+                $ay = (int) preg_replace('/\D/', '', (string) ($livewire->data['ay'] ?? $ay));
+            }
+        }
+
+        if ($yil <= 0 || $ay < 1 || $ay > 12) {
+            return 1;
+        }
+
+        $selected = (int) ($get('hafta') ?? $get('../../hafta') ?? $get('../../../hafta') ?? 0);
+        if ($selected >= 1 && $selected <= ReportPeriodWeeks::WEEK_COUNT) {
+            return $selected;
+        }
+
+        return ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay);
+    }
+
+    public static function selectedRaporHaftasiLabelForFormContext(Get $get, mixed $livewire = null): ?string
+    {
+        $yil = (int) ($get('yil') ?? $get('../../yil') ?? $get('../../../yil') ?? 0);
+        $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? $get('../../ay') ?? $get('../../../ay') ?? ''));
+
+        if (($yil <= 0 || $ay < 1 || $ay > 12) && is_object($livewire)) {
+            if (method_exists($livewire, 'getRecord')) {
+                $record = $livewire->getRecord();
+                if ($record instanceof AylikFaaliyet) {
+                    $yil = (int) ($record->yil ?? $yil);
+                    $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? $ay));
+                }
+            }
+            if (($yil <= 0 || $ay < 1) && property_exists($livewire, 'data') && is_array($livewire->data)) {
+                $yil = (int) ($livewire->data['yil'] ?? $yil);
+                $ay = (int) preg_replace('/\D/', '', (string) ($livewire->data['ay'] ?? $ay));
+            }
+        }
+
+        if ($yil <= 0 || $ay < 1 || $ay > 12) {
+            return null;
+        }
+
+        $week = static::currentReportWeekForForm($get, $livewire);
+
+        return ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $week);
+    }
+
+    /**
+     * @return array{0: int, 1: int}
+     */
+    public static function resolveReportPeriodFromLivewire(mixed $livewire): array
+    {
+        $yil = 0;
+        $ay = 0;
+
+        if (is_object($livewire)) {
+            if (method_exists($livewire, 'getRecord')) {
+                $record = $livewire->getRecord();
+                if ($record instanceof AylikFaaliyet) {
+                    $yil = (int) ($record->yil ?? 0);
+                    $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? ''));
+                }
+            }
+            if (($yil <= 0 || $ay < 1) && property_exists($livewire, 'data') && is_array($livewire->data)) {
+                $yil = (int) ($livewire->data['yil'] ?? $yil);
+                $ay = (int) preg_replace('/\D/', '', (string) ($livewire->data['ay'] ?? $ay));
+            }
+        }
+
+        return [$yil, $ay];
+    }
+
+    public static function faaliyetHaftaSelectField(): Forms\Components\Select
+    {
+        return Forms\Components\Select::make('hafta')
+            ->label('Rapor Haftası')
+            ->options(function (Get $get, Forms\Components\Select $component): array {
+                [$yil, $ay] = static::resolveReportPeriodFromLivewire($component->getLivewire());
+                if ($yil <= 0 || $ay < 1 || $ay > 12) {
+                    $yil = (int) ($get('../../yil') ?? $get('../../../yil') ?? 0);
+                    $ay = (int) preg_replace('/\D/', '', (string) ($get('../../ay') ?? $get('../../../ay') ?? ''));
+                }
+                if ($yil <= 0 || $ay < 1 || $ay > 12) {
+                    return [];
+                }
+
+                return ReportPeriodWeeks::selectOptions($yil, $ay);
+            })
+            ->default(function (Get $get, Forms\Components\Select $component): int {
+                if (filled($get('hafta'))) {
+                    return (int) $get('hafta');
+                }
+                [$yil, $ay] = static::resolveReportPeriodFromLivewire($component->getLivewire());
+                if ($yil <= 0 || $ay < 1 || $ay > 12) {
+                    return 1;
+                }
+
+                return ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay);
+            })
+            ->required()
+            ->live()
+            ->disabled(fn (Get $get, $livewire): bool => (bool) ($get('ay_sonu_performans_kilitli') ?? false)
+                && filled($get('hafta')))
+            ->dehydrated(true)
+            ->columnSpanFull()
+            ->helperText('Bu iş satırının hangi haftaya ait olduğunu seçin (1–4. hafta).');
+    }
+
+    /**
+     * Her iş listesi satırında hafta alanını doldurur.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function hydrateFaaliyetHaftaFields(array $data): array
+    {
+        unset($data['rapor_haftasi']);
+
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        $yil = (int) ($data['yil'] ?? 0);
+        $ay = (int) preg_replace('/\D/', '', (string) ($data['ay'] ?? ''));
+        $defaultWeek = ($yil > 0 && $ay >= 1 && $ay <= 12)
+            ? ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay)
+            : 1;
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $locked = (bool) ($row['ay_sonu_performans_kilitli'] ?? false);
+            if ($locked && filled($row['hafta'] ?? null)) {
+                continue;
+            }
+
+            if (! filled($row['hafta'] ?? null)) {
+                $data['faaliyetler'][$i]['hafta'] = $defaultWeek;
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * @deprecated Use hydrateFaaliyetHaftaFields()
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function hydrateRaporHaftasiField(array $data): array
+    {
+        return static::hydrateFaaliyetHaftaFields($data);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function kapsamRowStateFromGet(Get $get): array
+    {
+        return [
+            'ongorulen' => $get('ongorulen'),
+            'deger' => $get('deger'),
+            'gerceklesen' => $get('gerceklesen'),
+            'acikta_kalan' => $get('acikta_kalan'),
+        ];
+    }
+
+    public static function kapsamOngorulenEditable(Get $get, mixed $livewire): bool
+    {
+        if (trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '') {
+            return true;
+        }
+
+        return static::currentReportWeekForForm($get, $livewire) <= 1;
+    }
+
+    public static function kapsamShowsWeeklyFollowUpFields(Get $get, mixed $livewire): bool
+    {
+        if (! $livewire instanceof EditRecord) {
+            return false;
+        }
+        if (AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get)) {
+            return false;
+        }
+        if (trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '') {
+            return false;
+        }
+        if (static::currentReportWeekForForm($get, $livewire) <= 1) {
+            return false;
+        }
+
+        return AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get)) > 0.0;
+    }
+
+    public static function kapsamKalemVisibleInCurrentWeek(Get $get, mixed $livewire): bool
+    {
+        if (! $livewire instanceof EditRecord) {
+            return true;
+        }
+        if (trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '') {
+            return true;
+        }
+
+        $week = static::currentReportWeekForForm($get, $livewire);
+        if ($week <= 1) {
+            return true;
+        }
+
+        return AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get)) > 0.0;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function prepareFaaliyetlerForSave(array $data, ?AylikFaaliyet $record, ?User $user): array
+    {
+        if ($user instanceof User && $record instanceof AylikFaaliyet) {
+            $data = AylikFaaliyetRepeaterLock::stripAySonuFieldsFromUnpersistedMudurlukRows($record, $user, $data);
+        }
+
+        $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
+        $data = AylikFaaliyetWeeklyCarryover::applyWeeklyEntries($data);
+        $data = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
+        $data = AylikFaaliyetWeeklyCarryover::consolidateFaaliyetRowsByCatalog($data);
+
+        if ($user instanceof User && $record instanceof AylikFaaliyet) {
+            $data = AylikFaaliyetRepeaterLock::enforceMudurlukLocks($record, $user, $data);
+            $data = AylikFaaliyetRepeaterLock::applyAySonuPerformansKilitAfterMudurlukSave($record, $user, $data);
+        }
+
+        return static::applyAutoHaftaToFaaliyetler(
+            AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data)
+        );
     }
 
     private static function isGerekliRevizeEnabled(Get $get): bool
@@ -452,6 +704,7 @@ class AylikFaaliyetResource extends Resource
                                 Forms\Components\Hidden::make('ay_sonu_performans_kilitli')
                                     ->default(false)
                                     ->dehydrated(true),
+                                static::faaliyetHaftaSelectField(),
                                 Grid::make(4)->schema([
                                     Forms\Components\Select::make('activity_catalog_id')
                                         ->label('Faaliyet Ailesi')
@@ -593,18 +846,10 @@ class AylikFaaliyetResource extends Resource
                                     ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
                                     ->extraAttributes(['class' => 'bg-gray-50']),
 
-                                Forms\Components\Placeholder::make('otomatik_hafta_gosterimi')
-                                    ->label('Otomatik Rapor Haftası')
-                                    ->content(function (Get $get, $livewire): string {
-                                        return static::autoWeekLabelForFormContext($get, $livewire) ?? '—';
-                                    })
-                                    ->helperText('Bugünün tarihine göre ilgili hafta ve tarih aralığı otomatik belirlenir.')
-                                    ->columnSpanFull(),
-
                                 Repeater::make('kapsam_verileri')
                                     ->label(function (Get $get, $livewire): string {
                                         $base = 'Kapsam kalemleri';
-                                        $weekLabel = static::autoWeekLabelForFormContext($get, $livewire);
+                                        $weekLabel = static::selectedRaporHaftasiLabelForFormContext($get, $livewire);
 
                                         if ($weekLabel) {
                                             return $base.' ('.$weekLabel.')';
@@ -612,9 +857,21 @@ class AylikFaaliyetResource extends Resource
 
                                         return $base;
                                     })
-                                    ->helperText('Yapılan iş raporlama sıklığındaki aylık veya haftalık işler olarak sayılsal veri ile doldurulmalıdır. Başlanmış ancak henüz finalize olmamış işler için açıkta kalan kısmını doldurmanız gereklidir.')
+                                    ->helperText(function (Get $get, $livewire): string {
+                                        $week = static::currentReportWeekForForm($get, $livewire);
+                                        if ($week > 1) {
+                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Yapılma tarihi kayıt anında otomatik eklenir.';
+                                        }
+
+                                        return 'Yapılan iş raporlama sıklığındaki aylık veya haftalık işler olarak sayılsal veri ile doldurulmalıdır. Başlanmış ancak henüz finalize olmamış işler için açıkta kalan kısmını doldurmanız gereklidir.';
+                                    })
                                     ->dehydrated()
                                     ->schema([
+                                        Group::make()
+                                            ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire))
+                                            ->schema([
+                                        Forms\Components\Hidden::make('son_yapilma_tarihi')->dehydrated(),
+                                        Forms\Components\Hidden::make('haftalik_kayitlar')->dehydrated(),
                                         Grid::make(4)->schema([
                                             Forms\Components\Textarea::make('kalem')
                                                 ->label('Kalem')
@@ -628,15 +885,34 @@ class AylikFaaliyetResource extends Resource
                                                 ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
+                                                ->columnSpan(2)
                                                 ->live(onBlur: true)
                                                 ->rules(['integer', 'min:0'])
-                                                ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                                                ->extraInputAttributes([
+                                                    'min' => 0,
+                                                    'step' => 1,
+                                                    'inputmode' => 'numeric',
+                                                    'pattern' => '[0-9]*',
+                                                    'style' => 'min-height: 3rem; padding-top: 0.75rem; padding-bottom: 0.75rem; font-size: 1.0625rem;',
+                                                ])
                                                 ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
                                                     static::syncKapsamRepeaterAciktaKalanField($set, $get);
                                                 })
                                                 ->required(fn (Get $get): bool => trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '')
+                                                ->readOnly(fn (Get $get, $livewire): bool => ! static::kapsamOngorulenEditable($get, $livewire))
+                                                ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamOngorulenEditable($get, $livewire))
+                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamOngorulenEditable($get, $livewire)
+                                                    || ! static::kapsamShowsWeeklyFollowUpFields($get, $livewire))
                                                 ->dehydrated(true),
+                                            Forms\Components\Placeholder::make('ongorulen_ozet')
+                                                ->label('Planlanan İş')
+                                                ->content(function (Get $get): string {
+                                                    $val = $get('ongorulen') ?? $get('deger') ?? '—';
+
+                                                    return (string) $val;
+                                                })
+                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
                                             Forms\Components\TextInput::make('gerceklesen')
                                                 ->label('Tamamlanan İş')
                                                 ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
@@ -673,10 +949,69 @@ class AylikFaaliyetResource extends Resource
                                                 ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
                                                 ->readOnly()
                                                 ->helperText('Yapılacak iş − yapılan iş (otomatik, en az 0).')
-                                                ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
-                                                ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
-                                                ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)),
+                                                ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
+                                                    || static::kapsamShowsWeeklyFollowUpFields($get, $livewire))
+                                                ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
+                                                    || static::kapsamShowsWeeklyFollowUpFields($get, $livewire))
+                                                ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
+                                                    || static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
                                         ]),
+                                        Grid::make(3)->schema([
+                                            Forms\Components\TextInput::make('bu_hafta_tamamlanan')
+                                                ->label('Bu Hafta Tamamlanan')
+                                                ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
+                                                ->numeric()
+                                                ->minValue(0)
+                                                ->rules(['integer', 'min:0'])
+                                                ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                                                ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
+                                                ->required(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire)
+                                                    && filled($get('bu_hafta_aciklama')))
+                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire))
+                                                ->dehydrated(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
+                                            Forms\Components\Textarea::make('bu_hafta_aciklama')
+                                                ->label('Açıklama')
+                                                ->rows(2)
+                                                ->required(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire)
+                                                    && filled($get('bu_hafta_tamamlanan'))
+                                                    && (float) ($get('bu_hafta_tamamlanan') ?? 0) > 0)
+                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire))
+                                                ->dehydrated(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
+                                            Forms\Components\Placeholder::make('yapilma_tarihi_otomatik')
+                                                ->label('Yapılma Tarihi')
+                                                ->content(fn (): string => now()->format('d.m.Y'))
+                                                ->helperText('Kayıt sırasında otomatik atanır.')
+                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
+                                        ])->columnSpanFull(),
+                                        Forms\Components\Placeholder::make('son_yapilma_tarihi_goster')
+                                            ->label('Son Yapılma Tarihi')
+                                            ->content(fn (Get $get): string => AylikFaaliyetWeeklyCarryover::formatDisplayDate($get('son_yapilma_tarihi')) ?? '—')
+                                            ->visible(fn (Get $get): bool => filled($get('son_yapilma_tarihi')))
+                                            ->columnSpanFull(),
+                                        Forms\Components\Placeholder::make('haftalik_kayit_ozeti')
+                                            ->label('Haftalık İlerleme Kayıtları')
+                                            ->content(function (Get $get): HtmlString {
+                                                $kayitlar = $get('haftalik_kayitlar');
+                                                if (! is_array($kayitlar) || $kayitlar === []) {
+                                                    return new HtmlString('—');
+                                                }
+                                                $lines = [];
+                                                foreach ($kayitlar as $kayit) {
+                                                    if (! is_array($kayit)) {
+                                                        continue;
+                                                    }
+                                                    $hafta = (int) ($kayit['hafta'] ?? 0);
+                                                    $miktar = $kayit['miktar'] ?? '—';
+                                                    $tarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($kayit['yapilma_tarihi'] ?? null) ?? '—';
+                                                    $aciklama = e(trim((string) ($kayit['aciklama'] ?? '')));
+                                                    $lines[] = '<div style="margin-bottom:4px;"><b>Hafta '.$hafta.'</b> · '.$miktar.' · '.$tarih.'<br><span style="color:#4b5563;">'.$aciklama.'</span></div>';
+                                                }
+
+                                                return new HtmlString(implode('', $lines));
+                                            })
+                                            ->visible(fn (Get $get): bool => is_array($get('haftalik_kayitlar')) && $get('haftalik_kayitlar') !== [])
+                                            ->columnSpanFull(),
+                                            ]),
                                     ])
                                     ->addable(false)
                                     ->deletable(false)
@@ -918,30 +1253,22 @@ class AylikFaaliyetResource extends Resource
                                 ]),
 
                                 Group::make()
-                                    ->live()
-                                    ->extraAttributes(fn (Get $get): array => static::isGerekliRevizeEnabled($get)
-                                        ? ['class' => 'bg-amber-50 p-2 rounded-md']
-                                        : [])
                                     ->schema([
                                         Grid::make(2)->schema([
                                             Forms\Components\Toggle::make('gerekli_revize')
                                                 ->label('Gerekli Revize')
                                                 ->inline(false)
                                                 ->default(false)
-                                                ->live()
                                                 ->dehydrated(true)
                                                 ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowRevizeAlaniDisabled($get, $livewire))
-                                                ->helperText('Ay sonu gerçekleşen girildikten sonra (özet başarı oranı oluşunca) revize işaretleyebilirsiniz. Yeni eklenen satırda plan revizesi için de kullanılır.'),
+                                                ->helperText('Revize işaretini kayıt sırasında belirleyin. Sebep alanını aşağıya yazınız.'),
                                             Forms\Components\Textarea::make('revize_sebebi')
                                                 ->label('Revize Sebebi')
                                                 ->rows(2)
                                                 ->placeholder('Revize neden gerekli? Kisa aciklama yaziniz...')
                                                 ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowRevizeAlaniDisabled($get, $livewire))
                                                 ->required(fn (Get $get): bool => static::isGerekliRevizeEnabled($get))
-                                                ->visible(fn (Get $get): bool => static::isGerekliRevizeEnabled($get))
-                                                ->extraAttributes(fn (Get $get): array => static::isGerekliRevizeEnabled($get)
-                                                    ? ['class' => 'bg-amber-50 border-l-4 border-amber-500']
-                                                    : []),
+                                                ->visible(fn (Get $get, $livewire): bool => ! static::faaliyetRowRevizeAlaniDisabled($get, $livewire)),
                                         ]),
                                     ]),
 
@@ -998,12 +1325,8 @@ class AylikFaaliyetResource extends Resource
                                     if ($month >= 1 && $month <= 12) {
                                         if ((bool) ($state['ay_sonu_performans_kilitli'] ?? false) && filled($state['hafta'] ?? null)) {
                                             $weekLabel = ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $state['hafta']);
-                                        } else {
-                                            $weekLabel = ReportPeriodWeeks::weekLabelForRecord(
-                                                $yil,
-                                                $ay,
-                                                ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $month)
-                                            );
+                                        } elseif (filled($state['hafta'] ?? null)) {
+                                            $weekLabel = ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $state['hafta']);
                                         }
                                     }
                                 }
@@ -1015,39 +1338,40 @@ class AylikFaaliyetResource extends Resource
                             })
                             ->collapsible()
                             ->reorderable(false)
-                            ->deletable(false)
+                            ->deletable(true)
                             ->deleteAction(function (FormAction $action) {
-                                return $action->visible(function (array $arguments, Repeater $component): bool {
-                                    if (! $component->isDeletable()) {
-                                        return false;
-                                    }
+                                return $action
+                                    ->label('Satırı sil')
+                                    ->visible(function (array $arguments, Repeater $component): bool {
+                                        $user = auth()->user();
+                                        if ($user instanceof User && $user->isReportingSuperAdmin()) {
+                                            return true;
+                                        }
 
-                                    $user = auth()->user();
-                                    if (! $user instanceof User || ! $user->isMudurlukReportingAccount()) {
-                                        return true;
-                                    }
+                                        if (! $user instanceof User || ! $user->isMudurlukReportingAccount()) {
+                                            return true;
+                                        }
 
-                                    $livewire = $component->getLivewire();
-                                    if (! $livewire instanceof \Filament\Resources\Pages\EditRecord) {
-                                        return true;
-                                    }
+                                        $livewire = $component->getLivewire();
+                                        if (! $livewire instanceof \Filament\Resources\Pages\EditRecord) {
+                                            return true;
+                                        }
 
-                                    $record = $livewire->getRecord();
-                                    if (! $record instanceof AylikFaaliyet || ! AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($record, $user)) {
-                                        return true;
-                                    }
+                                        $record = $livewire->getRecord();
+                                        if (! $record instanceof AylikFaaliyet || ! AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($record, $user)) {
+                                            return true;
+                                        }
 
-                                    $items = $component->getState();
-                                    $key = $arguments['item'] ?? null;
-                                    if ($key === null || ! isset($items[$key]) || ! is_array($items[$key])) {
-                                        return true;
-                                    }
+                                        $items = $component->getState();
+                                        $key = $arguments['item'] ?? null;
+                                        if ($key === null || ! isset($items[$key]) || ! is_array($items[$key])) {
+                                            return true;
+                                        }
 
-                                    $row = $items[$key];
-                                    $v = $row['_orig_index'] ?? null;
+                                        $row = $items[$key];
 
-                                    return $v === null || $v === '';
-                                });
+                                        return ! (bool) ($row['ay_sonu_performans_kilitli'] ?? false);
+                                    });
                             })
                             ->defaultItems(1),
                     ]),
@@ -2316,25 +2640,48 @@ class AylikFaaliyetResource extends Resource
         $period = $yil > 0 && $ay >= 1 && $ay <= 12
             ? ReportPeriodWeeks::monthPeriodLabel($yil, $ay)
             : trim((string) (($record?->yil ?? '—').' / '.str_pad((string) ($record?->ay ?? '—'), 2, '0', STR_PAD_LEFT)));
-        $weeksOverview = $yil > 0 && $ay >= 1 && $ay <= 12
-            ? ReportPeriodWeeks::weeksOverviewText($yil, $ay)
-            : '';
         $rowsHtml = '';
 
         foreach ($summary['items'] as $item) {
             $doneColor = (bool) ($item['missing_done'] ?? false) ? '#b91c1c' : '#111827';
             $pendingColor = (bool) ($item['missing_pending'] ?? false) ? '#b91c1c' : '#111827';
             $planColor = (bool) ($item['missing_plan'] ?? false) ? '#b91c1c' : '#111827';
+            $weeklyNotes = '';
+            foreach ($item['kapsam_rows'] ?? [] as $kapsam) {
+                $kayitlar = $kapsam['haftalik_kayitlar'] ?? [];
+                if (! is_array($kayitlar) || $kayitlar === []) {
+                    continue;
+                }
+                foreach ($kayitlar as $kayit) {
+                    if (! is_array($kayit)) {
+                        continue;
+                    }
+                    $tarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($kayit['yapilma_tarihi'] ?? null) ?? '—';
+                    $weeklyNotes .= '<div style="font-size:6.5px;color:#374151;">'
+                        .e((string) ($kapsam['kalem'] ?? '')).': H'.(int) ($kayit['hafta'] ?? 0)
+                        .' · '.e((string) ($kayit['miktar'] ?? '')).' · '.$tarih
+                        .' — '.e((string) ($kayit['aciklama'] ?? ''))
+                        .'</div>';
+                }
+            }
+            $sonTarih = '';
+            foreach ($item['kapsam_rows'] ?? [] as $kapsam) {
+                $formatted = AylikFaaliyetWeeklyCarryover::formatDisplayDate($kapsam['son_yapilma_tarihi'] ?? null);
+                if ($formatted) {
+                    $sonTarih = $formatted;
+                    break;
+                }
+            }
             $rowsHtml .= '<tr>'
                 .'<td>'.e((string) $item['code']).'</td>'
                 .'<td>'.e((string) ($item['week_label'] ?? '—')).'</td>'
-                .'<td>'.e((string) $item['title']).'</td>'
+                .'<td>'.e((string) $item['title']).($weeklyNotes !== '' ? '<br>'.$weeklyNotes : '').'</td>'
                 .'<td style="color:'.$doneColor.';">'.e(number_format((float) $item['done'], 0, ',', '.')).'</td>'
                 .'<td style="color:'.$pendingColor.';">'.e(number_format((float) $item['pending'], 0, ',', '.')).'</td>'
                 .'<td style="color:'.$planColor.';">'.e(number_format((float) $item['plan'], 0, ',', '.')).'</td>'
                 .'<td>%'.e((string) ((int) $item['completion'])).'</td>'
                 .'<td>'.e((string) $item['status_label']).'</td>'
-                .'<td>'.e((string) ($item['info_level'] ?: '—')).'</td>'
+                .'<td>'.e($sonTarih !== '' ? $sonTarih : '—').'</td>'
                 .'</tr>';
         }
 
@@ -2347,45 +2694,38 @@ class AylikFaaliyetResource extends Resource
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <style>
-        body { font-family: "DejaVu Sans", sans-serif; font-size: 11px; color: #111827; }
-        .title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-        .meta { font-size: 11px; color: #4b5563; margin-bottom: 6px; }
-        .weeks { font-size: 10px; color: #4b5563; margin-bottom: 12px; }
-        .cards { width: 100%; margin-bottom: 12px; }
-        .cards td { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; width: 25%; }
-        .cards .k { font-size: 10px; color: #374151; }
-        .cards .v { font-size: 18px; font-weight: 700; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #d1d5db; padding: 6px; vertical-align: top; text-align: left; }
-        th { background: #f3f4f6; }
+        @page { size: A4 landscape; margin: 6mm; }
+        * { box-sizing: border-box; }
+        body { font-family: "DejaVu Sans", sans-serif; font-size: 7.5px; color: #111827; margin: 0; padding: 0; }
+        .title { font-size: 11px; font-weight: 700; margin-bottom: 2px; }
+        .meta { font-size: 7px; color: #4b5563; margin-bottom: 4px; }
+        .summary { font-size: 7px; margin-bottom: 4px; color: #1f2937; }
+        table { width: 100%; border-collapse: collapse; page-break-inside: avoid; }
+        th, td { border: 1px solid #d1d5db; padding: 2px 3px; vertical-align: top; text-align: left; line-height: 1.2; }
+        th { background: #f3f4f6; font-size: 7px; }
+        td { font-size: 7px; }
     </style>
 </head>
 <body>
-    <div class="title">Faaliyet Raporu - Görsel Özet</div>
-    <div class="meta">Müdürlük: '.e($mudurluk).' | Dönem: '.e($period).' | Oluşturulma: '.e(now()->format('d.m.Y H:i')).'</div>
-    '.($weeksOverview !== '' ? '<div class="weeks">'.e($weeksOverview).'</div>' : '').'
-
-    <table class="cards">
-        <tr>
-            <td><div class="k">Yapılan İş</div><div class="v">'.e(number_format((float) $summary['total_done'], 0, ',', '.')).'</div></td>
-            <td><div class="k">Açıkta Bekleyen İş</div><div class="v">'.e(number_format((float) $summary['total_pending'], 0, ',', '.')).'</div></td>
-            <td><div class="k">Toplam İş</div><div class="v">'.e(number_format((float) $summary['total_plan'], 0, ',', '.')).'</div></td>
-            <td><div class="k">Genel Tamamlanma</div><div class="v">%'.e((string) ((int) $summary['completion'])).'</div></td>
-        </tr>
-    </table>
+    <div class="title">Faaliyet Raporu — '.e($mudurluk).'</div>
+    <div class="meta">Dönem: '.e($period).' | Oluşturulma: '.e(now()->format('d.m.Y H:i')).'</div>
+    <div class="summary">Yapılan: <b>'.e(number_format((float) $summary['total_done'], 0, ',', '.')).'</b>
+        · Açıkta: <b>'.e(number_format((float) $summary['total_pending'], 0, ',', '.')).'</b>
+        · Toplam: <b>'.e(number_format((float) $summary['total_plan'], 0, ',', '.')).'</b>
+        · Tamamlanma: <b>%'.e((string) ((int) $summary['completion'])).'</b></div>
 
     <table>
         <thead>
             <tr>
-                <th>Kod</th>
-                <th>Hafta / Tarih Aralığı</th>
-                <th>Faaliyet</th>
-                <th>Yapılan</th>
-                <th>Açıkta Bekleyen</th>
-                <th>Toplam</th>
-                <th>Tamamlanma</th>
-                <th>Durum</th>
-                <th>Başkanlık Bilgilendirme</th>
+                <th style="width:7%;">Kod</th>
+                <th style="width:12%;">Hafta</th>
+                <th style="width:28%;">Faaliyet / Haftalık Not</th>
+                <th style="width:7%;">Yapılan</th>
+                <th style="width:8%;">Açıkta</th>
+                <th style="width:7%;">Toplam</th>
+                <th style="width:7%;">%</th>
+                <th style="width:9%;">Durum</th>
+                <th style="width:9%;">Son Tarih</th>
             </tr>
         </thead>
         <tbody>
@@ -2628,6 +2968,8 @@ class AylikFaaliyetResource extends Resource
                 'kalem' => $kalem,
                 'gerceklesen' => max(0.0, $done),
                 'acikta_kalan' => max(0.0, $pending),
+                'haftalik_kayitlar' => is_array($kapsamRow['haftalik_kayitlar'] ?? null) ? $kapsamRow['haftalik_kayitlar'] : [],
+                'son_yapilma_tarihi' => $kapsamRow['son_yapilma_tarihi'] ?? null,
             ];
         }
 
@@ -2907,17 +3249,21 @@ class AylikFaaliyetResource extends Resource
                 $harita[$kalem] = [
                     'ongorulen' => $satir['ongorulen'] ?? $satir['deger'] ?? null,
                     'gerceklesen' => $satir['gerceklesen'] ?? null,
+                    'haftalik_kayitlar' => is_array($satir['haftalik_kayitlar'] ?? null) ? $satir['haftalik_kayitlar'] : [],
+                    'son_yapilma_tarihi' => $satir['son_yapilma_tarihi'] ?? null,
                 ];
             }
         }
 
         $out = [];
         foreach ($kalemler as $kalem) {
-            $prev = $harita[$kalem] ?? ['ongorulen' => null, 'gerceklesen' => null];
+            $prev = $harita[$kalem] ?? ['ongorulen' => null, 'gerceklesen' => null, 'haftalik_kayitlar' => [], 'son_yapilma_tarihi' => null];
             $row = [
                 'kalem' => $kalem,
                 'ongorulen' => $prev['ongorulen'],
                 'gerceklesen' => $prev['gerceklesen'],
+                'haftalik_kayitlar' => $prev['haftalik_kayitlar'],
+                'son_yapilma_tarihi' => $prev['son_yapilma_tarihi'],
             ];
             $row['acikta_kalan'] = AylikFaaliyetRepeaterLock::kapsamSatirAciktaKalan($row);
             $out[] = $row;
@@ -2932,60 +3278,7 @@ class AylikFaaliyetResource extends Resource
      */
     public static function applyAutoHaftaToFaaliyetler(array $data): array
     {
-        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
-            return $data;
-        }
-
-        $yil = (int) ($data['yil'] ?? 0);
-        $ay = (int) preg_replace('/\D/', '', (string) ($data['ay'] ?? ''));
-        if ($yil <= 0 || $ay < 1 || $ay > 12) {
-            return $data;
-        }
-
-        $autoWeek = ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay);
-
-        foreach ($data['faaliyetler'] as $i => $row) {
-            if (! is_array($row)) {
-                continue;
-            }
-
-            $locked = (bool) ($row['ay_sonu_performans_kilitli'] ?? false);
-            if ($locked && filled($row['hafta'] ?? null)) {
-                continue;
-            }
-
-            $data['faaliyetler'][$i]['hafta'] = $autoWeek;
-        }
-
-        return $data;
-    }
-
-    private static function autoWeekLabelForFormContext(Get $get, mixed $livewire = null): ?string
-    {
-        $yil = (int) ($get('../../yil') ?? $get('../../../yil') ?? 0);
-        $ay = (int) preg_replace('/\D/', '', (string) ($get('../../ay') ?? $get('../../../ay') ?? ''));
-
-        if (($yil <= 0 || $ay < 1 || $ay > 12) && is_object($livewire)) {
-            if (method_exists($livewire, 'getRecord')) {
-                $record = $livewire->getRecord();
-                if ($record instanceof AylikFaaliyet) {
-                    $yil = (int) ($record->yil ?? $yil);
-                    $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? $ay));
-                }
-            }
-            if (($yil <= 0 || $ay < 1) && property_exists($livewire, 'data') && is_array($livewire->data)) {
-                $yil = (int) ($livewire->data['yil'] ?? $yil);
-                $ay = (int) preg_replace('/\D/', '', (string) ($livewire->data['ay'] ?? $ay));
-            }
-        }
-
-        if ($yil <= 0 || $ay < 1 || $ay > 12) {
-            return null;
-        }
-
-        $week = ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay);
-
-        return ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $week);
+        return static::hydrateFaaliyetHaftaFields($data);
     }
 
     public static function getPages(): array

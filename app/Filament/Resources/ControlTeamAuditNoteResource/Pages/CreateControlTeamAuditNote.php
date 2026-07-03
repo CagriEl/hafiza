@@ -2,14 +2,25 @@
 
 namespace App\Filament\Resources\ControlTeamAuditNoteResource\Pages;
 
+use App\Filament\Concerns\ProvidesAnalizEkibiOrnekRaporSablonDownload;
 use App\Filament\Resources\ControlTeamAuditNoteResource;
+use App\Support\AnalizEkibiRaporVerileri;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class CreateControlTeamAuditNote extends CreateRecord
 {
+    use ProvidesAnalizEkibiOrnekRaporSablonDownload;
+
     protected static string $resource = ControlTeamAuditNoteResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            $this->analizEkibiOrnekRaporSablonDownloadAction(),
+        ];
+    }
 
     /**
      * @param  array<string,mixed>  $data
@@ -18,6 +29,7 @@ class CreateControlTeamAuditNote extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['user_id'] = auth()->id();
+        $data['rapor_verileri'] = AnalizEkibiRaporVerileri::normalize($data['rapor_verileri'] ?? null);
         if (Schema::hasColumn('control_team_audit_notes', 'aylik_faaliyet_id')) {
             $aylikId = $this->resolveAylikFaaliyetId($data);
             if ($aylikId <= 0) {
@@ -35,6 +47,25 @@ class CreateControlTeamAuditNote extends CreateRecord
         }
 
         return $data;
+    }
+
+    public function mount(): void
+    {
+        parent::mount();
+
+        $this->form->fill(array_merge($this->form->getState(), [
+            'rapor_verileri' => AnalizEkibiRaporVerileri::emptyStructure(),
+        ]));
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('view', ['record' => $this->getRecord()]);
+    }
+
+    protected function getCreatedNotificationTitle(): ?string
+    {
+        return 'Analiz raporu kaydedildi. Excel olarak indirmek için görüntüleme ekranındaki butonu kullanın.';
     }
 
     /**

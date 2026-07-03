@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Forms\AnalizEkibiRaporForm;
 use App\Filament\Resources\ControlTeamAuditNoteResource\Pages;
 use App\Models\ActivityCatalog;
 use App\Models\AylikFaaliyet;
@@ -9,6 +10,7 @@ use App\Models\ControlTeamAuditNote;
 use App\Models\User;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\QuerySafety;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
@@ -70,13 +72,14 @@ class ControlTeamAuditNoteResource extends Resource
                     ->searchable()
                     ->preload()
                     ->live()
-                    ->afterStateUpdated(function (Set $set, $state): void {
+                    ->afterStateUpdated(function (Set $set, Get $get, $state): void {
                         if ((int) $state > 0) {
                             $latest = static::latestReportPeriodForDirectorate((int) $state);
                             $set('yil', $latest['yil']);
                             $set('ay', $latest['ay']);
                             $set('activity_catalog_id', null);
                         }
+                        AnalizEkibiRaporForm::applyPrefill($set, $get);
                     }),
                 Section::make('Rapor dönemi')
                     ->description('Önce içinde bulunulan ay varsayılır; faaliyet listesi yalnızca bu dönemdeki aylık rapor satırlarından gelir.')
@@ -87,7 +90,10 @@ class ControlTeamAuditNoteResource extends Resource
                             ->default(now()->year)
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn (Set $set) => $set('activity_catalog_id', null)),
+                            ->afterStateUpdated(function (Set $set, Get $get): void {
+                                $set('activity_catalog_id', null);
+                                AnalizEkibiRaporForm::applyPrefill($set, $get);
+                            }),
                         Forms\Components\Select::make('ay')
                             ->label('Ay')
                             ->options([
@@ -98,7 +104,10 @@ class ControlTeamAuditNoteResource extends Resource
                             ->default(now()->format('m'))
                             ->required()
                             ->live()
-                            ->afterStateUpdated(fn (Set $set) => $set('activity_catalog_id', null)),
+                            ->afterStateUpdated(function (Set $set, Get $get): void {
+                                $set('activity_catalog_id', null);
+                                AnalizEkibiRaporForm::applyPrefill($set, $get);
+                            }),
                     ])
                     ->columns(2),
                 Forms\Components\Select::make('activity_catalog_id')
@@ -116,21 +125,82 @@ class ControlTeamAuditNoteResource extends Resource
                             : null;
                     })
                     ->getOptionLabelUsing(fn ($value) => ActivityCatalogFormatter::labelForCatalogId((int) $value))
-                    ->required(),
-                Section::make('Seçili faaliyet özeti')
+                    ->required()
+                    ->afterStateUpdated(function (Set $set, Get $get, mixed $state): void {
+                        AnalizEkibiRaporForm::applyPrefill($set, $get);
+                    }),
+                Section::make('Müdürlük / faaliyet performans özeti')
+                    ->description('Seçilen müdürlük ve dönemin aylık rapor verilerinden otomatik gelir. Faaliyet seçildiğinde ilgili satır verileri kullanılır.')
                     ->schema([
-                        Forms\Components\Placeholder::make('activity_gerceklesen')
-                            ->label('Tamamlanan İş')
-                            ->content(fn (Get $get): string => (string) static::activityProgressSummary($get)['gerceklesen']),
-                        Forms\Components\Placeholder::make('activity_kalan')
-                            ->label('Açıkta Bekleyen İş')
-                            ->content(fn (Get $get): string => (string) static::activityProgressSummary($get)['kalan']),
+                        Forms\Components\Placeholder::make('mudurluk_ozet_baslik')
+                            ->label('Kapsam')
+                            ->content(function (Get $get): string {
+                                $activityId = (int) ($get('activity_catalog_id') ?? 0);
+
+                                return $activityId > 0
+                                    ? 'Seçili faaliyet'
+                                    : 'Müdürlük geneli (tüm faaliyetler)';
+                            }),
+                        Forms\Components\Placeholder::make('ozet_yapilan')
+                            ->label('Yapılan İş')
+                            ->content(function (Get $get): string {
+                                $activityId = (int) ($get('activity_catalog_id') ?? 0);
+                                $summary = $activityId > 0
+                                    ? static::activityProgressSummary($get)
+                                    : static::mudurlukPeriodSummary($get);
+
+                                return (string) (int) ($summary['gerceklesen'] ?? 0);
+                            }),
+                        Forms\Components\Placeholder::make('ozet_acikta')
+                            ->label('Açıkta Bekleyen')
+                            ->content(function (Get $get): string {
+                                $activityId = (int) ($get('activity_catalog_id') ?? 0);
+                                $summary = $activityId > 0
+                                    ? static::activityProgressSummary($get)
+                                    : static::mudurlukPeriodSummary($get);
+
+                                return (string) (int) ($summary['kalan'] ?? 0);
+                            }),
+                        Forms\Components\Placeholder::make('ozet_toplam')
+                            ->label('Toplam İş')
+                            ->content(function (Get $get): string {
+                                $activityId = (int) ($get('activity_catalog_id') ?? 0);
+                                $summary = $activityId > 0
+                                    ? static::activityProgressSummary($get)
+                                    : static::mudurlukPeriodSummary($get);
+                                $hedef = (int) ($summary['hedef'] ?? 0);
+                                $gerceklesen = (int) ($summary['gerceklesen'] ?? 0);
+                                $kalan = (int) ($summary['kalan'] ?? 0);
+                                $toplam = $hedef > 0 ? $hedef : ($gerceklesen + $kalan);
+
+                                return (string) $toplam;
+                            }),
+                        Forms\Components\Placeholder::make('ozet_tamamlanma')
+                            ->label('Tamamlanma Oranı (%)')
+                            ->content(function (Get $get): string {
+                                $activityId = (int) ($get('activity_catalog_id') ?? 0);
+                                $summary = $activityId > 0
+                                    ? static::activityProgressSummary($get)
+                                    : static::mudurlukPeriodSummary($get);
+                                $gerceklesen = (int) ($summary['gerceklesen'] ?? 0);
+                                $hedef = (int) ($summary['hedef'] ?? 0);
+                                $kalan = (int) ($summary['kalan'] ?? 0);
+                                $toplam = $hedef > 0 ? $hedef : ($gerceklesen + $kalan);
+                                $pct = \App\Support\AnalizEkibiRaporVerileri::completionPercent($gerceklesen, $toplam);
+
+                                return $pct === null ? '—' : '%'.$pct;
+                            }),
                     ])
-                    ->columns(2),
+                    ->columns(3)
+                    ->visible(fn (Get $get): bool => (int) ($get('directorate_user_id') ?? 0) > 0),
+
+                ...AnalizEkibiRaporForm::schema(),
+
                 Forms\Components\Textarea::make('note')
                     ->label('Analiz Notu ve Bulgular')
-                    ->rows(8)
-                    ->required(),
+                    ->rows(6)
+                    ->required()
+                    ->columnSpanFull(),
                 Forms\Components\DatePicker::make('audit_date')
                     ->label('Analiz Tarihi')
                     ->default(now()->toDateString())
@@ -179,7 +249,7 @@ class ControlTeamAuditNoteResource extends Resource
     public static function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            InfolistSection::make('Analiz Notu Detayı')
+            InfolistSection::make('Rapor Bilgileri')
                 ->schema([
                     TextEntry::make('directorate.name')->label('Müdürlük'),
                     TextEntry::make('user.name')->label('Analiz Ekibi'),
@@ -198,11 +268,77 @@ class ControlTeamAuditNoteResource extends Resource
                     TextEntry::make('audit_date')
                         ->label('Analiz Tarihi')
                         ->date('d.m.Y'),
-                    TextEntry::make('note')
-                        ->label('Analiz Notu')
-                        ->columnSpanFull(),
                 ])
                 ->columns(2),
+
+            InfolistSection::make('Özet Göstergeler')
+                ->schema([
+                    TextEntry::make('rapor_verileri.ozet.yapilan_is')->label('Yapılan İş'),
+                    TextEntry::make('rapor_verileri.ozet.acikta_bekleyen')->label('Açıkta Bekleyen'),
+                    TextEntry::make('rapor_verileri.ozet.tamamlanma_orani')->label('Tamamlanma (%)')->suffix('%'),
+                    TextEntry::make('rapor_verileri.ozet.revize_karar')->label('Revize + Karar'),
+                    TextEntry::make('rapor_verileri.ozet.gecen_ay_fark')->label('Geçen Ay Fark'),
+                    TextEntry::make('rapor_verileri.ozet.kritik_kalem_notu')->label('Kritik Kalem Notu')->columnSpanFull(),
+                ])
+                ->columns(3),
+
+            InfolistSection::make('Kalem Kalem Analiz')
+                ->schema([
+                    RepeatableEntry::make('rapor_verileri.kalem_analizi')
+                        ->label('')
+                        ->schema([
+                            TextEntry::make('kalem')->label('Kalem'),
+                            TextEntry::make('gerceklesen')->label('Gerçekleşen'),
+                            TextEntry::make('acikta')->label('Açıkta'),
+                            TextEntry::make('durum')->label('Durum')->badge(),
+                            TextEntry::make('sapma_not')->label('Sapma / Not')->columnSpanFull(),
+                            TextEntry::make('son_tarih')->label('Son Tarih'),
+                        ])
+                        ->columns(3),
+                ]),
+
+            InfolistSection::make('Öncelikli Aksiyonlar')
+                ->schema([
+                    RepeatableEntry::make('rapor_verileri.aksiyonlar')
+                        ->label('')
+                        ->schema([
+                            TextEntry::make('oncelik')->label('Öncelik'),
+                            TextEntry::make('aksiyon')->label('Aksiyon')->columnSpanFull(),
+                            TextEntry::make('kalem')->label('Kalem'),
+                            TextEntry::make('sorumlu')->label('Sorumlu'),
+                            TextEntry::make('hedef_tarih')->label('Hedef Tarih'),
+                            TextEntry::make('durum')->label('Durum'),
+                        ])
+                        ->columns(3),
+                ]),
+
+            InfolistSection::make('Olgunluk Göstergeleri')
+                ->schema([
+                    TextEntry::make('rapor_verileri.olgunluk.veri_kalitesi.deger')->label('Veri Kalitesi (%)')->suffix('%'),
+                    TextEntry::make('rapor_verileri.olgunluk.zamaninda_kapanis.deger')->label('Zamanında Kapanış (%)')->suffix('%'),
+                    TextEntry::make('rapor_verileri.olgunluk.risk_yonetimi.deger')->label('Risk Yönetimi (%)')->suffix('%'),
+                    TextEntry::make('rapor_verileri.olgunluk.aksiyon_kapanis.deger')->label('Aksiyon Kapanış (%)')->suffix('%'),
+                ])
+                ->columns(4),
+
+            InfolistSection::make('Risk Isı Haritası')
+                ->schema([
+                    RepeatableEntry::make('rapor_verileri.risk_haritasi')
+                        ->label('')
+                        ->schema([
+                            TextEntry::make('kalem')->label('Kalem'),
+                            TextEntry::make('seviye')->label('Seviye')->badge(),
+                            TextEntry::make('aciklama')->label('Açıklama')->columnSpanFull(),
+                        ])
+                        ->columns(2),
+                ]),
+
+            InfolistSection::make('Analiz Notu ve Bulgular')
+                ->schema([
+                    TextEntry::make('note')
+                        ->label('')
+                        ->columnSpanFull(),
+                ]),
         ]);
     }
 
@@ -473,7 +609,7 @@ class ControlTeamAuditNoteResource extends Resource
     /**
      * @return array{hedef:int, gerceklesen:int, kalan:int}
      */
-    protected static function activityProgressSummary(Get $get): array
+    public static function activityProgressSummary(Get $get): array
     {
         $directorateUserId = (int) ($get('directorate_user_id') ?? 0);
         $activityCatalogId = (int) ($get('activity_catalog_id') ?? 0);
@@ -551,6 +687,287 @@ class ControlTeamAuditNoteResource extends Resource
             'gerceklesen' => $gerceklesen,
             'kalan' => $kalan,
         ];
+    }
+
+    /**
+     * Müdürlük + dönem için tüm faaliyet satırlarının toplam performansı.
+     *
+     * @return array{hedef:int, gerceklesen:int, kalan:int, revize_karar:int, kritik_kalem_notu:string}
+     */
+    public static function mudurlukPeriodSummary(Get $get): array
+    {
+        $directorateUserId = (int) ($get('directorate_user_id') ?? 0);
+        $yil = $get('yil');
+        $ay = $get('ay');
+
+        if ($directorateUserId <= 0 || blank($yil) || blank($ay)) {
+            return ['hedef' => 0, 'gerceklesen' => 0, 'kalan' => 0, 'revize_karar' => 0, 'kritik_kalem_notu' => ''];
+        }
+
+        $rapor = static::resolveAylikFaaliyetForDirectoratePeriod(
+            $directorateUserId,
+            (int) $yil,
+            (string) $ay
+        );
+
+        if (! $rapor) {
+            return ['hedef' => 0, 'gerceklesen' => 0, 'kalan' => 0, 'revize_karar' => 0, 'kritik_kalem_notu' => ''];
+        }
+
+        $faaliyetler = static::faaliyetlerRowsWithHydratedCatalogIds($rapor, $directorateUserId);
+        $hedef = 0;
+        $gerceklesen = 0;
+        $bekleyen = 0;
+        $revizeKarar = 0;
+        $allKalemler = [];
+
+        foreach ($faaliyetler as $satir) {
+            if (! is_array($satir)) {
+                continue;
+            }
+            $hedef += (int) ($satir['hedef'] ?? 0);
+            $gerceklesen += (int) ($satir['gerceklesen'] ?? 0);
+            $bekleyen += (int) ($satir['bekleyen_is'] ?? 0);
+            if ((bool) ($satir['gerekli_revize'] ?? false)) {
+                $revizeKarar++;
+            }
+            if (filled($satir['karar_ihtiyaci'] ?? null)) {
+                $revizeKarar++;
+            }
+            foreach (\App\Support\AnalizEkibiRaporVerileri::buildKalemAnalizi($satir) as $kalem) {
+                $allKalemler[] = $kalem;
+            }
+        }
+
+        if ($hedef === 0 && $gerceklesen > 0) {
+            $kalan = max(0, $bekleyen);
+        } else {
+            $kalan = max(0, $hedef - $gerceklesen);
+            if ($bekleyen > 0) {
+                $kalan = max($kalan, $bekleyen);
+            }
+        }
+
+        return [
+            'hedef' => $hedef,
+            'gerceklesen' => $gerceklesen,
+            'kalan' => $kalan,
+            'revize_karar' => $revizeKarar,
+            'kritik_kalem_notu' => \App\Support\AnalizEkibiRaporVerileri::computeKritikKalemNotu($allKalemler),
+        ];
+    }
+
+    public static function activityGecenAyFark(Get $get): ?int
+    {
+        $directorateUserId = (int) ($get('directorate_user_id') ?? 0);
+        $activityCatalogId = (int) ($get('activity_catalog_id') ?? 0);
+        $yil = (int) ($get('yil') ?? 0);
+        $ayNorm = str_pad(preg_replace('/\D/', '', (string) ($get('ay') ?? '')) ?: '', 2, '0', STR_PAD_LEFT);
+
+        if ($directorateUserId <= 0 || $activityCatalogId <= 0 || $yil <= 0 || strlen($ayNorm) !== 2) {
+            return null;
+        }
+
+        $current = static::activityProgressSummary($get)['gerceklesen'] ?? 0;
+        $prev = static::previousPeriod($yil, $ayNorm);
+        $prevSummary = static::activityProgressSummaryForPeriod(
+            $directorateUserId,
+            $prev['yil'],
+            $prev['ay'],
+            $activityCatalogId
+        );
+
+        return (int) $current - (int) ($prevSummary['gerceklesen'] ?? 0);
+    }
+
+    public static function mudurlukGecenAyFark(Get $get): ?int
+    {
+        $directorateUserId = (int) ($get('directorate_user_id') ?? 0);
+        $yil = (int) ($get('yil') ?? 0);
+        $ayNorm = str_pad(preg_replace('/\D/', '', (string) ($get('ay') ?? '')) ?: '', 2, '0', STR_PAD_LEFT);
+
+        if ($directorateUserId <= 0 || $yil <= 0 || strlen($ayNorm) !== 2) {
+            return null;
+        }
+
+        $current = static::mudurlukPeriodSummary($get)['gerceklesen'] ?? 0;
+        $prev = static::previousPeriod($yil, $ayNorm);
+        $prevSummary = static::mudurlukPeriodSummaryForPeriod($directorateUserId, $prev['yil'], $prev['ay']);
+
+        return (int) $current - (int) ($prevSummary['gerceklesen'] ?? 0);
+    }
+
+    /**
+     * @return array{yil:int, ay:string}
+     */
+    public static function previousPeriod(int $yil, string $ayNorm): array
+    {
+        $month = (int) $ayNorm;
+        if ($month <= 1) {
+            return ['yil' => $yil - 1, 'ay' => '12'];
+        }
+
+        return [
+            'yil' => $yil,
+            'ay' => str_pad((string) ($month - 1), 2, '0', STR_PAD_LEFT),
+        ];
+    }
+
+    /**
+     * @return array{hedef:int, gerceklesen:int, kalan:int}
+     */
+    public static function activityProgressSummaryForPeriod(
+        int $directorateUserId,
+        int $yil,
+        string $ayRaw,
+        int $activityCatalogId
+    ): array {
+        if ($directorateUserId <= 0 || $activityCatalogId <= 0 || $yil <= 0) {
+            return ['hedef' => 0, 'gerceklesen' => 0, 'kalan' => 0];
+        }
+
+        $rapor = static::resolveAylikFaaliyetForDirectoratePeriod($directorateUserId, $yil, $ayRaw);
+        if (! $rapor) {
+            return ['hedef' => 0, 'gerceklesen' => 0, 'kalan' => 0];
+        }
+
+        $faaliyetler = static::faaliyetlerRowsWithHydratedCatalogIds($rapor, $directorateUserId);
+        $selectedCatalog = ActivityCatalog::query()->find($activityCatalogId, ['id', 'faaliyet_kodu']);
+        $selectedCode = trim((string) ($selectedCatalog?->faaliyet_kodu ?? ''));
+
+        $hedef = 0;
+        $gerceklesen = 0;
+        $bekleyen = 0;
+
+        foreach ($faaliyetler as $satir) {
+            if (! is_array($satir)) {
+                continue;
+            }
+            $rowCatalogId = (int) ($satir['activity_catalog_id'] ?? 0);
+            $rowCode = trim((string) ($satir['faaliyet_kodu'] ?? ''));
+            $matchesById = $rowCatalogId > 0 && $rowCatalogId === $activityCatalogId;
+            $matchesByCode = $selectedCode !== '' && $rowCode !== '' && strcasecmp($rowCode, $selectedCode) === 0;
+            if (! $matchesById && ! $matchesByCode) {
+                continue;
+            }
+            $hedef += (int) ($satir['hedef'] ?? 0);
+            $gerceklesen += (int) ($satir['gerceklesen'] ?? 0);
+            $bekleyen += (int) ($satir['bekleyen_is'] ?? 0);
+        }
+
+        if ($hedef === 0 && $gerceklesen > 0) {
+            $kalan = max(0, $bekleyen);
+        } else {
+            $kalan = max(0, $hedef - $gerceklesen);
+            if ($bekleyen > 0) {
+                $kalan = max($kalan, $bekleyen);
+            }
+        }
+
+        return ['hedef' => $hedef, 'gerceklesen' => $gerceklesen, 'kalan' => $kalan];
+    }
+
+    /**
+     * @return array{hedef:int, gerceklesen:int, kalan:int, revize_karar:int, kritik_kalem_notu:string}
+     */
+    public static function mudurlukPeriodSummaryForPeriod(int $directorateUserId, int $yil, string $ayRaw): array
+    {
+        $rapor = static::resolveAylikFaaliyetForDirectoratePeriod($directorateUserId, $yil, $ayRaw);
+        if (! $rapor) {
+            return ['hedef' => 0, 'gerceklesen' => 0, 'kalan' => 0, 'revize_karar' => 0, 'kritik_kalem_notu' => ''];
+        }
+
+        $faaliyetler = static::faaliyetlerRowsWithHydratedCatalogIds($rapor, $directorateUserId);
+        $hedef = 0;
+        $gerceklesen = 0;
+        $bekleyen = 0;
+        $revizeKarar = 0;
+
+        foreach ($faaliyetler as $satir) {
+            if (! is_array($satir)) {
+                continue;
+            }
+            $hedef += (int) ($satir['hedef'] ?? 0);
+            $gerceklesen += (int) ($satir['gerceklesen'] ?? 0);
+            $bekleyen += (int) ($satir['bekleyen_is'] ?? 0);
+            if ((bool) ($satir['gerekli_revize'] ?? false)) {
+                $revizeKarar++;
+            }
+            if (filled($satir['karar_ihtiyaci'] ?? null)) {
+                $revizeKarar++;
+            }
+        }
+
+        if ($hedef === 0 && $gerceklesen > 0) {
+            $kalan = max(0, $bekleyen);
+        } else {
+            $kalan = max(0, $hedef - $gerceklesen);
+            if ($bekleyen > 0) {
+                $kalan = max($kalan, $bekleyen);
+            }
+        }
+
+        return [
+            'hedef' => $hedef,
+            'gerceklesen' => $gerceklesen,
+            'kalan' => $kalan,
+            'revize_karar' => $revizeKarar,
+            'kritik_kalem_notu' => '',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public static function activityMatchedFaaliyetRow(Get $get): ?array
+    {
+        $directorateUserId = (int) ($get('directorate_user_id') ?? 0);
+        $activityCatalogId = (int) ($get('activity_catalog_id') ?? 0);
+        $yil = $get('yil');
+        $ay = $get('ay');
+
+        if ($directorateUserId <= 0 || $activityCatalogId <= 0 || blank($yil) || blank($ay)) {
+            return null;
+        }
+
+        $yilInt = (int) $yil;
+        $ayNorm = str_pad(preg_replace('/\D/', '', (string) $ay) ?: '', 2, '0', STR_PAD_LEFT);
+        if (strlen($ayNorm) !== 2) {
+            return null;
+        }
+
+        $rapor = AylikFaaliyet::query()
+            ->where('user_id', $directorateUserId)
+            ->where('yil', $yilInt)
+            ->whereIn('ay', static::normalizeAyQueryVariants($ayNorm))
+            ->first();
+
+        if (! $rapor) {
+            $rapor = static::latestAylikFaaliyetForDirectorateUser($directorateUserId);
+        }
+
+        if (! $rapor) {
+            return null;
+        }
+
+        $faaliyetler = static::faaliyetlerRowsWithHydratedCatalogIds($rapor, $directorateUserId);
+        $selectedCatalog = ActivityCatalog::query()->find($activityCatalogId, ['id', 'faaliyet_kodu']);
+        $selectedCode = trim((string) ($selectedCatalog?->faaliyet_kodu ?? ''));
+
+        foreach ($faaliyetler as $satir) {
+            if (! is_array($satir)) {
+                continue;
+            }
+            $rowCatalogId = (int) ($satir['activity_catalog_id'] ?? 0);
+            $rowCode = trim((string) ($satir['faaliyet_kodu'] ?? ''));
+            $matchesById = $rowCatalogId > 0 && $rowCatalogId === $activityCatalogId;
+            $matchesByCode = $selectedCode !== '' && $rowCode !== '' && strcasecmp($rowCode, $selectedCode) === 0;
+            if ($matchesById || $matchesByCode) {
+                return $satir;
+            }
+        }
+
+        return null;
     }
 
     /**
