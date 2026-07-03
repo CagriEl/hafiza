@@ -121,7 +121,9 @@ final class AylikFaaliyetRepeaterLock
                     && ! self::isNumericFormScalar($original['kapsam_verileri'][$idx]['ongorulen'] ?? $original['kapsam_verileri'][$idx]['deger'] ?? null)) {
                     $original['kapsam_verileri'][$idx]['ongorulen'] = $incomingKv[$idx]['ongorulen'];
                 }
-                if (array_key_exists('gerceklesen', $incomingKv[$idx])) {
+                $yapilanKayitli = self::isNumericFormScalar($original['kapsam_verileri'][$idx]['ongorulen'] ?? $original['kapsam_verileri'][$idx]['deger'] ?? null)
+                    || self::isNumericFormScalar($incomingKv[$idx]['ongorulen'] ?? $incomingKv[$idx]['deger'] ?? null);
+                if ($yapilanKayitli && self::isNumericFormScalar($incomingKv[$idx]['gerceklesen'] ?? null)) {
                     $original['kapsam_verileri'][$idx]['gerceklesen'] = $incomingKv[$idx]['gerceklesen'];
                 }
                 if (array_key_exists('haftalik_kayitlar', $incomingKv[$idx])
@@ -131,12 +133,13 @@ final class AylikFaaliyetRepeaterLock
                 if (array_key_exists('son_yapilma_tarihi', $incomingKv[$idx])) {
                     $original['kapsam_verileri'][$idx]['son_yapilma_tarihi'] = $incomingKv[$idx]['son_yapilma_tarihi'];
                 }
+                $incomingKapatildi = (bool) ($incomingKv[$idx]['acikta_kapatildi'] ?? false);
                 foreach (['acikta_revize_tarihi', 'acikta_revize_notu'] as $revizeKey) {
                     if (! array_key_exists($revizeKey, $incomingKv[$idx])) {
                         continue;
                     }
                     $existing = trim((string) ($original['kapsam_verileri'][$idx][$revizeKey] ?? ''));
-                    if ($existing !== '') {
+                    if ($existing !== '' && ! $incomingKapatildi) {
                         continue;
                     }
                     $incomingVal = trim((string) ($incomingKv[$idx][$revizeKey] ?? ''));
@@ -144,9 +147,20 @@ final class AylikFaaliyetRepeaterLock
                         $original['kapsam_verileri'][$idx][$revizeKey] = $incomingKv[$idx][$revizeKey];
                     }
                 }
-                $original['kapsam_verileri'][$idx]['acikta_kalan'] = self::kapsamSatirAciktaKalan(
-                    $original['kapsam_verileri'][$idx]
-                );
+                foreach (['acikta_kapatildi', 'acikta_kapatma_notu'] as $kapatmaKey) {
+                    if (array_key_exists($kapatmaKey, $incomingKv[$idx])) {
+                        $original['kapsam_verileri'][$idx][$kapatmaKey] = $incomingKv[$idx][$kapatmaKey];
+                    }
+                }
+                if ($incomingKapatildi) {
+                    if (array_key_exists('acikta_kalan', $incomingKv[$idx])) {
+                        $original['kapsam_verileri'][$idx]['acikta_kalan'] = $incomingKv[$idx]['acikta_kalan'];
+                    }
+                } else {
+                    $original['kapsam_verileri'][$idx]['acikta_kalan'] = self::kapsamSatirAciktaKalan(
+                        $original['kapsam_verileri'][$idx]
+                    );
+                }
             }
         }
 
@@ -289,6 +303,14 @@ final class AylikFaaliyetRepeaterLock
         foreach ($data['faaliyetler'] as $i => $row) {
             if (is_array($row)) {
                 unset($data['faaliyetler'][$i]['_orig_index'], $data['faaliyetler'][$i]['miktar']);
+                $kv = $data['faaliyetler'][$i]['kapsam_verileri'] ?? null;
+                if (is_array($kv)) {
+                    foreach (array_keys($kv) as $j) {
+                        if (is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
+                            unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['acikta_is_kapatiliyor']);
+                        }
+                    }
+                }
             }
         }
 

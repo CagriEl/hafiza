@@ -14,14 +14,19 @@ final class AylikFaaliyetWeeklyCarryover
      */
     public static function kapsamPendingAmount(array $kapsamRow): float
     {
+        $ong = $kapsamRow['ongorulen'] ?? $kapsamRow['deger'] ?? null;
+        if (is_numeric($ong)) {
+            $plan = (float) $ong;
+            $done = is_numeric($kapsamRow['gerceklesen'] ?? null) ? (float) $kapsamRow['gerceklesen'] : 0.0;
+
+            return max(0.0, $plan - $done);
+        }
+
         if (array_key_exists('acikta_kalan', $kapsamRow) && is_numeric($kapsamRow['acikta_kalan'])) {
             return max(0.0, (float) $kapsamRow['acikta_kalan']);
         }
 
-        $plan = (float) ($kapsamRow['ongorulen'] ?? $kapsamRow['deger'] ?? 0);
-        $done = (float) ($kapsamRow['gerceklesen'] ?? 0);
-
-        return max(0.0, $plan - $done);
+        return 0.0;
     }
 
     public static function currentWeekForReportData(array $data): int
@@ -79,6 +84,97 @@ final class AylikFaaliyetWeeklyCarryover
     }
 
     /**
+     * Son rapor haftasında açıkta kalan işi gerekçe notu ile kapat.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function applyAciktaKapatma(array $data): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        $today = ReportPeriodWeeks::reportingReferenceDate()->toDateString();
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row) || (bool) ($row['ay_sonu_performans_kilitli'] ?? false)) {
+                continue;
+            }
+
+            if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
+                continue;
+            }
+
+            $currentWeek = self::resolveWeekForFaaliyetRow($row, $data);
+            if ($currentWeek < ReportPeriodWeeks::WEEK_COUNT) {
+                continue;
+            }
+
+            $kv = $row['kapsam_verileri'] ?? null;
+            if (! is_array($kv) || $kv === []) {
+                continue;
+            }
+
+            foreach (array_keys($kv) as $j) {
+                if (! is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
+                    continue;
+                }
+
+                $kapsamRow = &$data['faaliyetler'][$i]['kapsam_verileri'][$j];
+
+                if ((bool) ($kapsamRow['acikta_kapatildi'] ?? false)) {
+                    continue;
+                }
+
+                if (! (bool) ($kapsamRow['acikta_is_kapatiliyor'] ?? false)) {
+                    continue;
+                }
+
+                $note = trim((string) ($kapsamRow['acikta_kapatma_notu'] ?? ''));
+                if ($note === '') {
+                    continue;
+                }
+
+                $pending = self::kapsamPendingAmount($kapsamRow);
+                if ($pending <= 0.0) {
+                    continue;
+                }
+
+                $kayitlar = is_array($kapsamRow['haftalik_kayitlar'] ?? null)
+                    ? array_values($kapsamRow['haftalik_kayitlar'])
+                    : [];
+
+                $kayitlar[] = [
+                    'hafta' => $currentWeek,
+                    'miktar' => 0,
+                    'aciklama' => 'Dönem sonu kapanış: '.$note,
+                    'yapilma_tarihi' => $today,
+                    'tip' => 'kapatma',
+                    'kapatilan_acikta' => $pending,
+                ];
+
+                $kapsamRow['haftalik_kayitlar'] = $kayitlar;
+                $kapsamRow['acikta_kalan'] = 0;
+                $kapsamRow['acikta_revize_notu'] = $note;
+                if (! filled($kapsamRow['acikta_revize_tarihi'] ?? null)) {
+                    $kapsamRow['acikta_revize_tarihi'] = $today;
+                }
+                $kapsamRow['acikta_kapatildi'] = true;
+                $kapsamRow['acikta_kapatma_notu'] = $note;
+                unset(
+                    $kapsamRow['acikta_is_kapatiliyor'],
+                    $kapsamRow['bu_hafta_tamamlanan'],
+                    $kapsamRow['bu_hafta_aciklama']
+                );
+            }
+            unset($kapsamRow);
+        }
+
+        return $data;
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -114,6 +210,13 @@ final class AylikFaaliyetWeeklyCarryover
                 $kapsamRow = &$data['faaliyetler'][$i]['kapsam_verileri'][$j];
                 $buHafta = self::toFloat($kapsamRow['bu_hafta_tamamlanan'] ?? null);
                 $aciklama = trim((string) ($kapsamRow['bu_hafta_aciklama'] ?? ''));
+
+                if ((bool) ($kapsamRow['acikta_kapatildi'] ?? false)) {
+                    unset($kapsamRow['bu_hafta_tamamlanan'], $kapsamRow['bu_hafta_aciklama'], $kapsamRow['acikta_is_kapatiliyor']);
+                    $kapsamRow['acikta_kalan'] = AylikFaaliyetRepeaterLock::kapsamSatirAciktaKalan($kapsamRow);
+
+                    continue;
+                }
 
                 if ($buHafta > 0.0 && $aciklama === '') {
                     continue;

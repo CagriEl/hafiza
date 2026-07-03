@@ -6,6 +6,7 @@ use App\Filament\Resources\AylikFaaliyetResource;
 use App\Models\ExtraordinarySituation;
 use App\Models\User;
 use App\Services\ActivityService;
+use App\Support\AylikFaaliyetWeeklyCarryover;
 use App\Support\ReportPeriodWeeks;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -160,8 +161,9 @@ class ListAylikFaaliyets extends ListRecords
                             }
                             $ong = $satir['ongorulen'] ?? $satir['deger'] ?? null;
                             $ger = $satir['gerceklesen'] ?? null;
-                            $acik = $satir['acikta_kalan'] ?? null;
-                            $pairs[] = e($kalem).': yapılacak '.e(filled($ong) ? (string) $ong : '-').' / yapılan '.e(filled($ger) ? (string) $ger : '-').' / bekleyen '.e(filled($acik) ? (string) $acik : '-');
+                            $acik = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($satir);
+                            $acikText = $acik > 0.0 ? (string) (floor($acik) === $acik ? (int) $acik : $acik) : '0';
+                            $pairs[] = e($kalem).': yapılacak '.e(filled($ong) ? (string) $ong : '-').' / yapılan '.e(filled($ger) ? (string) $ger : '-').' / bekleyen '.e($acikText);
                         }
                         if ($pairs !== []) {
                             $kapsamKalemleri = '<br><b>Kapsam Kalemleri:</b> '.implode(' | ', $pairs);
