@@ -117,6 +117,10 @@ final class AylikFaaliyetRepeaterLock
                 if (! isset($incomingKv[$idx], $originalKv[$idx]) || ! is_array($incomingKv[$idx]) || ! is_array($originalKv[$idx])) {
                     continue;
                 }
+                if (array_key_exists('ongorulen', $incomingKv[$idx])
+                    && ! self::isNumericFormScalar($original['kapsam_verileri'][$idx]['ongorulen'] ?? $original['kapsam_verileri'][$idx]['deger'] ?? null)) {
+                    $original['kapsam_verileri'][$idx]['ongorulen'] = $incomingKv[$idx]['ongorulen'];
+                }
                 if (array_key_exists('gerceklesen', $incomingKv[$idx])) {
                     $original['kapsam_verileri'][$idx]['gerceklesen'] = $incomingKv[$idx]['gerceklesen'];
                 }
