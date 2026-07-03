@@ -128,7 +128,15 @@ final class AylikFaaliyetRepeaterLock
                     $original['kapsam_verileri'][$idx]['son_yapilma_tarihi'] = $incomingKv[$idx]['son_yapilma_tarihi'];
                 }
                 foreach (['acikta_revize_tarihi', 'acikta_revize_notu'] as $revizeKey) {
-                    if (array_key_exists($revizeKey, $incomingKv[$idx])) {
+                    if (! array_key_exists($revizeKey, $incomingKv[$idx])) {
+                        continue;
+                    }
+                    $existing = trim((string) ($original['kapsam_verileri'][$idx][$revizeKey] ?? ''));
+                    if ($existing !== '') {
+                        continue;
+                    }
+                    $incomingVal = trim((string) ($incomingKv[$idx][$revizeKey] ?? ''));
+                    if ($incomingVal !== '') {
                         $original['kapsam_verileri'][$idx][$revizeKey] = $incomingKv[$idx][$revizeKey];
                     }
                 }

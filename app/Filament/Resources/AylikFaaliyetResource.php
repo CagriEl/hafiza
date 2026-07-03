@@ -395,28 +395,38 @@ class AylikFaaliyetResource extends Resource
             return true;
         }
 
+        if (static::currentReportWeekForForm($get, $livewire) <= 1) {
+            if (! static::hasProvidedNumericValue($get('ongorulen') ?? $get('deger') ?? null)) {
+                return true;
+            }
+            $u = auth()->user();
+            if ($u instanceof User && $u->isReportingSuperAdmin()) {
+                return true;
+            }
+
+            return false;
+        }
+
         return false;
     }
 
     /**
-     * Haftalık raporda tamamlanan miktar (1. hafta ve ay sonu); 2+ haftada bu_hafta_tamamlanan kullanılır.
+     * Açıkta iş revize notu/tarihi kayıtlı satırda bir kez girilir.
      */
-    public static function kapsamShowsTamamlananIsField(Get $get, mixed $livewire): bool
+    public static function kapsamRevizeAlaniDisabled(Get $get, mixed $livewire): bool
     {
-        if (! static::kapsamKalemVisibleInCurrentWeek($get, $livewire)) {
+        if (trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '') {
+            return false;
+        }
+        if (! filled($get('acikta_revize_notu')) && ! filled($get('acikta_revize_tarihi'))) {
+            return false;
+        }
+        $u = auth()->user();
+        if ($u instanceof User && $u->isReportingSuperAdmin()) {
             return false;
         }
 
-        return ! static::kapsamShowsWeeklyFollowUpFields($get, $livewire);
-    }
-
-    public static function kapsamOngorulenLabel(Get $get, mixed $livewire): string
-    {
-        if (static::kapsamOngorulenEditable($get, $livewire)) {
-            return 'Yapılan İş';
-        }
-
-        return 'Planlanan İş';
+        return true;
     }
 
     public static function kapsamHasPendingWork(Get $get): bool
@@ -662,34 +672,6 @@ class AylikFaaliyetResource extends Resource
         }
 
         return true;
-    }
-
-    /**
-     * Kapsam dışı satırlarda haftalık tamamlanan iş girişi (1. hafta).
-     */
-    public static function faaliyetRowShowsTamamlananIsField(Get $get, mixed $livewire): bool
-    {
-        if (static::faaliyetRowUsesKapsamAySonuForPerformans($get)) {
-            return false;
-        }
-
-        if (static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)) {
-            return true;
-        }
-
-        if (! $livewire instanceof EditRecord) {
-            return false;
-        }
-
-        if (trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '') {
-            return false;
-        }
-
-        if (static::isMonthlyPeriodForRow($get)) {
-            return false;
-        }
-
-        return static::currentReportWeekForForm($get, $livewire) <= 1;
     }
 
     /**
@@ -1000,7 +982,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->dehydrated()
                                                 ->extraAttributes(['class' => 'bg-gray-50 whitespace-normal break-words']),
                                             Forms\Components\TextInput::make('ongorulen')
-                                                ->label(fn (Get $get, $livewire): string => static::kapsamOngorulenLabel($get, $livewire))
+                                                ->label('Yapılan İş')
                                                 ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
@@ -1021,7 +1003,8 @@ class AylikFaaliyetResource extends Resource
                                                 ->required(fn (Get $get): bool => trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '')
                                                 ->readOnly(fn (Get $get, $livewire): bool => ! static::kapsamOngorulenEditable($get, $livewire))
                                                 ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamOngorulenEditable($get, $livewire))
-                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamOngorulenEditable($get, $livewire))
+                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamOngorulenEditable($get, $livewire)
+                                                    || ! static::kapsamShowsWeeklyFollowUpFields($get, $livewire))
                                                 ->dehydrated(true),
                                             Forms\Components\Placeholder::make('ongorulen_ozet')
                                                 ->label('Planlanan İş')
@@ -1030,8 +1013,7 @@ class AylikFaaliyetResource extends Resource
 
                                                     return (string) $val;
                                                 })
-                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire)
-                                                    || (static::kapsamShowsTamamlananIsField($get, $livewire) && ! static::kapsamOngorulenEditable($get, $livewire))),
+                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
                                             Forms\Components\TextInput::make('gerceklesen')
                                                 ->label('Tamamlanan İş')
                                                 ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
@@ -1047,10 +1029,10 @@ class AylikFaaliyetResource extends Resource
                                                 ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                                     && static::shouldRequireAySonuCompletion($livewire)
                                                     && ! AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get))
-                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamShowsTamamlananIsField($get, $livewire))
-                                                ->dehydrated(fn (Get $get, $livewire): bool => static::kapsamShowsTamamlananIsField($get, $livewire))
+                                                ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
+                                                ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire))
                                                 ->disabled(function (Get $get, $livewire): bool {
-                                                    if (! static::kapsamShowsTamamlananIsField($get, $livewire)) {
+                                                    if (! static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)) {
                                                         return true;
                                                     }
                                                     $u = auth()->user();
@@ -1062,7 +1044,7 @@ class AylikFaaliyetResource extends Resource
                                                 }),
                                             Forms\Components\Hidden::make('acikta_kalan')
                                                 ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
-                                                ->dehydrated(fn (Get $get, $livewire): bool => static::kapsamShowsTamamlananIsField($get, $livewire)
+                                                ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                                     || static::kapsamShowsWeeklyFollowUpFields($get, $livewire)
                                                     || static::kapsamHasPendingWork($get)),
                                             Forms\Components\Placeholder::make('acikta_kalan_goster')
@@ -1089,7 +1071,7 @@ class AylikFaaliyetResource extends Resource
                                                     );
                                                 })
                                                 ->helperText('Yapılacak iş − yapılan iş (otomatik, en az 0).')
-                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamShowsTamamlananIsField($get, $livewire)
+                                                ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                                     || static::kapsamShowsWeeklyFollowUpFields($get, $livewire)
                                                     || static::kapsamHasPendingWork($get)),
                                         ]),
@@ -1102,6 +1084,7 @@ class AylikFaaliyetResource extends Resource
                                                     ->displayFormat('d.m.Y')
                                                     ->default(fn (): string => ReportPeriodWeeks::reportingReferenceDate()->toDateString())
                                                     ->live(onBlur: true)
+                                                    ->disabled(fn (Get $get, $livewire): bool => static::kapsamRevizeAlaniDisabled($get, $livewire))
                                                     ->afterStateUpdated(function (Set $set, mixed $state): void {
                                                         if (! filled($state)) {
                                                             return;
@@ -1116,7 +1099,8 @@ class AylikFaaliyetResource extends Resource
                                                     ->label('Revize Notu')
                                                     ->placeholder('Açıkta kalan işin nedeni, planlanan tamamlanma veya revize gerekçesini yazınız...')
                                                     ->rows(2)
-                                                    ->columnSpanFull(),
+                                                    ->columnSpanFull()
+                                                    ->disabled(fn (Get $get, $livewire): bool => static::kapsamRevizeAlaniDisabled($get, $livewire)),
                                             ])
                                             ->columns(2)
                                             ->visible(fn (Get $get): bool => static::kapsamHasPendingWork($get))
@@ -1352,10 +1336,12 @@ class AylikFaaliyetResource extends Resource
                                             && ! (bool) ($get('ay_sonu_performans_kilitli') ?? false))
                                         ->placeholder('Örn: 395')
                                         ->live(onBlur: true)
-                                        ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsTamamlananIsField($get, $livewire))
-                                        ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsTamamlananIsField($get, $livewire))
+                                        ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
+                                            && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get))
+                                        ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
+                                            && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get))
                                         ->disabled(function (Get $get, $livewire): bool {
-                                            if (! static::faaliyetRowShowsTamamlananIsField($get, $livewire)) {
+                                            if (! static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)) {
                                                 return true;
                                             }
                                             if (static::faaliyetRowUsesKapsamAySonuForPerformans($get)) {
