@@ -170,6 +170,75 @@ class AylikFaaliyetWeeklyCarryoverTest extends TestCase
         $this->assertSame(20.0, AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($kapsam));
     }
 
+    public function test_apply_bulk_pending_completion_marks_all_open_items_done(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-30', 'Europe/Istanbul'));
+
+        $data = [
+            'yil' => 2026,
+            'ay' => '06',
+            'faaliyetler' => [
+                [
+                    'hafta' => ReportPeriodWeeks::WEEK_COUNT,
+                    'faaliyet_kodu' => 'ZBM-03',
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'Pazar düzeni',
+                            'ongorulen' => 3,
+                            'gerceklesen' => 0,
+                            'acikta_kalan' => 3,
+                            'haftalik_kayitlar' => [],
+                        ],
+                        [
+                            'kalem' => 'terminal kontrolleri',
+                            'ongorulen' => 7,
+                            'gerceklesen' => 0,
+                            'acikta_kalan' => 7,
+                            'haftalik_kayitlar' => [],
+                        ],
+                    ],
+                ],
+                [
+                    'hafta' => ReportPeriodWeeks::WEEK_COUNT,
+                    'faaliyet_kodu' => 'ZBM-05',
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'Ölçü',
+                            'ongorulen' => 0,
+                            'gerceklesen' => 0,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = AylikFaaliyetWeeklyCarryover::applyBulkPendingCompletion($data, 'Dönem sonu toplu giriş');
+        $zbm03 = $result['faaliyetler'][0]['kapsam_verileri'];
+
+        $this->assertSame(0, AylikFaaliyetWeeklyCarryover::countPendingKapsamItems($result));
+        $this->assertSame(3.0, (float) $zbm03[0]['gerceklesen']);
+        $this->assertSame(0.0, (float) $zbm03[0]['acikta_kalan']);
+        $this->assertSame(7.0, (float) $zbm03[1]['gerceklesen']);
+        $this->assertSame('toplu_tamamlama', $zbm03[0]['haftalik_kayitlar'][0]['tip']);
+        $this->assertSame('Dönem sonu toplu giriş', $zbm03[0]['haftalik_kayitlar'][0]['aciklama']);
+    }
+
+    public function test_count_pending_kapsam_items_ignores_zero_plan_rows(): void
+    {
+        $data = [
+            'faaliyetler' => [
+                [
+                    'kapsam_verileri' => [
+                        ['kalem' => 'A', 'ongorulen' => 0, 'gerceklesen' => 0],
+                        ['kalem' => 'B', 'ongorulen' => 5, 'gerceklesen' => 2],
+                    ],
+                ],
+            ],
+        ];
+
+        $this->assertSame(1, AylikFaaliyetWeeklyCarryover::countPendingKapsamItems($data));
+    }
+
     public function test_monthly_row_resolves_to_zero_week(): void
     {
         $week = AylikFaaliyetWeeklyCarryover::resolveWeekForFaaliyetRow(

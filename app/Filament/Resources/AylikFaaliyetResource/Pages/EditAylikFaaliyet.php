@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AylikFaaliyetResource\Pages;
 
+use App\Filament\Concerns\BulkCompletesPendingFaaliyetWork;
 use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
 use App\Filament\Resources\AylikFaaliyetResource;
@@ -15,6 +16,7 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditAylikFaaliyet extends EditRecord
 {
+    use BulkCompletesPendingFaaliyetWork;
     use WarnsIfActivityCatalogEmpty;
 
     protected static string $resource = AylikFaaliyetResource::class;
@@ -51,6 +53,7 @@ class EditAylikFaaliyet extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->bulkCompletePendingWorkAction(),
             Actions\DeleteAction::make()
                 ->visible(fn () => AylikFaaliyetResource::canDelete($this->getRecord())),
         ];

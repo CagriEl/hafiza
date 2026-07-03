@@ -252,6 +252,123 @@ final class AylikFaaliyetWeeklyCarryover
     }
 
     /**
+     * @param  array<string, mixed>  $data
+     */
+    public static function countPendingKapsamItems(array $data): int
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return 0;
+        }
+
+        $count = 0;
+
+        foreach ($data['faaliyetler'] as $row) {
+            if (! is_array($row) || (bool) ($row['ay_sonu_performans_kilitli'] ?? false)) {
+                continue;
+            }
+
+            if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
+                continue;
+            }
+
+            $kv = $row['kapsam_verileri'] ?? null;
+            if (! is_array($kv)) {
+                continue;
+            }
+
+            foreach ($kv as $kapsamRow) {
+                if (! is_array($kapsamRow) || (bool) ($kapsamRow['acikta_kapatildi'] ?? false)) {
+                    continue;
+                }
+
+                if (self::kapsamPendingAmount($kapsamRow) > 0.0) {
+                    $count++;
+                }
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Tüm açık kapsam kalemlerini kalan miktar kadar tamamlanmış olarak kaydeder.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function applyBulkPendingCompletion(array $data, string $aciklama): array
+    {
+        $aciklama = trim($aciklama);
+        if ($aciklama === '' || ! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        $today = ReportPeriodWeeks::systemRecordDateString();
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row) || (bool) ($row['ay_sonu_performans_kilitli'] ?? false)) {
+                continue;
+            }
+
+            if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
+                continue;
+            }
+
+            $currentWeek = self::resolveWeekForFaaliyetRow($row, $data);
+            if ($currentWeek < 1) {
+                continue;
+            }
+
+            $kv = $row['kapsam_verileri'] ?? null;
+            if (! is_array($kv) || $kv === []) {
+                continue;
+            }
+
+            foreach (array_keys($kv) as $j) {
+                if (! is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
+                    continue;
+                }
+
+                $kapsamRow = &$data['faaliyetler'][$i]['kapsam_verileri'][$j];
+
+                if ((bool) ($kapsamRow['acikta_kapatildi'] ?? false)) {
+                    continue;
+                }
+
+                $pending = self::kapsamPendingAmount($kapsamRow);
+                if ($pending <= 0.0) {
+                    continue;
+                }
+
+                $kayitlar = is_array($kapsamRow['haftalik_kayitlar'] ?? null)
+                    ? array_values($kapsamRow['haftalik_kayitlar'])
+                    : [];
+
+                $kayitlar[] = [
+                    'hafta' => $currentWeek,
+                    'miktar' => $pending,
+                    'aciklama' => $aciklama,
+                    'yapilma_tarihi' => $today,
+                    'tip' => 'toplu_tamamlama',
+                ];
+
+                $kapsamRow['haftalik_kayitlar'] = $kayitlar;
+                $kapsamRow['gerceklesen'] = self::toFloat($kapsamRow['gerceklesen'] ?? 0) + $pending;
+                $kapsamRow['son_yapilma_tarihi'] = $today;
+                $kapsamRow['acikta_kalan'] = AylikFaaliyetRepeaterLock::kapsamSatirAciktaKalan($kapsamRow);
+
+                unset(
+                    $kapsamRow['bu_hafta_tamamlanan'],
+                    $kapsamRow['bu_hafta_aciklama']
+                );
+            }
+            unset($kapsamRow);
+        }
+
+        return AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
+    }
+
+    /**
      * Aynı ay raporunda aynı katalog faaliyeti tek satırda birleştirilir.
      *
      * @param  array<string, mixed>  $data

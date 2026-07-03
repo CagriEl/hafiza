@@ -14,6 +14,7 @@ use App\Support\AylikFaaliyetRepeaterLock;
 use App\Support\AylikFaaliyetWeeklyCarryover;
 use App\Support\CoordinationAccess;
 use App\Support\NonNegativeInput;
+use App\Support\OlcuBirimiForKapsam;
 use App\Support\QuerySafety;
 use App\Support\ReportPeriodWeeks;
 use App\Support\ReportingModelReader;
@@ -679,6 +680,10 @@ class AylikFaaliyetResource extends Resource
             return false;
         }
 
+        if (! static::kapsamYapilanIsDbKayitli($get, $livewire)) {
+            return true;
+        }
+
         return false;
     }
 
@@ -774,6 +779,10 @@ class AylikFaaliyetResource extends Resource
             return true;
         }
 
+        if ($livewire instanceof EditRecord && ! static::kapsamYapilanIsDbKayitli($get, $livewire)) {
+            return true;
+        }
+
         return AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get)) > 0.0;
     }
 
@@ -856,6 +865,49 @@ class AylikFaaliyetResource extends Resource
         $unit = trim((string) ($value ?? ''));
 
         return $unit !== '' ? $unit : null;
+    }
+
+    private static function resolveOlcuBirimiForKapsamRow(Get $get): ?string
+    {
+        $parentUnit = static::resolveOlcuBirimiForRow($get);
+        if ($parentUnit === null) {
+            return null;
+        }
+
+        $kalem = trim((string) ($get('kalem') ?? ''));
+
+        return OlcuBirimiForKapsam::resolve(
+            $kalem,
+            $parentUnit,
+            static::resolveKapsamKalemIndex($get)
+        );
+    }
+
+    private static function resolveKapsamKalemIndex(Get $get): int
+    {
+        $kalem = trim((string) ($get('kalem') ?? ''));
+        if ($kalem === '') {
+            return 0;
+        }
+
+        $kv = $get('../../kapsam_verileri');
+        if (! is_array($kv)) {
+            $kv = $get('../kapsam_verileri');
+        }
+        if (! is_array($kv)) {
+            return 0;
+        }
+
+        foreach (array_values($kv) as $index => $line) {
+            if (! is_array($line)) {
+                continue;
+            }
+            if (trim((string) ($line['kalem'] ?? '')) === $kalem) {
+                return (int) $index;
+            }
+        }
+
+        return 0;
     }
 
     /**
@@ -1331,7 +1383,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)),
                                             Forms\Components\TextInput::make('ongorulen_ui')
                                                 ->label('Yapılan İş')
-                                                ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
+                                                ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForKapsamRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
                                                 ->rules(['integer', 'min:0'])
@@ -1369,7 +1421,7 @@ class AylikFaaliyetResource extends Resource
                                                     && static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
                                             Forms\Components\TextInput::make('gerceklesen_ui')
                                                 ->label('Tamamlanan İş')
-                                                ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
+                                                ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForKapsamRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
                                                 ->rules(['integer', 'min:0'])
@@ -1508,7 +1560,7 @@ class AylikFaaliyetResource extends Resource
                                         Grid::make(3)->schema([
                                             Forms\Components\TextInput::make('bu_hafta_tamamlanan_ui')
                                                 ->label('Bu Hafta Tamamlanan')
-                                                ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
+                                                ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForKapsamRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
                                                 ->rules(['integer', 'min:0'])
