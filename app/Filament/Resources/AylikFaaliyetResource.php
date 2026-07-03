@@ -8,6 +8,7 @@ use App\Models\AylikFaaliyet;
 use App\Models\ExtraordinarySituation;
 use App\Models\User;
 use App\Support\ActivityCatalogFormatter;
+use App\Support\ActivityCatalogMetadataByCode;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\AylikFaaliyetRepeaterLock;
 use App\Support\AylikFaaliyetWeeklyCarryover;
@@ -180,9 +181,13 @@ class AylikFaaliyetResource extends Resource
             return 1;
         }
 
-        $selected = (int) ($get('hafta') ?? $get('../../hafta') ?? $get('../../../hafta') ?? 0);
-        if ($selected >= 1 && $selected <= ReportPeriodWeeks::WEEK_COUNT) {
-            return $selected;
+        $selected = $get('hafta') ?? $get('../../hafta') ?? $get('../../../hafta') ?? null;
+        if (ReportPeriodWeeks::isMonthlyPeriod($selected)) {
+            return 0;
+        }
+        $selectedWeek = (int) $selected;
+        if ($selectedWeek >= 1 && $selectedWeek <= ReportPeriodWeeks::WEEK_COUNT) {
+            return $selectedWeek;
         }
 
         return ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay);
@@ -241,10 +246,17 @@ class AylikFaaliyetResource extends Resource
         return [$yil, $ay];
     }
 
+    public static function isMonthlyPeriodForRow(Get $get): bool
+    {
+        return ReportPeriodWeeks::isMonthlyPeriod(
+            $get('hafta') ?? $get('../../hafta') ?? $get('../../../hafta') ?? null
+        );
+    }
+
     public static function faaliyetHaftaSelectField(): Forms\Components\Select
     {
         return Forms\Components\Select::make('hafta')
-            ->label('Rapor Haftası')
+            ->label('Rapor Dönemi')
             ->options(function (Get $get, Forms\Components\Select $component): array {
                 [$yil, $ay] = static::resolveReportPeriodFromLivewire($component->getLivewire());
                 if ($yil <= 0 || $ay < 1 || $ay > 12) {
@@ -255,26 +267,60 @@ class AylikFaaliyetResource extends Resource
                     return [];
                 }
 
-                return ReportPeriodWeeks::selectOptions($yil, $ay);
+                return ReportPeriodWeeks::periodSelectOptions(
+                    $yil,
+                    $ay,
+                    (string) ($get('raporlama_sikligi') ?? '')
+                );
             })
-            ->default(function (Get $get, Forms\Components\Select $component): int {
-                if (filled($get('hafta'))) {
-                    return (int) $get('hafta');
+            ->default(function (Get $get, Forms\Components\Select $component): int|string {
+                $current = $get('hafta');
+                if ($current !== null && $current !== '') {
+                    return ReportPeriodWeeks::isMonthlyPeriod($current)
+                        ? ReportPeriodWeeks::MONTHLY_VALUE
+                        : (int) $current;
                 }
                 [$yil, $ay] = static::resolveReportPeriodFromLivewire($component->getLivewire());
                 if ($yil <= 0 || $ay < 1 || $ay > 12) {
                     return 1;
                 }
 
-                return ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay);
+                return ReportPeriodWeeks::defaultPeriodForReportingFrequency(
+                    $yil,
+                    $ay,
+                    (string) ($get('raporlama_sikligi') ?? '')
+                );
             })
             ->required()
             ->live()
             ->disabled(fn (Get $get, $livewire): bool => (bool) ($get('ay_sonu_performans_kilitli') ?? false)
-                && filled($get('hafta')))
+                && ($get('hafta') !== null && $get('hafta') !== ''))
             ->dehydrated(true)
             ->columnSpanFull()
-            ->helperText('Bu iş satırının hangi haftaya ait olduğunu seçin (1–4. hafta).');
+            ->helperText('Haftalık sıklıkta 1–4. haftayı; aylık sıklıkta «Aylık» seçeneğini kullanın. Seçenekler raporlama sıklığına göre listelenir.');
+    }
+
+    private static function applyDefaultHaftaForRow(Set $set, Get $get, mixed $livewire = null): void
+    {
+        if ((bool) ($get('ay_sonu_performans_kilitli') ?? false)
+            && ($get('hafta') !== null && $get('hafta') !== '')) {
+            return;
+        }
+
+        [$yil, $ay] = static::resolveReportPeriodFromLivewire($livewire);
+        if ($yil <= 0 || $ay < 1 || $ay > 12) {
+            $yil = (int) ($get('../../yil') ?? $get('../../../yil') ?? 0);
+            $ay = (int) preg_replace('/\D/', '', (string) ($get('../../ay') ?? $get('../../../ay') ?? ''));
+        }
+        if ($yil <= 0 || $ay < 1 || $ay > 12) {
+            return;
+        }
+
+        $set('hafta', ReportPeriodWeeks::defaultPeriodForReportingFrequency(
+            $yil,
+            $ay,
+            (string) ($get('raporlama_sikligi') ?? '')
+        ));
     }
 
     /**
@@ -293,9 +339,6 @@ class AylikFaaliyetResource extends Resource
 
         $yil = (int) ($data['yil'] ?? 0);
         $ay = (int) preg_replace('/\D/', '', (string) ($data['ay'] ?? ''));
-        $defaultWeek = ($yil > 0 && $ay >= 1 && $ay <= 12)
-            ? ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay)
-            : 1;
 
         foreach ($data['faaliyetler'] as $i => $row) {
             if (! is_array($row)) {
@@ -303,12 +346,15 @@ class AylikFaaliyetResource extends Resource
             }
 
             $locked = (bool) ($row['ay_sonu_performans_kilitli'] ?? false);
-            if ($locked && filled($row['hafta'] ?? null)) {
+            if ($locked && ($row['hafta'] !== null && $row['hafta'] !== '')) {
                 continue;
             }
 
-            if (! filled($row['hafta'] ?? null)) {
-                $data['faaliyetler'][$i]['hafta'] = $defaultWeek;
+            if ($row['hafta'] === null || $row['hafta'] === '') {
+                $frequency = trim((string) ($row['raporlama_sikligi'] ?? ''));
+                $data['faaliyetler'][$i]['hafta'] = ($yil > 0 && $ay >= 1 && $ay <= 12)
+                    ? ReportPeriodWeeks::defaultPeriodForReportingFrequency($yil, $ay, $frequency)
+                    : 1;
             }
         }
 
@@ -345,11 +391,23 @@ class AylikFaaliyetResource extends Resource
             return true;
         }
 
+        if (static::isMonthlyPeriodForRow($get)) {
+            return true;
+        }
+
         return static::currentReportWeekForForm($get, $livewire) <= 1;
+    }
+
+    public static function kapsamHasPendingWork(Get $get): bool
+    {
+        return AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get)) > 0.0;
     }
 
     public static function kapsamShowsWeeklyFollowUpFields(Get $get, mixed $livewire): bool
     {
+        if (static::isMonthlyPeriodForRow($get)) {
+            return false;
+        }
         if (! $livewire instanceof EditRecord) {
             return false;
         }
@@ -368,6 +426,9 @@ class AylikFaaliyetResource extends Resource
 
     public static function kapsamKalemVisibleInCurrentWeek(Get $get, mixed $livewire): bool
     {
+        if (static::isMonthlyPeriodForRow($get)) {
+            return true;
+        }
         if (! $livewire instanceof EditRecord) {
             return true;
         }
@@ -704,7 +765,6 @@ class AylikFaaliyetResource extends Resource
                                 Forms\Components\Hidden::make('ay_sonu_performans_kilitli')
                                     ->default(false)
                                     ->dehydrated(true),
-                                static::faaliyetHaftaSelectField(),
                                 Grid::make(4)->schema([
                                     Forms\Components\Select::make('activity_catalog_id')
                                         ->label('Faaliyet Ailesi')
@@ -771,12 +831,13 @@ class AylikFaaliyetResource extends Resource
                                             if (! filled($get('olcu_birimi'))) {
                                                 $set('olcu_birimi', $catalog->olcu_birimi);
                                             }
-                                            if (! filled($get('raporlama_sikligi'))) {
-                                                $set('raporlama_sikligi', $catalog->raporlama_sikligi);
-                                            }
-                                            if (! filled($get('baskanlik_bilgilendirme_seviyesi'))) {
-                                                $set('baskanlik_bilgilendirme_seviyesi', $catalog->baskanlik_bilgilendirme_seviyesi);
-                                            }
+                                            $metadata = ActivityCatalogMetadataByCode::mergeWithCatalog(
+                                                (string) $catalog->faaliyet_kodu,
+                                                (string) ($catalog->raporlama_sikligi ?? ''),
+                                                (string) ($catalog->baskanlik_bilgilendirme_seviyesi ?? '')
+                                            );
+                                            $set('raporlama_sikligi', $metadata['raporlama_sikligi']);
+                                            $set('baskanlik_bilgilendirme_seviyesi', $metadata['baskanlik_bilgilendirme_seviyesi']);
                                             if (! filled($get('faaliyet_kodu'))) {
                                                 $set('faaliyet_kodu', $catalog->faaliyet_kodu);
                                             }
@@ -791,13 +852,19 @@ class AylikFaaliyetResource extends Resource
                                                     $get('kapsam_verileri')
                                                 )
                                             );
+                                            static::applyDefaultHaftaForRow($set, $get);
                                         })
                                         ->afterStateUpdated(function (Set $set, Get $get, $state) {
                                             $catalog = ActivityCatalog::find($state);
                                             if ($catalog) {
                                                 $set('olcu_birimi', $catalog->olcu_birimi);
-                                                $set('raporlama_sikligi', $catalog->raporlama_sikligi);
-                                                $set('baskanlik_bilgilendirme_seviyesi', $catalog->baskanlik_bilgilendirme_seviyesi);
+                                                $metadata = ActivityCatalogMetadataByCode::mergeWithCatalog(
+                                                    (string) $catalog->faaliyet_kodu,
+                                                    (string) ($catalog->raporlama_sikligi ?? ''),
+                                                    (string) ($catalog->baskanlik_bilgilendirme_seviyesi ?? '')
+                                                );
+                                                $set('raporlama_sikligi', $metadata['raporlama_sikligi']);
+                                                $set('baskanlik_bilgilendirme_seviyesi', $metadata['baskanlik_bilgilendirme_seviyesi']);
                                                 $set('faaliyet_kodu', $catalog->faaliyet_kodu);
                                                 $set('kapsam_icerigi', $catalog->kapsam);
                                                 $set(
@@ -807,6 +874,7 @@ class AylikFaaliyetResource extends Resource
                                                         $get('kapsam_verileri')
                                                     )
                                                 );
+                                                static::applyDefaultHaftaForRow($set, $get);
                                             }
                                         })
                                         ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
@@ -846,6 +914,8 @@ class AylikFaaliyetResource extends Resource
                                     ->disabled(fn (Get $get, $livewire): bool => AylikFaaliyetRepeaterLock::mudurlukOwnsRecordAndRowIsLocked($get, $livewire))
                                     ->extraAttributes(['class' => 'bg-gray-50']),
 
+                                static::faaliyetHaftaSelectField(),
+
                                 Repeater::make('kapsam_verileri')
                                     ->label(function (Get $get, $livewire): string {
                                         $base = 'Kapsam kalemleri';
@@ -860,7 +930,7 @@ class AylikFaaliyetResource extends Resource
                                     ->helperText(function (Get $get, $livewire): string {
                                         $week = static::currentReportWeekForForm($get, $livewire);
                                         if ($week > 1) {
-                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Yapılma tarihi kayıt anında otomatik eklenir.';
+                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Hafta aralıkları iş günlerini (Pazartesi–Cuma) kapsar; hafta sonları rapor dönemine dahil edilmez. Yapılma tarihi kayıt anında otomatik eklenir.';
                                         }
 
                                         return 'Yapılan iş raporlama sıklığındaki aylık veya haftalık işler olarak sayılsal veri ile doldurulmalıdır. Başlanmış ancak henüz finalize olmamış işler için açıkta kalan kısmını doldurmanız gereklidir.';
@@ -941,21 +1011,70 @@ class AylikFaaliyetResource extends Resource
 
                                                     return AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get);
                                                 }),
-                                            Forms\Components\TextInput::make('acikta_kalan')
-                                                ->label('Açıkta Bekleyen İş')
-                                                ->numeric()
-                                                ->minValue(0)
-                                                ->extraInputAttributes(['min' => 0])
+                                            Forms\Components\Hidden::make('acikta_kalan')
                                                 ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
-                                                ->readOnly()
+                                                ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
+                                                    || static::kapsamShowsWeeklyFollowUpFields($get, $livewire)
+                                                    || static::kapsamHasPendingWork($get)),
+                                            Forms\Components\Placeholder::make('acikta_kalan_goster')
+                                                ->label('Açıkta Bekleyen İş')
+                                                ->content(function (Get $get): HtmlString {
+                                                    $pending = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get));
+                                                    $unit = static::resolveOlcuBirimiForRow($get);
+                                                    $suffix = $unit !== null && $unit !== '' ? ' '.$unit : '';
+                                                    $formatted = floor($pending) === $pending ? (string) (int) $pending : (string) $pending;
+
+                                                    if ($pending <= 0.0) {
+                                                        return new HtmlString(e('0'.$suffix));
+                                                    }
+
+                                                    return new HtmlString(
+                                                        '<button type="button" class="text-primary-600 font-semibold underline decoration-dotted underline-offset-2 cursor-pointer"'
+                                                        .' x-data x-on:click="'
+                                                        .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-revize-panel]\')?.scrollIntoView({behavior:\'smooth\',block:\'nearest\'});'
+                                                        .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-revize-panel] .fi-section-header\')?.click();'
+                                                        .'">'
+                                                        .e($formatted.$suffix)
+                                                        .'</button>'
+                                                        .'<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Tıklayarak bu kalem için revize notu ekleyin</div>'
+                                                    );
+                                                })
                                                 ->helperText('Yapılacak iş − yapılan iş (otomatik, en az 0).')
                                                 ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
-                                                    || static::kapsamShowsWeeklyFollowUpFields($get, $livewire))
-                                                ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
-                                                    || static::kapsamShowsWeeklyFollowUpFields($get, $livewire))
-                                                ->disabled(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
-                                                    || static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
+                                                    || static::kapsamShowsWeeklyFollowUpFields($get, $livewire)
+                                                    || static::kapsamHasPendingWork($get)),
                                         ]),
+                                        Section::make(fn (Get $get): string => 'Açıkta İş — Revize Notu: '.trim((string) ($get('kalem') ?? 'Kalem')))
+                                            ->description('Bu kalemdeki açıkta kalan iş için hedef tarih ve açıklama giriniz.')
+                                            ->schema([
+                                                Forms\Components\DatePicker::make('acikta_revize_tarihi')
+                                                    ->label('Hedef / Revize Tarihi')
+                                                    ->native(false)
+                                                    ->displayFormat('d.m.Y')
+                                                    ->default(fn (): string => ReportPeriodWeeks::reportingReferenceDate()->toDateString())
+                                                    ->live(onBlur: true)
+                                                    ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                                        if (! filled($state)) {
+                                                            return;
+                                                        }
+                                                        $parsed = Carbon::parse((string) $state)->startOfDay();
+                                                        if ($parsed->isWeekend()) {
+                                                            $set('acikta_revize_tarihi', ReportPeriodWeeks::reportingReferenceDate($parsed)->toDateString());
+                                                        }
+                                                    })
+                                                    ->helperText('Hafta sonu tarihleri seçilemez; otomatik olarak önceki Cuma atanır.'),
+                                                Forms\Components\Textarea::make('acikta_revize_notu')
+                                                    ->label('Revize Notu')
+                                                    ->placeholder('Açıkta kalan işin nedeni, planlanan tamamlanma veya revize gerekçesini yazınız...')
+                                                    ->rows(2)
+                                                    ->columnSpanFull(),
+                                            ])
+                                            ->columns(2)
+                                            ->visible(fn (Get $get): bool => static::kapsamHasPendingWork($get))
+                                            ->collapsible()
+                                            ->collapsed(fn (Get $get): bool => ! filled($get('acikta_revize_notu')) && ! filled($get('acikta_revize_tarihi')))
+                                            ->extraAttributes(['data-acikta-revize-panel' => 'true'])
+                                            ->columnSpanFull(),
                                         Grid::make(3)->schema([
                                             Forms\Components\TextInput::make('bu_hafta_tamamlanan')
                                                 ->label('Bu Hafta Tamamlanan')
@@ -979,8 +1098,8 @@ class AylikFaaliyetResource extends Resource
                                                 ->dehydrated(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
                                             Forms\Components\Placeholder::make('yapilma_tarihi_otomatik')
                                                 ->label('Yapılma Tarihi')
-                                                ->content(fn (): string => now()->format('d.m.Y'))
-                                                ->helperText('Kayıt sırasında otomatik atanır.')
+                                                ->content(fn (): string => ReportPeriodWeeks::reportingReferenceDate()->format('d.m.Y'))
+                                                ->helperText('Kayıt sırasında otomatik atanır (hafta sonu ise son Cuma).')
                                                 ->visible(fn (Get $get, $livewire): bool => static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
                                         ])->columnSpanFull(),
                                         Forms\Components\Placeholder::make('son_yapilma_tarihi_goster')
@@ -1322,12 +1441,8 @@ class AylikFaaliyetResource extends Resource
                                 $weekLabel = null;
                                 if ($yil > 0 && $ay !== '') {
                                     $month = (int) preg_replace('/\D/', '', $ay);
-                                    if ($month >= 1 && $month <= 12) {
-                                        if ((bool) ($state['ay_sonu_performans_kilitli'] ?? false) && filled($state['hafta'] ?? null)) {
-                                            $weekLabel = ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $state['hafta']);
-                                        } elseif (filled($state['hafta'] ?? null)) {
-                                            $weekLabel = ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $state['hafta']);
-                                        }
+                                    if ($month >= 1 && $month <= 12 && ($state['hafta'] ?? null) !== null && $state['hafta'] !== '') {
+                                        $weekLabel = ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $state['hafta']);
                                     }
                                 }
                                 if ($weekLabel) {
@@ -2083,7 +2198,7 @@ class AylikFaaliyetResource extends Resource
                 $catalogRows = ActivityCatalog::query()
                     ->whereIn('id', $catalogIds)
                     ->orderBy('faaliyet_kodu')
-                    ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'kapsam', 'olcu_birimi', 'baskanlik_bilgilendirme_seviyesi']);
+                    ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'kapsam', 'olcu_birimi', 'raporlama_sikligi', 'baskanlik_bilgilendirme_seviyesi']);
             }
         }
 
@@ -2095,7 +2210,7 @@ class AylikFaaliyetResource extends Resource
                     ActivityCatalog::query()
                         ->where('faaliyet_kodu', 'like', $prefix.'-%')
                         ->orderBy('faaliyet_kodu')
-                        ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'kapsam', 'olcu_birimi', 'baskanlik_bilgilendirme_seviyesi'])
+                        ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'kapsam', 'olcu_birimi', 'raporlama_sikligi', 'baskanlik_bilgilendirme_seviyesi'])
                 );
             }
             $catalogRows = $catalogRows->merge($prefixRows);
@@ -2106,7 +2221,7 @@ class AylikFaaliyetResource extends Resource
             if ($normalizedMudurluk !== '') {
                 $mudurlukRows = ActivityCatalog::query()
                     ->orderBy('faaliyet_kodu')
-                    ->get(['id', 'mudurluk', 'faaliyet_kodu', 'faaliyet_ailesi', 'kapsam', 'olcu_birimi', 'baskanlik_bilgilendirme_seviyesi'])
+                    ->get(['id', 'mudurluk', 'faaliyet_kodu', 'faaliyet_ailesi', 'kapsam', 'olcu_birimi', 'raporlama_sikligi', 'baskanlik_bilgilendirme_seviyesi'])
                     ->filter(function (ActivityCatalog $catalog) use ($normalizedMudurluk): bool {
                         $catalogMudurluk = TurkishString::normalizeForFuzzyMatch((string) $catalog->mudurluk);
                         if ($catalogMudurluk === '') {
@@ -2139,7 +2254,11 @@ class AylikFaaliyetResource extends Resource
                 'faaliyet_turu' => 'Operasyonel',
                 'kapsam_icerigi' => (string) $catalog->faaliyet_ailesi,
                 'olcu_birimi' => (string) $catalog->olcu_birimi,
-                'baskanlik_bilgilendirme_seviyesi' => (string) $catalog->baskanlik_bilgilendirme_seviyesi,
+                ...ActivityCatalogMetadataByCode::mergeWithCatalog(
+                    $code,
+                    (string) ($catalog->raporlama_sikligi ?? ''),
+                    (string) $catalog->baskanlik_bilgilendirme_seviyesi
+                ),
                 'kapsam_verileri' => static::syncKapsamVerileri(
                     static::parseKapsamKalemleri((string) ($catalog->kapsam ?? '')),
                     []
@@ -2334,8 +2453,76 @@ class AylikFaaliyetResource extends Resource
     }
 
     /**
+     * Sunucuda güvenli senkron: yalnızca raporlama sıklığı ve bilgilendirme seviyesi güncellenir.
+     * Faaliyet kodları, katalog id, kapsam kalemleri ve mevcut satırlar değişmez/silinmez.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function refreshFaaliyetMetadataFromCatalog(array $data, ?string $mudurlukAdi): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        $codes = [];
+        foreach ($data['faaliyetler'] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $code = trim((string) ($row['faaliyet_kodu'] ?? ''));
+            if ($code !== '') {
+                $codes[] = $code;
+            }
+        }
+
+        $catalogByCode = [];
+        if ($codes !== []) {
+            $catalogRows = ActivityCatalog::query()
+                ->whereIn('faaliyet_kodu', array_values(array_unique($codes)))
+                ->get([
+                    'id',
+                    'faaliyet_kodu',
+                    'faaliyet_ailesi',
+                    'kapsam',
+                    'olcu_birimi',
+                    'raporlama_sikligi',
+                    'baskanlik_bilgilendirme_seviyesi',
+                ]);
+            foreach ($catalogRows as $catalog) {
+                $code = trim((string) $catalog->faaliyet_kodu);
+                if ($code !== '') {
+                    $catalogByCode[$code] = $catalog;
+                }
+            }
+        }
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $code = trim((string) ($row['faaliyet_kodu'] ?? ''));
+            if ($code === '') {
+                continue;
+            }
+
+            $catalog = $catalogByCode[$code] ?? null;
+            $data['faaliyetler'][$i] = static::applyCatalogMetadataToFaaliyetRow(
+                $row,
+                $catalog instanceof ActivityCatalog ? $catalog : null,
+                preserveExistingIdentity: true,
+                metadataOnly: true
+            );
+        }
+
+        return $data;
+    }
+
+    /**
      * Edit ekranı açılırken faaliyet satırlarını güncel katalog kapsam kalemleriyle hizalar.
      * Eski kayıtlardaki mevcut sayısal değerleri korur, eksik yeni kalemleri otomatik ekler.
+     * Mevcut faaliyet kodları ve kayıtlı satırlar silinmez.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -2386,7 +2573,15 @@ class AylikFaaliyetResource extends Resource
             return $data;
         }
 
-        $catalogRows = $catalogQuery->get(['id', 'faaliyet_kodu', 'kapsam']);
+        $catalogRows = $catalogQuery->get([
+            'id',
+            'faaliyet_kodu',
+            'faaliyet_ailesi',
+            'kapsam',
+            'olcu_birimi',
+            'raporlama_sikligi',
+            'baskanlik_bilgilendirme_seviyesi',
+        ]);
         $catalogById = [];
         $catalogByCode = [];
         foreach ($catalogRows as $catalog) {
@@ -2403,25 +2598,36 @@ class AylikFaaliyetResource extends Resource
             }
 
             $catalog = null;
-            $catalogId = (int) ($row['activity_catalog_id'] ?? 0);
-            if ($catalogId > 0 && isset($catalogById[$catalogId])) {
-                $catalog = $catalogById[$catalogId];
+            $rowCode = trim((string) ($row['faaliyet_kodu'] ?? ''));
+            if ($rowCode !== '' && isset($catalogByCode[$rowCode])) {
+                $catalog = $catalogByCode[$rowCode];
             } else {
-                $code = trim((string) ($row['faaliyet_kodu'] ?? ''));
-                if ($code !== '' && isset($catalogByCode[$code])) {
-                    $catalog = $catalogByCode[$code];
+                $catalogId = (int) ($row['activity_catalog_id'] ?? 0);
+                if ($catalogId > 0 && isset($catalogById[$catalogId])) {
+                    $catalog = $catalogById[$catalogId];
                 }
             }
 
             if (! $catalog instanceof ActivityCatalog) {
-                // Müdürlük güncel kataloğunda artık olmayan eski satırları (örn. kaldırılan kodlar) formdan düşür.
-                unset($data['faaliyetler'][$i]);
+                if ($rowCode !== '') {
+                    $data['faaliyetler'][$i] = static::applyCatalogMetadataToFaaliyetRow(
+                        $row,
+                        null,
+                        preserveExistingIdentity: true,
+                        metadataOnly: false
+                    );
+                }
+
                 continue;
             }
 
             $existingKapsamRows = $row['kapsam_verileri'] ?? [];
-            $data['faaliyetler'][$i]['activity_catalog_id'] = (int) $catalog->id;
-            $data['faaliyetler'][$i]['faaliyet_kodu'] = (string) $catalog->faaliyet_kodu;
+            $data['faaliyetler'][$i] = static::applyCatalogMetadataToFaaliyetRow(
+                $row,
+                $catalog,
+                preserveExistingIdentity: true,
+                metadataOnly: false
+            );
             $data['faaliyetler'][$i]['kapsam_verileri'] = static::syncKapsamVerileri(
                 static::parseKapsamKalemleri((string) ($catalog->kapsam ?? '')),
                 is_array($existingKapsamRows) ? $existingKapsamRows : []
@@ -2434,6 +2640,60 @@ class AylikFaaliyetResource extends Resource
         ));
 
         return $data;
+    }
+
+    /**
+     * Katalogdan gelen salt okunur faaliyet meta alanlarını (faaliyet kodu olan satırlar) günceller.
+     *
+     * @param  array<string, mixed>  $row
+     * @return array<string, mixed>
+     */
+    public static function applyCatalogMetadataToFaaliyetRow(
+        array $row,
+        ?ActivityCatalog $catalog,
+        bool $preserveExistingIdentity = false,
+        bool $metadataOnly = false
+    ): array {
+        $rowCode = trim((string) ($row['faaliyet_kodu'] ?? ''));
+        $catalogCode = $catalog instanceof ActivityCatalog
+            ? trim((string) ($catalog->faaliyet_kodu ?? ''))
+            : '';
+
+        if ($rowCode === '' && $catalogCode === '') {
+            return $row;
+        }
+
+        if ($catalog instanceof ActivityCatalog) {
+            if (! $preserveExistingIdentity) {
+                $row['activity_catalog_id'] = (int) $catalog->id;
+                if ($catalogCode !== '') {
+                    $row['faaliyet_kodu'] = $catalogCode;
+                }
+            } elseif ((int) ($row['activity_catalog_id'] ?? 0) <= 0) {
+                $row['activity_catalog_id'] = (int) $catalog->id;
+            }
+
+            if (! $metadataOnly) {
+                $row['kapsam_icerigi'] = trim((string) ($catalog->faaliyet_ailesi ?? ''));
+                $row['olcu_birimi'] = trim((string) ($catalog->olcu_birimi ?? ''));
+            }
+        }
+
+        $lookupCode = $rowCode !== '' ? $rowCode : $catalogCode;
+        if ($catalog instanceof ActivityCatalog) {
+            $metadata = ActivityCatalogMetadataByCode::mergeWithCatalog(
+                $lookupCode,
+                (string) ($catalog->raporlama_sikligi ?? ''),
+                (string) ($catalog->baskanlik_bilgilendirme_seviyesi ?? '')
+            );
+        } else {
+            $metadata = ActivityCatalogMetadataByCode::resolveForCode($lookupCode);
+        }
+
+        $row['raporlama_sikligi'] = $metadata['raporlama_sikligi'];
+        $row['baskanlik_bilgilendirme_seviyesi'] = $metadata['baskanlik_bilgilendirme_seviyesi'];
+
+        return $row;
     }
 
     private static function normalizeKapsamVerileriText(mixed $state): string
@@ -2463,6 +2723,16 @@ class AylikFaaliyetResource extends Resource
             $acik = $row['acikta_kalan'] ?? null;
             $gerText = filled($ger) ? (string) $ger : '—';
             $acikText = filled($acik) ? (string) $acik : '—';
+            $revizeTarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($row['acikta_revize_tarihi'] ?? null);
+            $revizeNotu = trim((string) ($row['acikta_revize_notu'] ?? ''));
+            $revizeHtml = '';
+            if ($revizeNotu !== '' || $revizeTarih) {
+                $revizeHtml = '<div style="font-size:11px;color:#92400e;margin-top:4px;">'
+                    .'<b>Revize:</b> '
+                    .e($revizeTarih ?? '—')
+                    .($revizeNotu !== '' ? ' — '.e($revizeNotu) : '')
+                    .'</div>';
+            }
 
             $items[] =
                 '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;margin-bottom:6px;background:#ffffff;">'
@@ -2471,6 +2741,7 @@ class AylikFaaliyetResource extends Resource
                 .'Gerçekleşen: <b>'.e($gerText).'</b> &nbsp;|&nbsp; '
                 .'Açıkta Kalan: <b>'.e($acikText).'</b>'
                 .'</div>'
+                .$revizeHtml
                 .'</div>';
         }
 
@@ -2547,17 +2818,24 @@ class AylikFaaliyetResource extends Resource
                     }
                     $kDone = number_format((float) ($krow['gerceklesen'] ?? 0), 0, ',', '.');
                     $kPending = number_format((float) ($krow['acikta_kalan'] ?? 0), 0, ',', '.');
+                    $revizeTarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($krow['acikta_revize_tarihi'] ?? null);
+                    $revizeNotu = trim((string) ($krow['acikta_revize_notu'] ?? ''));
+                    $revizeCell = '—';
+                    if ($revizeNotu !== '' || $revizeTarih) {
+                        $revizeCell = e($revizeTarih ?? '—').($revizeNotu !== '' ? '<br><span style="color:#6b7280;">'.e($revizeNotu).'</span>' : '');
+                    }
                     $rowsHtml .= '<tr>'
                         .'<td style="padding:4px 6px;border:1px solid #e5e7eb;">'.e($kalem).'</td>'
                         .'<td style="padding:4px 6px;border:1px solid #e5e7eb;text-align:right;">'.e($kDone).'</td>'
                         .'<td style="padding:4px 6px;border:1px solid #e5e7eb;text-align:right;">'.e($kPending).'</td>'
+                        .'<td style="padding:4px 6px;border:1px solid #e5e7eb;font-size:10px;">'.$revizeCell.'</td>'
                         .'</tr>';
                 }
                 if ($rowsHtml !== '') {
                     $kapsamHtml = '<div style="margin-top:8px;">'
                         .'<div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:4px;">Kalem Kalem Girdi</div>'
                         .'<table style="width:100%;border-collapse:collapse;font-size:11px;">'
-                        .'<thead><tr style="background:#f9fafb;"><th style="padding:4px 6px;border:1px solid #e5e7eb;text-align:left;">Kalem</th><th style="padding:4px 6px;border:1px solid #e5e7eb;text-align:right;">Gerçekleşen</th><th style="padding:4px 6px;border:1px solid #e5e7eb;text-align:right;">Açıkta</th></tr></thead>'
+                        .'<thead><tr style="background:#f9fafb;"><th style="padding:4px 6px;border:1px solid #e5e7eb;text-align:left;">Kalem</th><th style="padding:4px 6px;border:1px solid #e5e7eb;text-align:right;">Gerçekleşen</th><th style="padding:4px 6px;border:1px solid #e5e7eb;text-align:right;">Açıkta</th><th style="padding:4px 6px;border:1px solid #e5e7eb;text-align:left;">Revize Notu</th></tr></thead>'
                         .'<tbody>'.$rowsHtml.'</tbody>'
                         .'</table>'
                         .'</div>';
@@ -2823,8 +3101,12 @@ class AylikFaaliyetResource extends Resource
             }
 
             $weekNumber = $row['hafta'] ?? null;
-            if (! filled($weekNumber) && $recordYil > 0 && $recordAy >= 1 && $recordAy <= 12) {
-                $weekNumber = ReportPeriodWeeks::resolveWeekForReportPeriod($recordYil, $recordAy);
+            if (($weekNumber === null || $weekNumber === '') && $recordYil > 0 && $recordAy >= 1 && $recordAy <= 12) {
+                $weekNumber = ReportPeriodWeeks::defaultPeriodForReportingFrequency(
+                    $recordYil,
+                    $recordAy,
+                    (string) ($row['raporlama_sikligi'] ?? '')
+                );
             }
             $weekLabel = ReportPeriodWeeks::weekLabelForRecord($recordYil, $recordAy, $weekNumber) ?? '—';
 
@@ -2970,6 +3252,8 @@ class AylikFaaliyetResource extends Resource
                 'acikta_kalan' => max(0.0, $pending),
                 'haftalik_kayitlar' => is_array($kapsamRow['haftalik_kayitlar'] ?? null) ? $kapsamRow['haftalik_kayitlar'] : [],
                 'son_yapilma_tarihi' => $kapsamRow['son_yapilma_tarihi'] ?? null,
+                'acikta_revize_tarihi' => $kapsamRow['acikta_revize_tarihi'] ?? null,
+                'acikta_revize_notu' => $kapsamRow['acikta_revize_notu'] ?? null,
             ];
         }
 
@@ -2993,8 +3277,11 @@ class AylikFaaliyetResource extends Resource
         }
 
         $week = trim((string) ($row['hafta'] ?? ''));
-        if ($week !== '') {
+        if ($week !== '' && ! ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
             return 'Hafta: '.$week;
+        }
+        if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
+            return 'Aylık rapor';
         }
 
         $type = trim((string) ($row['faaliyet_turu'] ?? ''));
@@ -3251,19 +3538,30 @@ class AylikFaaliyetResource extends Resource
                     'gerceklesen' => $satir['gerceklesen'] ?? null,
                     'haftalik_kayitlar' => is_array($satir['haftalik_kayitlar'] ?? null) ? $satir['haftalik_kayitlar'] : [],
                     'son_yapilma_tarihi' => $satir['son_yapilma_tarihi'] ?? null,
+                    'acikta_revize_tarihi' => $satir['acikta_revize_tarihi'] ?? null,
+                    'acikta_revize_notu' => $satir['acikta_revize_notu'] ?? null,
                 ];
             }
         }
 
         $out = [];
         foreach ($kalemler as $kalem) {
-            $prev = $harita[$kalem] ?? ['ongorulen' => null, 'gerceklesen' => null, 'haftalik_kayitlar' => [], 'son_yapilma_tarihi' => null];
+            $prev = $harita[$kalem] ?? [
+                'ongorulen' => null,
+                'gerceklesen' => null,
+                'haftalik_kayitlar' => [],
+                'son_yapilma_tarihi' => null,
+                'acikta_revize_tarihi' => null,
+                'acikta_revize_notu' => null,
+            ];
             $row = [
                 'kalem' => $kalem,
                 'ongorulen' => $prev['ongorulen'],
                 'gerceklesen' => $prev['gerceklesen'],
                 'haftalik_kayitlar' => $prev['haftalik_kayitlar'],
                 'son_yapilma_tarihi' => $prev['son_yapilma_tarihi'],
+                'acikta_revize_tarihi' => $prev['acikta_revize_tarihi'],
+                'acikta_revize_notu' => $prev['acikta_revize_notu'],
             ];
             $row['acikta_kalan'] = AylikFaaliyetRepeaterLock::kapsamSatirAciktaKalan($row);
             $out[] = $row;

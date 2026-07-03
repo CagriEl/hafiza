@@ -42,6 +42,10 @@ final class AylikFaaliyetWeeklyCarryover
      */
     public static function resolveWeekForFaaliyetRow(array $row, array $data): int
     {
+        if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
+            return 0;
+        }
+
         if (filled($row['hafta'] ?? null) && is_numeric($row['hafta'])) {
             $week = (int) $row['hafta'];
             if ($week >= 1 && $week <= ReportPeriodWeeks::WEEK_COUNT) {
@@ -84,10 +88,14 @@ final class AylikFaaliyetWeeklyCarryover
             return $data;
         }
 
-        $today = now()->toDateString();
+        $today = ReportPeriodWeeks::reportingReferenceDate()->toDateString();
 
         foreach ($data['faaliyetler'] as $i => $row) {
             if (! is_array($row) || (bool) ($row['ay_sonu_performans_kilitli'] ?? false)) {
+                continue;
+            }
+
+            if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
                 continue;
             }
 
@@ -161,8 +169,12 @@ final class AylikFaaliyetWeeklyCarryover
 
             $catalogId = (int) ($row['activity_catalog_id'] ?? 0);
             $code = trim((string) ($row['faaliyet_kodu'] ?? ''));
-            $week = (int) ($row['hafta'] ?? 0);
-            $weekKey = $week >= 1 && $week <= ReportPeriodWeeks::WEEK_COUNT ? 'w:'.$week : 'w:auto';
+            $week = $row['hafta'] ?? null;
+            $weekKey = ReportPeriodWeeks::isMonthlyPeriod($week)
+                ? 'w:monthly'
+                : ((is_numeric($week) && (int) $week >= 1 && (int) $week <= ReportPeriodWeeks::WEEK_COUNT)
+                    ? 'w:'.(int) $week
+                    : 'w:auto');
             $key = $catalogId > 0
                 ? 'id:'.$catalogId.':'.$weekKey
                 : ($code !== '' ? 'code:'.$code.':'.$weekKey : 'row:'.md5(json_encode($row)));
@@ -254,6 +266,13 @@ final class AylikFaaliyetWeeklyCarryover
         $incomingDate = trim((string) ($incoming['son_yapilma_tarihi'] ?? ''));
         if ($incomingDate !== '') {
             $base['son_yapilma_tarihi'] = $incomingDate;
+        }
+
+        if (trim((string) ($incoming['acikta_revize_notu'] ?? '')) !== '') {
+            $base['acikta_revize_notu'] = $incoming['acikta_revize_notu'];
+        }
+        if (trim((string) ($incoming['acikta_revize_tarihi'] ?? '')) !== '') {
+            $base['acikta_revize_tarihi'] = $incoming['acikta_revize_tarihi'];
         }
 
         return $base;

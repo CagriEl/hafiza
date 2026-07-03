@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ActivityCatalog;
+use App\Support\ActivityCatalogMetadataByCode;
 use App\Support\TurkishString;
 use Illuminate\Support\Facades\File;
 use RuntimeException;
@@ -33,6 +34,227 @@ class ActivityCatalogSyncService
         }
 
         return $candidates[0];
+    }
+
+    public function resolveServerSnapshotPath(): string
+    {
+        return app(ActivityCatalogSqlImportService::class)->resolveDefaultSnapshotPath();
+    }
+
+    /**
+     * @return list<array<string, string>>
+     */
+    public function readServerSnapshotRows(?string $path = null): array
+    {
+        return app(ActivityCatalogSqlImportService::class)->readSnapshotRows($path);
+    }
+
+    /**
+     * Sunucu snapshot JSON → activity_sets.json (yeni kod eklemez; snapshot’taki tüm satırlar dosyaya yazılır).
+     */
+    public function regenerateActivitySetsJsonFromServerSnapshot(?string $path = null): void
+    {
+        $rows = $this->readServerSnapshotRows($path);
+        if ($rows === []) {
+            throw new RuntimeException('Sunucu katalog snapshot dosyası okunamadı veya boş.');
+        }
+
+        /** @var array<string, array{label: string, activities: list<array<string, string>>}> $byNormKey */
+        $byNormKey = [];
+
+        foreach ($rows as $row) {
+            $mudurluk = trim((string) ($row['mudurluk'] ?? ''));
+            $norm = TurkishString::normalizeForFuzzyMatch($mudurluk);
+            if ($norm === '') {
+                continue;
+            }
+            if (! isset($byNormKey[$norm])) {
+                $byNormKey[$norm] = ['label' => $mudurluk, 'activities' => []];
+            }
+            $byNormKey[$norm]['activities'][] = [
+                'faaliyet_kodu' => (string) ($row['faaliyet_kodu'] ?? ''),
+                'faaliyet_ailesi' => (string) ($row['faaliyet_ailesi'] ?? ''),
+                'kategori' => (string) ($row['kategori'] ?? ''),
+                'kapsam' => (string) ($row['kapsam'] ?? ''),
+                'olcu_birimi' => (string) ($row['olcu_birimi'] ?? ''),
+                'kpi_sla' => (string) ($row['kpi_sla'] ?? ''),
+                'raporlama_sikligi' => (string) ($row['raporlama_sikligi'] ?? ''),
+                'baskanlik_bilgilendirme_seviyesi' => (string) ($row['baskanlik_bilgilendirme_seviyesi'] ?? ''),
+            ];
+        }
+
+        $sets = [];
+        foreach ($byNormKey as $bucket) {
+            usort($bucket['activities'], fn (array $a, array $b): int => strcmp($a['faaliyet_kodu'], $b['faaliyet_kodu']));
+            $sets[] = [
+                'mudurluk' => $bucket['label'],
+                'activities' => array_values($bucket['activities']),
+            ];
+        }
+
+        usort($sets, fn (array $a, array $b): int => strcmp($a['mudurluk'], $b['mudurluk']));
+
+        $out = $this->activitySetsOutputPath ?? resource_path('data/activity_sets.json');
+        $payload = [
+            'version' => 1,
+            'source' => 'activity_catalog_server_snapshot',
+            'sets' => $sets,
+        ];
+
+        File::put($out, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)."\n");
+        app(ActivityService::class)->forgetCache();
+    }
+
+    /**
+     * @deprecated Sunucu snapshot kullanın: regenerateActivitySetsJsonFromServerSnapshot()
+     */
+    public function regenerateActivitySetsJson(?string $path = null): void
+    {
+        $this->regenerateActivitySetsJsonFromServerSnapshot($path);
+    }
+
+    /**
+     * Sunucu snapshot (SQL) verisini mevcut faaliyet_seti_full.json satırlarına yazar; yeni kod eklemez.
+     * Veri Kaynağı gibi SQL’de olmayan alanlar korunur.
+     *
+     * @param  list<array<string, string>>  $snapshotRows
+     * @return array{path: string, updated: int, skipped: int}
+     */
+    public function mergeServerSnapshotIntoFaaliyetSetiFull(array $snapshotRows, ?string $path = null): array
+    {
+        $path ??= $this->resolveFullJsonPath();
+        if (! File::isReadable($path)) {
+            throw new RuntimeException("faaliyet_seti_full.json okunamadı: {$path}");
+        }
+
+        $decoded = json_decode(File::get($path), true);
+        if (! is_array($decoded)) {
+            throw new RuntimeException('faaliyet_seti_full.json geçersiz.');
+        }
+
+        $byCode = [];
+        foreach ($snapshotRows as $row) {
+            $code = trim((string) ($row['faaliyet_kodu'] ?? ''));
+            if ($code !== '') {
+                $byCode[$code] = $row;
+            }
+        }
+
+        $updated = 0;
+        $skipped = 0;
+
+        foreach ($decoded as $index => $entry) {
+            if (! is_array($entry)) {
+                $skipped++;
+
+                continue;
+            }
+
+            $code = trim((string) ($entry['Faaliyet Kodu'] ?? $entry['faaliyet_kodu'] ?? ''));
+            if ($code === '' || ! isset($byCode[$code])) {
+                $skipped++;
+
+                continue;
+            }
+
+            $src = $byCode[$code];
+            $decoded[$index] = $this->mergeSnapshotRowIntoFaaliyetSetiEntry($entry, $src);
+            $updated++;
+        }
+
+        File::put(
+            $path,
+            json_encode(array_values($decoded), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)."\n"
+        );
+
+        app(ActivityService::class)->forgetCache();
+        ActivityCatalogMetadataByCode::forgetCache();
+
+        return [
+            'path' => $path,
+            'updated' => $updated,
+            'skipped' => $skipped,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $entry
+     * @param  array<string, string>  $snapshotRow
+     * @return array<string, mixed>
+     */
+    private function mergeSnapshotRowIntoFaaliyetSetiEntry(array $entry, array $snapshotRow): array
+    {
+        $entry['Müdürlük'] = $snapshotRow['mudurluk'] ?? $entry['Müdürlük'] ?? '';
+        $entry['Faaliyet Kodu'] = $snapshotRow['faaliyet_kodu'] ?? $entry['Faaliyet Kodu'] ?? '';
+        $entry['Faaliyet Ailesi'] = $snapshotRow['faaliyet_ailesi'] ?? $entry['Faaliyet Ailesi'] ?? '';
+        $entry['Kategori'] = $snapshotRow['kategori'] ?? $entry['Kategori'] ?? '';
+        $entry['Kapsam'] = $snapshotRow['kapsam'] ?? $entry['Kapsam'] ?? '';
+        $entry['Ölçü Birimi'] = $snapshotRow['olcu_birimi'] ?? $entry['Ölçü Birimi'] ?? '';
+        $entry['Ana KPI / SLA'] = $snapshotRow['kpi_sla'] ?? $entry['Ana KPI / SLA'] ?? '';
+
+        $raporlama = trim((string) ($snapshotRow['raporlama_sikligi'] ?? ''));
+        if ($raporlama !== '') {
+            $entry['Raporlama Sıklığı'] = $raporlama;
+        }
+
+        $baskanlik = trim((string) ($snapshotRow['baskanlik_bilgilendirme_seviyesi'] ?? ''));
+        if ($baskanlik !== '') {
+            $entry['Başkanlık Bilgilendirme Seviyesi'] = $baskanlik;
+        }
+
+        return $entry;
+    }
+
+    /**
+     * @param  array{fill_raporlama?: bool, update_full_json?: bool, update_activity_sets?: bool}  $options
+     * @return array<string, mixed>
+     */
+    public function syncAllFromPublicSql(string $sqlPath, array $options = []): array
+    {
+        $fillRaporlama = $options['fill_raporlama'] ?? true;
+        $updateFullJson = $options['update_full_json'] ?? true;
+        $updateActivitySets = $options['update_activity_sets'] ?? true;
+
+        $import = app(ActivityCatalogSqlImportService::class);
+        $raporlama = app(ActivityCatalogRaporlamaSikligiService::class);
+
+        $written = $import->writeSnapshotFromSqlFile($sqlPath);
+        $snapshotPath = $written['path'];
+
+        $dbStats = $import->updateExistingFromSnapshotFile($snapshotPath);
+
+        $raporlamaStats = null;
+        if ($fillRaporlama) {
+            $csvPath = is_readable($raporlama->resolvePublicCsvPath())
+                ? $raporlama->resolvePublicCsvPath()
+                : $raporlama->resolveDefaultCsvPath();
+
+            if (! is_readable($csvPath)) {
+                $raporlama->exportCsvFromSnapshotAndModel();
+                $csvPath = $raporlama->resolveDefaultCsvPath();
+            }
+
+            $raporlamaStats = $raporlama->fillMissingFromCsvFile($csvPath);
+        }
+
+        $fullJsonStats = null;
+        if ($updateFullJson) {
+            $snapshotRows = $import->readSnapshotRows($snapshotPath);
+            $fullJsonStats = $this->mergeServerSnapshotIntoFaaliyetSetiFull($snapshotRows);
+        }
+
+        if ($updateActivitySets) {
+            $this->regenerateActivitySetsJsonFromServerSnapshot($snapshotPath);
+        }
+
+        return [
+            'sql_path' => $sqlPath,
+            'snapshot_path' => $snapshotPath,
+            'snapshot_rows' => $written['row_count'],
+            'db' => $dbStats,
+            'raporlama' => $raporlamaStats,
+            'faaliyet_seti_full' => $fullJsonStats,
+        ];
     }
 
     /**
@@ -161,7 +383,7 @@ class ActivityCatalogSyncService
         $out = $this->activitySetsOutputPath ?? resource_path('data/activity_sets.json');
         $payload = [
             'version' => 1,
-            'source' => 'generated_from_faaliyet_seti_full',
+            'source' => 'activity_catalog_server_snapshot',
             'sets' => $sets,
         ];
 

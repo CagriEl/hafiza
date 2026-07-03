@@ -6,10 +6,14 @@ use Carbon\Carbon;
 
 /**
  * Aylık faaliyet raporlarında ayı sabit 4 haftalık takvim aralığına böler.
+ * Hafta sonları (Cumartesi–Pazar) rapor dönemine dahil edilmez; etiketler yalnızca iş günlerini gösterir.
  */
 final class ReportPeriodWeeks
 {
     public const WEEK_COUNT = 4;
+
+  /** Aylık raporlama dönemi (hafta numarası yerine). */
+    public const MONTHLY_VALUE = 'aylik';
 
     /**
      * @return array<int, string>
@@ -48,7 +52,33 @@ final class ReportPeriodWeeks
         return ['start' => $start, 'end' => $end];
     }
 
+    public static function isWeekend(Carbon $date): bool
+    {
+        return $date->isWeekend();
+    }
+
     /**
+     * Hafta sonu günlerinde raporlama için son iş günü (Cuma); diğer günlerde aynı tarih.
+     */
+    public static function reportingReferenceDate(?Carbon $date = null): Carbon
+    {
+        $date = ($date ?? now())->copy()->startOfDay();
+
+        if ($date->isSaturday()) {
+            return $date->copy()->subDay();
+        }
+
+        if ($date->isSunday()) {
+            return $date->copy()->subDays(2);
+        }
+
+        return $date;
+    }
+
+    /**
+     * Ayı 4 rapor haftasına böler: her hafta iş günü (Pzt–Cum).
+     * 1. hafta ayın ilk iş gününden o haftanın Cumasına; 2–3. tam hafta; 4. kalan iş günleri.
+     *
      * @return list<array{hafta: int, baslangic: Carbon, bitis: Carbon}>
      */
     public static function weeksForMonth(int $year, int $month): array
@@ -58,29 +88,75 @@ final class ReportPeriodWeeks
         }
 
         $monthStart = Carbon::create($year, $month, 1)->startOfDay();
-        $lastDay = (int) $monthStart->daysInMonth;
+        $monthEnd = $monthStart->copy()->endOfMonth()->startOfDay();
 
-        $ranges = [
-            [1, min(7, $lastDay)],
-            [8, min(14, $lastDay)],
-            [15, min(21, $lastDay)],
-            [22, $lastDay],
-        ];
+        $firstWeekday = self::firstWeekdayOnOrAfter($monthStart, $monthEnd);
+        if ($firstWeekday === null) {
+            return [];
+        }
 
         $weeks = [];
-        foreach ($ranges as $index => [$startDay, $endDay]) {
-            if ($startDay > $lastDay) {
-                continue;
+
+        $week1End = self::firstFridayOnOrAfter($firstWeekday, $monthEnd);
+        if ($week1End === null) {
+            return [];
+        }
+
+        $weeks[] = [
+            'hafta' => 1,
+            'baslangic' => $firstWeekday->copy(),
+            'bitis' => $week1End,
+        ];
+
+        $cursor = self::nextMondayOnOrAfter($week1End->copy()->addDay(), $monthEnd);
+
+        for ($weekNum = 2; $weekNum <= 3; $weekNum++) {
+            if ($cursor === null || $cursor->gt($monthEnd)) {
+                break;
+            }
+
+            $baslangic = $cursor->copy();
+            $bitis = self::fridayOfWeekStarting($baslangic, $monthEnd);
+            if ($bitis === null || $baslangic->gt($bitis)) {
+                break;
             }
 
             $weeks[] = [
-                'hafta' => $index + 1,
-                'baslangic' => $monthStart->copy()->day($startDay),
-                'bitis' => $monthStart->copy()->day($endDay),
+                'hafta' => $weekNum,
+                'baslangic' => $baslangic,
+                'bitis' => $bitis,
             ];
+
+            $cursor = self::nextMondayOnOrAfter($bitis->copy()->addDay(), $monthEnd);
+        }
+
+        if ($cursor !== null && $cursor->lte($monthEnd)) {
+            $lastWeekday = self::lastWeekdayOnOrBefore($monthEnd, $cursor);
+            if ($lastWeekday !== null && $cursor->lte($lastWeekday)) {
+                $weeks[] = [
+                    'hafta' => 4,
+                    'baslangic' => $cursor->copy(),
+                    'bitis' => $lastWeekday,
+                ];
+            }
         }
 
         return $weeks;
+    }
+
+    /**
+     * @return array{start: Carbon, end: Carbon}|null
+     */
+    public static function weekdayBoundsInRange(Carbon $rangeStart, Carbon $rangeEnd): ?array
+    {
+        $start = self::firstWeekdayOnOrAfter($rangeStart, $rangeEnd);
+        $end = self::lastWeekdayOnOrBefore($rangeEnd, $rangeStart);
+
+        if ($start === null || $end === null || $start->gt($end)) {
+            return null;
+        }
+
+        return ['start' => $start, 'end' => $end];
     }
 
     /**
@@ -104,6 +180,7 @@ final class ReportPeriodWeeks
 
     /**
      * Rapor dönemi ve bugünün tarihine göre otomatik hafta numarası (1–4).
+     * Hafta sonları, önceki Cuma'nın haftasına göre değerlendirilir.
      */
     public static function resolveWeekForReportPeriod(int $year, int $month, ?Carbon $date = null): int
     {
@@ -113,18 +190,19 @@ final class ReportPeriodWeeks
         }
 
         $date = ($date ?? now())->copy()->startOfDay();
+        $effective = self::reportingReferenceDate($date);
         $bounds = self::monthBounds($year, $month);
 
-        if ($date->lt($bounds['start'])) {
+        if ($effective->lt($bounds['start'])) {
             return 1;
         }
 
-        if ($date->gt($bounds['end'])) {
+        if ($effective->gt($bounds['end'])) {
             return (int) $weeks[array_key_last($weeks)]['hafta'];
         }
 
         foreach ($weeks as $week) {
-            if ($date->greaterThanOrEqualTo($week['baslangic']) && $date->lessThanOrEqualTo($week['bitis'])) {
+            if ($effective->greaterThanOrEqualTo($week['baslangic']) && $effective->lessThanOrEqualTo($week['bitis'])) {
                 return (int) $week['hafta'];
             }
         }
@@ -140,7 +218,7 @@ final class ReportPeriodWeeks
         }
 
         return sprintf(
-            '%d. Hafta (%s - %s)',
+            '%d. Hafta (%s - %s, iş günü)',
             $week,
             self::formatDate($weekData['baslangic']),
             self::formatDate($weekData['bitis'])
@@ -178,7 +256,7 @@ final class ReportPeriodWeeks
         $parts = [];
         foreach (self::weeksForMonth($year, $month) as $week) {
             $parts[] = sprintf(
-                '%d. Hafta: %s – %s',
+                '%d. Hafta: %s – %s (iş günü)',
                 $week['hafta'],
                 self::formatDate($week['baslangic']),
                 self::formatDate($week['bitis'])
@@ -193,7 +271,7 @@ final class ReportPeriodWeeks
         $parts = [];
         foreach (self::weeksForMonth($year, $month) as $week) {
             $parts[] = sprintf(
-                '<strong>%d. Hafta:</strong> %s – %s',
+                '<strong>%d. Hafta:</strong> %s – %s <span style="color:#6b7280;">(Pzt–Cum)</span>',
                 $week['hafta'],
                 e(self::formatDate($week['baslangic'])),
                 e(self::formatDate($week['bitis']))
@@ -209,7 +287,15 @@ final class ReportPeriodWeeks
         $yearNumber = (int) $year;
         $monthNumber = (int) preg_replace('/\D/', '', (string) $month);
 
-        if ($weekNumber < 1 || $yearNumber <= 0 || $monthNumber < 1 || $monthNumber > 12) {
+        if ($yearNumber <= 0 || $monthNumber < 1 || $monthNumber > 12) {
+            return null;
+        }
+
+        if (self::isMonthlyPeriod($week)) {
+            return self::monthlyPeriodLabel($yearNumber, $monthNumber);
+        }
+
+        if ($weekNumber < 1) {
             return null;
         }
 
@@ -228,10 +314,168 @@ final class ReportPeriodWeeks
         return self::monthPeriodLabel($yearNumber, $monthNumber);
     }
 
+    public static function isMonthlyPeriod(mixed $period): bool
+    {
+        if ($period === self::MONTHLY_VALUE || $period === 0 || $period === '0') {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static function isMonthlyReportingFrequency(?string $frequency): bool
+    {
+        $normalized = mb_strtolower(trim((string) $frequency));
+
+        return str_contains($normalized, 'aylık') || str_contains($normalized, 'aylik');
+    }
+
     public static function isWeeklyReportingFrequency(?string $frequency): bool
     {
         $normalized = mb_strtolower(trim((string) $frequency));
 
         return str_contains($normalized, 'haftalık') || str_contains($normalized, 'haftalik');
+    }
+
+    public static function monthlyPeriodLabel(int $year, int $month): string
+    {
+        $bounds = self::monthBounds($year, $month);
+
+        return sprintf(
+            'Aylık (%s - %s)',
+            self::formatDate($bounds['start']),
+            self::formatDate($bounds['end'])
+        );
+    }
+
+    /**
+     * Raporlama sıklığına göre hafta (1–4) ve/veya aylık seçenekleri.
+     *
+     * @return array<int|string, string>
+     */
+    public static function periodSelectOptions(int $year, int $month, ?string $raporlamaSikligi): array
+    {
+        $weekly = self::isWeeklyReportingFrequency($raporlamaSikligi);
+        $monthly = self::isMonthlyReportingFrequency($raporlamaSikligi);
+        $showAll = ! $weekly && ! $monthly;
+
+        $options = [];
+
+        if ($weekly || $showAll) {
+            foreach (self::weeksForMonth($year, $month) as $week) {
+                $options[(int) $week['hafta']] = self::weekShortLabel($year, $month, (int) $week['hafta']);
+            }
+        }
+
+        if ($monthly || $showAll) {
+            $options[self::MONTHLY_VALUE] = self::monthlyPeriodLabel($year, $month);
+        }
+
+        return $options;
+    }
+
+    public static function defaultPeriodForReportingFrequency(int $year, int $month, ?string $raporlamaSikligi): int|string
+    {
+        $weekly = self::isWeeklyReportingFrequency($raporlamaSikligi);
+        $monthly = self::isMonthlyReportingFrequency($raporlamaSikligi);
+
+        if ($monthly && ! $weekly) {
+            return self::MONTHLY_VALUE;
+        }
+
+        return self::resolveWeekForReportPeriod($year, $month);
+    }
+
+    public static function periodLabelForRecord(?int $year, mixed $month, mixed $period): ?string
+    {
+        $yearNumber = (int) $year;
+        $monthNumber = (int) preg_replace('/\D/', '', (string) $month);
+
+        if ($yearNumber <= 0 || $monthNumber < 1 || $monthNumber > 12) {
+            return null;
+        }
+
+        if (self::isMonthlyPeriod($period)) {
+            return self::monthlyPeriodLabel($yearNumber, $monthNumber);
+        }
+
+        $weekNumber = (int) $period;
+        if ($weekNumber < 1) {
+            return null;
+        }
+
+        return self::weekShortLabel($yearNumber, $monthNumber, $weekNumber);
+    }
+
+
+    private static function firstFridayOnOrAfter(Carbon $from, Carbon $max): ?Carbon
+    {
+        $cursor = $from->copy()->startOfDay();
+        while ($cursor->lte($max)) {
+            if ($cursor->isFriday()) {
+                return $cursor;
+            }
+            $cursor->addDay();
+        }
+
+        return self::lastWeekdayOnOrBefore($max, $from);
+    }
+
+    private static function nextMondayOnOrAfter(Carbon $from, Carbon $max): ?Carbon
+    {
+        $cursor = $from->copy()->startOfDay();
+        while ($cursor->lte($max) && $cursor->isWeekend()) {
+            $cursor->addDay();
+        }
+
+        if ($cursor->gt($max)) {
+            return null;
+        }
+
+        if (! $cursor->isMonday()) {
+            $cursor = $cursor->copy()->next(Carbon::MONDAY);
+        }
+
+        return $cursor->lte($max) ? $cursor : null;
+    }
+
+    private static function fridayOfWeekStarting(Carbon $weekStart, Carbon $monthEnd): ?Carbon
+    {
+        $cursor = $weekStart->copy()->startOfDay();
+        while ($cursor->lte($monthEnd) && ! $cursor->isFriday()) {
+            $cursor->addDay();
+        }
+
+        if ($cursor->gt($monthEnd)) {
+            return self::lastWeekdayOnOrBefore($monthEnd, $weekStart);
+        }
+
+        return $cursor;
+    }
+
+    private static function firstWeekdayOnOrAfter(Carbon $from, Carbon $max): ?Carbon
+    {
+        $cursor = $from->copy()->startOfDay();
+        while ($cursor->lte($max)) {
+            if (! $cursor->isWeekend()) {
+                return $cursor;
+            }
+            $cursor->addDay();
+        }
+
+        return null;
+    }
+
+    private static function lastWeekdayOnOrBefore(Carbon $from, Carbon $min): ?Carbon
+    {
+        $cursor = $from->copy()->startOfDay();
+        while ($cursor->gte($min)) {
+            if (! $cursor->isWeekend()) {
+                return $cursor;
+            }
+            $cursor->subDay();
+        }
+
+        return null;
     }
 }

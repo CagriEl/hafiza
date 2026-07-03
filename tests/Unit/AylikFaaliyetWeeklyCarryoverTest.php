@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Support\AylikFaaliyetWeeklyCarryover;
+use App\Support\ReportPeriodWeeks;
 use Carbon\Carbon;
 use Tests\TestCase;
 
@@ -94,5 +95,15 @@ class AylikFaaliyetWeeklyCarryoverTest extends TestCase
         );
 
         $this->assertSame(3, $week);
+    }
+
+    public function test_monthly_row_resolves_to_zero_week(): void
+    {
+        $week = AylikFaaliyetWeeklyCarryover::resolveWeekForFaaliyetRow(
+            ['hafta' => ReportPeriodWeeks::MONTHLY_VALUE],
+            ['yil' => 2026, 'ay' => '07']
+        );
+
+        $this->assertSame(0, $week);
     }
 }
