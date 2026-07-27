@@ -360,7 +360,7 @@ class AylikFaaliyetResource extends Resource
                 && ($get('hafta') !== null && $get('hafta') !== ''))
             ->dehydrated(true)
             ->columnSpanFull()
-            ->helperText('Haftalık sıklıkta 1–4. haftayı; aylık sıklıkta «Aylık» seçeneğini kullanın. Seçenekler raporlama sıklığına göre listelenir.');
+            ->helperText('Haftalık sıklıkta 1–5. haftayı; aylık sıklıkta «Aylık» seçeneğini kullanın. Seçenekler raporlama sıklığına göre listelenir.');
     }
 
     private static function applyDefaultHaftaForRow(Set $set, Get $get, mixed $livewire = null): void
