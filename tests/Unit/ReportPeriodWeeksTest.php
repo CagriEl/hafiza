@@ -8,39 +8,45 @@ use PHPUnit\Framework\TestCase;
 
 class ReportPeriodWeeksTest extends TestCase
 {
-    public function test_july_first_week_runs_from_month_start_to_first_friday(): void
+    public function test_july_first_week_is_full_calendar_week_from_monday(): void
     {
         $weeks = ReportPeriodWeeks::weeksForMonth(2026, 7);
 
         $this->assertCount(4, $weeks);
         $this->assertSame(1, $weeks[0]['hafta']);
-        $this->assertSame('01.07.2026', ReportPeriodWeeks::formatDate($weeks[0]['baslangic']));
-        $this->assertSame('03.07.2026', ReportPeriodWeeks::formatDate($weeks[0]['bitis']));
+        $this->assertSame('29.06.2026', ReportPeriodWeeks::formatDate($weeks[0]['baslangic']));
+        $this->assertSame('05.07.2026', ReportPeriodWeeks::formatDate($weeks[0]['bitis']));
         $this->assertSame('06.07.2026', ReportPeriodWeeks::formatDate($weeks[1]['baslangic']));
-        $this->assertSame('10.07.2026', ReportPeriodWeeks::formatDate($weeks[1]['bitis']));
+        $this->assertSame('12.07.2026', ReportPeriodWeeks::formatDate($weeks[1]['bitis']));
+        $this->assertSame('13.07.2026', ReportPeriodWeeks::formatDate($weeks[2]['baslangic']));
+        $this->assertSame('19.07.2026', ReportPeriodWeeks::formatDate($weeks[2]['bitis']));
+        $this->assertSame('20.07.2026', ReportPeriodWeeks::formatDate($weeks[3]['baslangic']));
+        $this->assertSame('31.07.2026', ReportPeriodWeeks::formatDate($weeks[3]['bitis']));
     }
 
-    public function test_month_starts_on_monday_first_week_is_full_work_week(): void
+    public function test_month_starts_on_monday_first_week_is_full_calendar_week(): void
     {
         $weeks = ReportPeriodWeeks::weeksForMonth(2026, 6);
 
         $this->assertSame('01.06.2026', ReportPeriodWeeks::formatDate($weeks[0]['baslangic']));
-        $this->assertSame('05.06.2026', ReportPeriodWeeks::formatDate($weeks[0]['bitis']));
+        $this->assertSame('07.06.2026', ReportPeriodWeeks::formatDate($weeks[0]['bitis']));
+        $this->assertSame('08.06.2026', ReportPeriodWeeks::formatDate($weeks[1]['baslangic']));
+        $this->assertSame('14.06.2026', ReportPeriodWeeks::formatDate($weeks[1]['bitis']));
     }
 
-    public function test_february_last_week_ends_on_last_weekday(): void
+    public function test_february_last_week_ends_on_month_end(): void
     {
         $weeks = ReportPeriodWeeks::weeksForMonth(2026, 2);
 
-        $this->assertSame('27.02.2026', ReportPeriodWeeks::formatDate($weeks[3]['bitis']));
+        $this->assertSame('28.02.2026', ReportPeriodWeeks::formatDate($weeks[3]['bitis']));
     }
 
-    public function test_week_select_options_exclude_weekends_from_labels(): void
+    public function test_week_select_options_show_full_week_labels(): void
     {
         $options = ReportPeriodWeeks::selectOptions(2026, 3);
 
         $this->assertArrayHasKey(2, $options);
-        $this->assertSame('2. Hafta (09.03.2026 - 13.03.2026, iş günü)', $options[2]);
+        $this->assertSame('2. Hafta (02.03.2026 - 08.03.2026)', $options[2]);
     }
 
     public function test_resolve_week_for_current_date_in_report_period(): void

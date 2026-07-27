@@ -387,14 +387,32 @@ class AylikFaaliyetResource extends Resource
             $locked = (bool) ($row['ay_sonu_performans_kilitli'] ?? false);
             $hafta = $row['hafta'] ?? null;
             if ($locked && ($hafta !== null && $hafta !== '')) {
+                // Kilitli satırda da yeni takvim aralıklarını yaz.
+                if (! ReportPeriodWeeks::isMonthlyPeriod($hafta) && is_numeric($hafta) && $yil > 0 && $ay >= 1 && $ay <= 12) {
+                    $weekData = ReportPeriodWeeks::weekByNumber($yil, $ay, (int) $hafta);
+                    if ($weekData !== null) {
+                        $data['faaliyetler'][$i]['hafta_baslangic'] = ReportPeriodWeeks::formatDate($weekData['baslangic']);
+                        $data['faaliyetler'][$i]['hafta_bitis'] = ReportPeriodWeeks::formatDate($weekData['bitis']);
+                    }
+                }
+
                 continue;
             }
 
             if ($hafta === null || $hafta === '') {
                 $frequency = trim((string) ($row['raporlama_sikligi'] ?? ''));
-                $data['faaliyetler'][$i]['hafta'] = ($yil > 0 && $ay >= 1 && $ay <= 12)
+                $hafta = ($yil > 0 && $ay >= 1 && $ay <= 12)
                     ? ReportPeriodWeeks::defaultPeriodForReportingFrequency($yil, $ay, $frequency)
                     : 1;
+                $data['faaliyetler'][$i]['hafta'] = $hafta;
+            }
+
+            if (! ReportPeriodWeeks::isMonthlyPeriod($hafta) && is_numeric($hafta) && $yil > 0 && $ay >= 1 && $ay <= 12) {
+                $weekData = ReportPeriodWeeks::weekByNumber($yil, $ay, (int) $hafta);
+                if ($weekData !== null) {
+                    $data['faaliyetler'][$i]['hafta_baslangic'] = ReportPeriodWeeks::formatDate($weekData['baslangic']);
+                    $data['faaliyetler'][$i]['hafta_bitis'] = ReportPeriodWeeks::formatDate($weekData['bitis']);
+                }
             }
         }
 
@@ -1343,7 +1361,7 @@ class AylikFaaliyetResource extends Resource
                                     ->helperText(function (Get $get, $livewire): string {
                                         $week = static::currentReportWeekForForm($get, $livewire);
                                         if ($week > 1) {
-                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Hafta aralıkları iş günlerini (Pazartesi–Cuma) kapsar. Kayıt tarihi sisteme kaydedildiği gerçek gündür; rapor dönemi yukarıdaki hafta seçiminden belirlenir.';
+                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Hafta aralıkları Pazartesi–Pazar (tam takvim haftası) kapsar. Kayıt tarihi sisteme kaydedildiği gerçek gündür; rapor dönemi yukarıdaki hafta seçiminden belirlenir.';
                                         }
 
                                         return 'Önce yapılan işi girip kaydedin. Kayıttan sonra aynı raporda tamamlanan iş alanı açılır; eşit değilse fark açıkta kalan olarak hesaplanır. Kayıt tarihi sisteme kaydedildiği gerçek gündür.';

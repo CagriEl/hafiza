@@ -6,7 +6,8 @@ use Carbon\Carbon;
 
 /**
  * Aylık faaliyet raporlarında ayı sabit 4 haftalık takvim aralığına böler.
- * Hafta sonları (Cumartesi–Pazar) rapor dönemine dahil edilmez; etiketler yalnızca iş günlerini gösterir.
+ * Her hafta Pazartesi–Pazar (7 gün) tam takvim haftasıdır; 1. hafta ayın 1’ini
+ * içeren haftanın Pazartesinden başlar (önceki aya taşabilir).
  */
 final class ReportPeriodWeeks
 {
@@ -89,8 +90,10 @@ final class ReportPeriodWeeks
     }
 
     /**
-     * Ayı 4 rapor haftasına böler: her hafta iş günü (Pzt–Cum).
-     * 1. hafta ayın ilk iş gününden o haftanın Cumasına; 2–3. tam hafta; 4. kalan iş günleri.
+     * Ayı 4 rapor haftasına böler: her hafta tam takvim haftası (Pzt–Paz, 7 gün).
+     * 1. hafta ayın 1’ini içeren haftanın Pazartesinden o Pazar’a;
+     * 2–3. haftalar sonraki tam Pzt–Paz aralıkları;
+     * 4. hafta kalan günler (ay sonuna kadar).
      *
      * @return list<array{hafta: int, baslangic: Carbon, bitis: Carbon}>
      */
@@ -103,34 +106,16 @@ final class ReportPeriodWeeks
         $monthStart = Carbon::create($year, $month, 1)->startOfDay();
         $monthEnd = $monthStart->copy()->endOfMonth()->startOfDay();
 
-        $firstWeekday = self::firstWeekdayOnOrAfter($monthStart, $monthEnd);
-        if ($firstWeekday === null) {
-            return [];
-        }
+        // Ayın 1’ini içeren ISO haftanın Pazartesi’si (önceki aya taşabilir).
+        $cursor = $monthStart->copy()->startOfWeek(Carbon::MONDAY);
 
         $weeks = [];
 
-        $week1End = self::firstFridayOnOrAfter($firstWeekday, $monthEnd);
-        if ($week1End === null) {
-            return [];
-        }
-
-        $weeks[] = [
-            'hafta' => 1,
-            'baslangic' => $firstWeekday->copy(),
-            'bitis' => $week1End,
-        ];
-
-        $cursor = self::nextMondayOnOrAfter($week1End->copy()->addDay(), $monthEnd);
-
-        for ($weekNum = 2; $weekNum <= 3; $weekNum++) {
-            if ($cursor === null || $cursor->gt($monthEnd)) {
-                break;
-            }
-
+        for ($weekNum = 1; $weekNum <= 3; $weekNum++) {
             $baslangic = $cursor->copy();
-            $bitis = self::fridayOfWeekStarting($baslangic, $monthEnd);
-            if ($bitis === null || $baslangic->gt($bitis)) {
+            $bitis = $baslangic->copy()->addDays(6);
+
+            if ($baslangic->gt($monthEnd)) {
                 break;
             }
 
@@ -140,18 +125,15 @@ final class ReportPeriodWeeks
                 'bitis' => $bitis,
             ];
 
-            $cursor = self::nextMondayOnOrAfter($bitis->copy()->addDay(), $monthEnd);
+            $cursor = $bitis->copy()->addDay();
         }
 
-        if ($cursor !== null && $cursor->lte($monthEnd)) {
-            $lastWeekday = self::lastWeekdayOnOrBefore($monthEnd, $cursor);
-            if ($lastWeekday !== null && $cursor->lte($lastWeekday)) {
-                $weeks[] = [
-                    'hafta' => 4,
-                    'baslangic' => $cursor->copy(),
-                    'bitis' => $lastWeekday,
-                ];
-            }
+        if ($cursor->lte($monthEnd)) {
+            $weeks[] = [
+                'hafta' => 4,
+                'baslangic' => $cursor->copy(),
+                'bitis' => $monthEnd->copy(),
+            ];
         }
 
         return $weeks;
@@ -231,7 +213,7 @@ final class ReportPeriodWeeks
         }
 
         return sprintf(
-            '%d. Hafta (%s - %s, iş günü)',
+            '%d. Hafta (%s - %s)',
             $week,
             self::formatDate($weekData['baslangic']),
             self::formatDate($weekData['bitis'])
@@ -269,7 +251,7 @@ final class ReportPeriodWeeks
         $parts = [];
         foreach (self::weeksForMonth($year, $month) as $week) {
             $parts[] = sprintf(
-                '%d. Hafta: %s – %s (iş günü)',
+                '%d. Hafta: %s – %s',
                 $week['hafta'],
                 self::formatDate($week['baslangic']),
                 self::formatDate($week['bitis'])
@@ -284,7 +266,7 @@ final class ReportPeriodWeeks
         $parts = [];
         foreach (self::weeksForMonth($year, $month) as $week) {
             $parts[] = sprintf(
-                '<strong>%d. Hafta:</strong> %s – %s <span style="color:#6b7280;">(Pzt–Cum)</span>',
+                '<strong>%d. Hafta:</strong> %s – %s <span style="color:#6b7280;">(Pzt–Paz)</span>',
                 $week['hafta'],
                 e(self::formatDate($week['baslangic'])),
                 e(self::formatDate($week['bitis']))
