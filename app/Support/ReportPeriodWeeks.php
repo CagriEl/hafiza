@@ -247,14 +247,42 @@ final class ReportPeriodWeeks
         return 1;
     }
 
+    public static function lastWeekNumberForMonth(int $year, int $month): int
+    {
+        $weeks = self::weeksForMonth($year, $month);
+        if ($weeks === []) {
+            return self::WEEK_COUNT;
+        }
+
+        return (int) $weeks[array_key_last($weeks)]['hafta'];
+    }
+
+    public static function isLastWeekOfMonth(int $week, int $year, int $month): bool
+    {
+        if ($week < 1) {
+            return false;
+        }
+
+        return $week >= self::lastWeekNumberForMonth($year, $month);
+    }
+
     public static function weekShortLabel(int $year, int $month, int $week): string
     {
         if ($week < 1 || $week > self::WEEK_COUNT) {
             return $week.'. Hafta';
         }
 
-        // Tarih aralığı gösterilmez; yalnızca sıra numarası.
-        return $week.'. Hafta';
+        $range = self::weekByNumber($year, $month, $week);
+        if ($range === null) {
+            return $week.'. Hafta';
+        }
+
+        return sprintf(
+            '%d. Hafta (%s – %s)',
+            $week,
+            self::formatDate($range['baslangic']),
+            self::formatDate($range['bitis'])
+        );
     }
 
     public static function monthPeriodLabel(int $year, int $month): string
@@ -287,7 +315,7 @@ final class ReportPeriodWeeks
     {
         $parts = [];
         foreach (self::weeksForMonth($year, $month) as $week) {
-            $parts[] = ((int) $week['hafta']).'. Hafta';
+            $parts[] = self::weekShortLabel($year, $month, (int) $week['hafta']);
         }
 
         return implode(' · ', $parts);
@@ -297,7 +325,7 @@ final class ReportPeriodWeeks
     {
         $parts = [];
         foreach (self::weeksForMonth($year, $month) as $week) {
-            $parts[] = '<strong>'.((int) $week['hafta']).'. Hafta</strong>';
+            $parts[] = '<strong>'.e(self::weekShortLabel($year, $month, (int) $week['hafta'])).'</strong>';
         }
 
         return implode(' &nbsp;·&nbsp; ', $parts);

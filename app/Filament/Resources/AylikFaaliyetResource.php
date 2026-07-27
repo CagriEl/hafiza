@@ -228,8 +228,32 @@ class AylikFaaliyetResource extends Resource
     public static function isLastReportWeekForForm(Get $get, mixed $livewire = null): bool
     {
         $week = static::currentReportWeekForForm($get, $livewire);
+        if ($week < 1) {
+            return false;
+        }
 
-        return $week >= ReportPeriodWeeks::WEEK_COUNT;
+        $yil = (int) ($get('yil') ?? $get('../../yil') ?? $get('../../../yil') ?? 0);
+        $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? $get('../../ay') ?? $get('../../../ay') ?? ''));
+
+        if (($yil <= 0 || $ay < 1 || $ay > 12) && is_object($livewire)) {
+            if (method_exists($livewire, 'getRecord')) {
+                $record = $livewire->getRecord();
+                if ($record instanceof AylikFaaliyet) {
+                    $yil = (int) ($record->yil ?? $yil);
+                    $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? $ay));
+                }
+            }
+            if (($yil <= 0 || $ay < 1) && property_exists($livewire, 'data') && is_array($livewire->data)) {
+                $yil = (int) ($livewire->data['yil'] ?? $yil);
+                $ay = (int) preg_replace('/\D/', '', (string) ($livewire->data['ay'] ?? $ay));
+            }
+        }
+
+        if ($yil <= 0 || $ay < 1 || $ay > 12) {
+            return $week >= ReportPeriodWeeks::WEEK_COUNT;
+        }
+
+        return ReportPeriodWeeks::isLastWeekOfMonth($week, $yil, $ay);
     }
 
     public static function selectedRaporHaftasiLabelForFormContext(Get $get, mixed $livewire = null): ?string
@@ -1114,6 +1138,22 @@ class AylikFaaliyetResource extends Resource
 
                                 return ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
                             }),
+                        Forms\Components\Placeholder::make('hafta_tarih_araliklari')
+                            ->label('Hafta Tarih Aralıkları')
+                            ->content(function (Get $get): string {
+                                $yil = (int) ($get('yil') ?? now()->year);
+                                $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? now()->format('m')));
+
+                                if ($yil <= 0 || $ay < 1 || $ay > 12) {
+                                    return '—';
+                                }
+
+                                $text = ReportPeriodWeeks::weeksOverviewText($yil, $ay);
+
+                                return $text !== '' ? $text : '—';
+                            })
+                            ->helperText('Hafta Tanımları ekranındaki aralıklar kullanılır; tanım yoksa otomatik takvim uygulanır.')
+                            ->columnSpanFull(),
                         Forms\Components\Placeholder::make('rapor_kayit_bilgisi')
                             ->label('Sisteme Kayıt')
                             ->content(function ($livewire): string {
@@ -1334,7 +1374,7 @@ class AylikFaaliyetResource extends Resource
                                     ->helperText(function (Get $get, $livewire): string {
                                         $week = static::currentReportWeekForForm($get, $livewire);
                                         if ($week > 1) {
-                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Kayıt tarihi sisteme kaydedildiği gerçek gündür; rapor dönemi yukarıdaki hafta seçiminden (1.–5. Hafta) belirlenir.';
+                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar, tamamlanma tarihi ve açıklama girebilirsiniz. Rapor dönemi yukarıdaki hafta seçiminden (1.–5. Hafta) belirlenir.';
                                         }
 
                                         return 'Önce yapılan işi girip kaydedin. Kayıttan sonra aynı raporda tamamlanan iş alanı açılır; eşit değilse fark açıkta kalan olarak hesaplanır. Kayıt tarihi sisteme kaydedildiği gerçek gündür.';
@@ -1354,14 +1394,13 @@ class AylikFaaliyetResource extends Resource
                                         Forms\Components\Hidden::make('acikta_kalan')
                                             ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
                                             ->dehydrated(true),
-                                        Forms\Components\Hidden::make('acikta_revize_tarihi')->dehydrated(true),
-                                        Forms\Components\Hidden::make('acikta_revize_notu')->dehydrated(true),
                                         Forms\Components\Hidden::make('acikta_kapatildi')->dehydrated(true),
                                         Forms\Components\Hidden::make('acikta_kapatma_notu')->dehydrated(true),
                                         Forms\Components\Hidden::make('bu_hafta_tamamlanan')
                                             ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
                                             ->dehydrated(true),
                                         Forms\Components\Hidden::make('bu_hafta_aciklama')->dehydrated(true),
+                                        Forms\Components\Hidden::make('bu_hafta_yapilma_tarihi')->dehydrated(true),
                                         Forms\Components\Placeholder::make('kalem_bu_hafta_kapali')
                                             ->label(fn (Get $get): string => trim((string) ($get('kalem') ?? 'Kalem')))
                                             ->content('Bu kalem bu hafta rapor döneminde açıkta iş bulunmadığı için gizlidir. Veriler korunur.')
@@ -1476,36 +1515,31 @@ class AylikFaaliyetResource extends Resource
                                         Section::make(fn (Get $get): string => 'Açıkta İş — Revize Notu: '.trim((string) ($get('kalem') ?? 'Kalem')))
                                             ->description('Bu kalemdeki açıkta kalan iş için hedef tarih ve açıklama giriniz.')
                                             ->schema([
-                                                Forms\Components\DatePicker::make('acikta_revize_tarihi_ui')
+                                                Forms\Components\DatePicker::make('acikta_revize_tarihi')
                                                     ->label('Hedef / Revize Tarihi')
                                                     ->native(false)
                                                     ->displayFormat('d.m.Y')
-                                                    ->default(fn (): string => ReportPeriodWeeks::reportingReferenceDate()->toDateString())
+                                                    ->default(fn (): string => ReportPeriodWeeks::systemRecordDate()->toDateString())
                                                     ->disabled(fn (Get $get, $livewire): bool => static::kapsamRevizeAlaniDisabled($get, $livewire))
-                                                    ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                                    ->dehydrateStateUsing(function (mixed $state): ?string {
                                                         if (! filled($state)) {
-                                                            $set('acikta_revize_tarihi', null);
-
-                                                            return;
+                                                            return null;
                                                         }
-                                                        $parsed = Carbon::parse((string) $state)->startOfDay();
-                                                        if ($parsed->isWeekend()) {
-                                                            $state = ReportPeriodWeeks::reportingReferenceDate($parsed)->toDateString();
+                                                        try {
+                                                            return Carbon::parse($state)->startOfDay()->toDateString();
+                                                        } catch (\Throwable) {
+                                                            return is_string($state) ? $state : null;
                                                         }
-                                                        $set('acikta_revize_tarihi', $state);
                                                     })
-                                                    ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'acikta_revize_tarihi', 'acikta_revize_tarihi_ui'))
-                                                    ->dehydrated(false)
-                                                    ->helperText('Hafta sonu tarihleri seçilemez; otomatik olarak önceki Cuma atanır.'),
-                                                Forms\Components\Textarea::make('acikta_revize_notu_ui')
+                                                    ->dehydrated(true)
+                                                    ->helperText('Açıkta kalan işin planlanan tamamlanma veya revize tarihi.'),
+                                                Forms\Components\Textarea::make('acikta_revize_notu')
                                                     ->label('Revize Notu')
                                                     ->placeholder('Açıkta kalan işin nedeni, planlanan tamamlanma veya revize gerekçesini yazınız...')
                                                     ->rows(2)
                                                     ->columnSpanFull()
                                                     ->disabled(fn (Get $get, $livewire): bool => static::kapsamRevizeAlaniDisabled($get, $livewire))
-                                                    ->afterStateUpdated(fn (Set $set, $state): mixed => static::syncHiddenFieldFromUi($set, $state, 'acikta_revize_notu'))
-                                                    ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'acikta_revize_notu', 'acikta_revize_notu_ui'))
-                                                    ->dehydrated(false),
+                                                    ->dehydrated(true),
                                             ])
                                             ->columns(2)
                                             ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
@@ -1564,6 +1598,37 @@ class AylikFaaliyetResource extends Resource
                                                 ->afterStateUpdated(fn (Set $set, $state): mixed => static::syncHiddenFieldFromUi($set, $state, 'bu_hafta_tamamlanan'))
                                                 ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'bu_hafta_tamamlanan', 'bu_hafta_tamamlanan_ui'))
                                                 ->dehydrated(false),
+                                            Forms\Components\DatePicker::make('bu_hafta_yapilma_tarihi_ui')
+                                                ->label('Tamamlanma Tarihi')
+                                                ->native(false)
+                                                ->displayFormat('d.m.Y')
+                                                ->default(fn (): string => ReportPeriodWeeks::systemRecordDate()->toDateString())
+                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
+                                                    && static::kapsamShowsWeeklyFollowUpFields($get, $livewire))
+                                                ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                                    if (! filled($state)) {
+                                                        $set('bu_hafta_yapilma_tarihi', ReportPeriodWeeks::systemRecordDate()->toDateString());
+
+                                                        return;
+                                                    }
+                                                    try {
+                                                        $set('bu_hafta_yapilma_tarihi', Carbon::parse($state)->startOfDay()->toDateString());
+                                                    } catch (\Throwable) {
+                                                        $set('bu_hafta_yapilma_tarihi', ReportPeriodWeeks::systemRecordDate()->toDateString());
+                                                    }
+                                                })
+                                                ->afterStateHydrated(function (Set $set, Get $get, mixed $state): void {
+                                                    static::hydrateUiFromHiddenField($set, $get, $state, 'bu_hafta_yapilma_tarihi', 'bu_hafta_yapilma_tarihi_ui');
+                                                    if (! filled($get('bu_hafta_yapilma_tarihi'))) {
+                                                        $today = ReportPeriodWeeks::systemRecordDate()->toDateString();
+                                                        $set('bu_hafta_yapilma_tarihi', $today);
+                                                        if (! filled($state)) {
+                                                            $set('bu_hafta_yapilma_tarihi_ui', $today);
+                                                        }
+                                                    }
+                                                })
+                                                ->dehydrated(false)
+                                                ->helperText('Açıkta kalan işin tamamlandığı tarih.'),
                                             Forms\Components\Textarea::make('bu_hafta_aciklama_ui')
                                                 ->label('Açıklama')
                                                 ->rows(2)
@@ -1575,19 +1640,6 @@ class AylikFaaliyetResource extends Resource
                                                 ->afterStateUpdated(fn (Set $set, $state): mixed => static::syncHiddenFieldFromUi($set, $state, 'bu_hafta_aciklama'))
                                                 ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'bu_hafta_aciklama', 'bu_hafta_aciklama_ui'))
                                                 ->dehydrated(false),
-                                            Forms\Components\Placeholder::make('yapilma_tarihi_otomatik')
-                                                ->label('Kayıt Tarihi')
-                                                ->content(fn (): string => ReportPeriodWeeks::systemRecordDate()->format('d.m.Y'))
-                                                ->helperText(function (Get $get, $livewire): string {
-                                                    $weekLabel = static::selectedRaporHaftasiLabelForFormContext($get, $livewire);
-                                                    $base = 'Sisteme kaydedildiği gerçek tarih atanır.';
-
-                                                    return $weekLabel !== null && $weekLabel !== ''
-                                                        ? $base.' Rapor dönemi: '.$weekLabel.'.'
-                                                        : $base;
-                                                })
-                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
-                                                    && static::kapsamShowsWeeklyFollowUpFields($get, $livewire)),
                                         ])->columnSpanFull(),
                                         Forms\Components\Placeholder::make('son_yapilma_tarihi_goster')
                                             ->label('Son Kayıt Tarihi')

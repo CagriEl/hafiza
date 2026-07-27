@@ -108,6 +108,68 @@ class AylikFaaliyetWeeklyCarryoverTest extends TestCase
         $this->assertSame(0.0, $pending);
     }
 
+    public function test_apply_weekly_entries_uses_custom_completion_date(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-06-20', 'Europe/Istanbul'));
+
+        $data = [
+            'yil' => 2026,
+            'ay' => '06',
+            'faaliyetler' => [
+                [
+                    'hafta' => 3,
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'İş 1',
+                            'ongorulen' => 10,
+                            'gerceklesen' => 4,
+                            'bu_hafta_tamamlanan' => 3,
+                            'bu_hafta_aciklama' => 'Tamamlandı',
+                            'bu_hafta_yapilma_tarihi' => '2026-06-18',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = AylikFaaliyetWeeklyCarryover::applyWeeklyEntries($data);
+        $kapsam = $result['faaliyetler'][0]['kapsam_verileri'][0];
+
+        $this->assertSame(7.0, (float) $kapsam['gerceklesen']);
+        $this->assertSame('2026-06-18', $kapsam['son_yapilma_tarihi']);
+        $this->assertSame('2026-06-18', $kapsam['haftalik_kayitlar'][0]['yapilma_tarihi']);
+    }
+
+    public function test_apply_acikta_kapatma_accepts_actual_last_week_when_month_has_four_weeks(): void
+    {
+        // Şubat 2021 Pazartesi başlar ve 28 gün → son hafta 4.
+        Carbon::setTestNow(Carbon::parse('2021-02-28', 'Europe/Istanbul'));
+
+        $this->assertSame(4, ReportPeriodWeeks::lastWeekNumberForMonth(2021, 2));
+
+        $data = [
+            'yil' => 2021,
+            'ay' => '02',
+            'faaliyetler' => [
+                [
+                    'hafta' => 4,
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'İş 1',
+                            'ongorulen' => 10,
+                            'gerceklesen' => 5,
+                            'acikta_is_kapatiliyor' => true,
+                            'acikta_kapatma_notu' => 'Dönem sonu',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = AylikFaaliyetWeeklyCarryover::applyAciktaKapatma($data);
+        $this->assertTrue((bool) $result['faaliyetler'][0]['kapsam_verileri'][0]['acikta_kapatildi']);
+    }
+
     public function test_apply_acikta_kapatma_closes_pending_on_last_week_with_note(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-06-27', 'Europe/Istanbul'));

@@ -107,7 +107,13 @@ final class AylikFaaliyetWeeklyCarryover
             }
 
             $currentWeek = self::resolveWeekForFaaliyetRow($row, $data);
-            if ($currentWeek < ReportPeriodWeeks::WEEK_COUNT) {
+            $yil = (int) ($data['yil'] ?? 0);
+            $ay = (int) preg_replace('/\D/', '', (string) ($data['ay'] ?? ''));
+            $isLastWeek = ($yil > 0 && $ay >= 1 && $ay <= 12)
+                ? ReportPeriodWeeks::isLastWeekOfMonth($currentWeek, $yil, $ay)
+                : ($currentWeek >= ReportPeriodWeeks::WEEK_COUNT);
+
+            if (! $isLastWeek) {
                 continue;
             }
 
@@ -210,9 +216,18 @@ final class AylikFaaliyetWeeklyCarryover
                 $kapsamRow = &$data['faaliyetler'][$i]['kapsam_verileri'][$j];
                 $buHafta = self::toFloat($kapsamRow['bu_hafta_tamamlanan'] ?? null);
                 $aciklama = trim((string) ($kapsamRow['bu_hafta_aciklama'] ?? ''));
+                $yapilmaTarihi = self::normalizeYapilmaTarihi(
+                    $kapsamRow['bu_hafta_yapilma_tarihi'] ?? null,
+                    $today
+                );
 
                 if ((bool) ($kapsamRow['acikta_kapatildi'] ?? false)) {
-                    unset($kapsamRow['bu_hafta_tamamlanan'], $kapsamRow['bu_hafta_aciklama'], $kapsamRow['acikta_is_kapatiliyor']);
+                    unset(
+                        $kapsamRow['bu_hafta_tamamlanan'],
+                        $kapsamRow['bu_hafta_aciklama'],
+                        $kapsamRow['bu_hafta_yapilma_tarihi'],
+                        $kapsamRow['acikta_is_kapatiliyor']
+                    );
                     $kapsamRow['acikta_kalan'] = AylikFaaliyetRepeaterLock::kapsamSatirAciktaKalan($kapsamRow);
 
                     continue;
@@ -234,15 +249,19 @@ final class AylikFaaliyetWeeklyCarryover
                         'hafta' => $currentWeek,
                         'miktar' => $amount,
                         'aciklama' => $aciklama,
-                        'yapilma_tarihi' => $today,
+                        'yapilma_tarihi' => $yapilmaTarihi,
                     ];
 
                     $kapsamRow['haftalik_kayitlar'] = $kayitlar;
                     $kapsamRow['gerceklesen'] = self::toFloat($kapsamRow['gerceklesen'] ?? 0) + $amount;
-                    $kapsamRow['son_yapilma_tarihi'] = $today;
+                    $kapsamRow['son_yapilma_tarihi'] = $yapilmaTarihi;
                 }
 
-                unset($kapsamRow['bu_hafta_tamamlanan'], $kapsamRow['bu_hafta_aciklama']);
+                unset(
+                    $kapsamRow['bu_hafta_tamamlanan'],
+                    $kapsamRow['bu_hafta_aciklama'],
+                    $kapsamRow['bu_hafta_yapilma_tarihi']
+                );
                 $kapsamRow['acikta_kalan'] = AylikFaaliyetRepeaterLock::kapsamSatirAciktaKalan($kapsamRow);
             }
             unset($kapsamRow);
@@ -513,6 +532,26 @@ final class AylikFaaliyetWeeklyCarryover
         }
 
         return (float) $normalized;
+    }
+
+    private static function normalizeYapilmaTarihi(mixed $value, string $fallback): string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return Carbon::instance(\DateTimeImmutable::createFromInterface($value))
+                ->startOfDay()
+                ->toDateString();
+        }
+
+        $raw = trim((string) ($value ?? ''));
+        if ($raw === '') {
+            return $fallback;
+        }
+
+        try {
+            return Carbon::parse($raw)->startOfDay()->toDateString();
+        } catch (\Throwable) {
+            return $fallback;
+        }
     }
 
     public static function formatDisplayDate(?string $date): ?string
