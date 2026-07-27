@@ -29,7 +29,7 @@
         <strong>Birim:</strong> {{ $rapor->user->name }} <br>
         <strong>Oluşturulma Tarihi:</strong> {{ $rapor->created_at->format('d.m.Y H:i') }} <br>
         @if($raporYil > 0 && $raporAy >= 1)
-            <strong>Hafta Aralıkları:</strong> {{ ReportPeriodWeeks::weeksOverviewText($raporYil, $raporAy) }}
+            <strong>Haftalar:</strong> {{ ReportPeriodWeeks::weeksOverviewText($raporYil, $raporAy) }}
         @endif
     </div>
 

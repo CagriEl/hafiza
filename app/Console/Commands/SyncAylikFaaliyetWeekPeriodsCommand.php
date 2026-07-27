@@ -80,18 +80,16 @@ class SyncAylikFaaliyetWeekPeriodsCommand extends Command
                     }
 
                     if (! ReportPeriodWeeks::isMonthlyPeriod($hafta) && is_numeric($hafta)) {
-                        $weekData = ReportPeriodWeeks::weekByNumber($yil, $ay, (int) $hafta);
-                        if ($weekData !== null) {
-                            $baslangic = ReportPeriodWeeks::formatDate($weekData['baslangic']);
-                            $bitis = ReportPeriodWeeks::formatDate($weekData['bitis']);
-                            if (($row['hafta_baslangic'] ?? null) !== $baslangic
-                                || ($row['hafta_bitis'] ?? null) !== $bitis
-                            ) {
-                                $row['hafta_baslangic'] = $baslangic;
-                                $row['hafta_bitis'] = $bitis;
-                                $rowChanged = true;
-                                $updatedRows++;
-                            }
+                        if (array_key_exists('hafta_baslangic', $row) || array_key_exists('hafta_bitis', $row)) {
+                            unset($row['hafta_baslangic'], $row['hafta_bitis']);
+                            $rowChanged = true;
+                            $updatedRows++;
+                        }
+                    } else {
+                        if (array_key_exists('hafta_baslangic', $row) || array_key_exists('hafta_bitis', $row)) {
+                            unset($row['hafta_baslangic'], $row['hafta_bitis']);
+                            $rowChanged = true;
+                            $updatedRows++;
                         }
                     }
 

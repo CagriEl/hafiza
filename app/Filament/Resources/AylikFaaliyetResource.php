@@ -387,33 +387,18 @@ class AylikFaaliyetResource extends Resource
             $locked = (bool) ($row['ay_sonu_performans_kilitli'] ?? false);
             $hafta = $row['hafta'] ?? null;
             if ($locked && ($hafta !== null && $hafta !== '')) {
-                // Kilitli satırda da yeni takvim aralıklarını yaz.
-                if (! ReportPeriodWeeks::isMonthlyPeriod($hafta) && is_numeric($hafta) && $yil > 0 && $ay >= 1 && $ay <= 12) {
-                    $weekData = ReportPeriodWeeks::weekByNumber($yil, $ay, (int) $hafta);
-                    if ($weekData !== null) {
-                        $data['faaliyetler'][$i]['hafta_baslangic'] = ReportPeriodWeeks::formatDate($weekData['baslangic']);
-                        $data['faaliyetler'][$i]['hafta_bitis'] = ReportPeriodWeeks::formatDate($weekData['bitis']);
-                    }
-                }
-
                 continue;
             }
 
             if ($hafta === null || $hafta === '') {
                 $frequency = trim((string) ($row['raporlama_sikligi'] ?? ''));
-                $hafta = ($yil > 0 && $ay >= 1 && $ay <= 12)
+                $data['faaliyetler'][$i]['hafta'] = ($yil > 0 && $ay >= 1 && $ay <= 12)
                     ? ReportPeriodWeeks::defaultPeriodForReportingFrequency($yil, $ay, $frequency)
                     : 1;
-                $data['faaliyetler'][$i]['hafta'] = $hafta;
             }
 
-            if (! ReportPeriodWeeks::isMonthlyPeriod($hafta) && is_numeric($hafta) && $yil > 0 && $ay >= 1 && $ay <= 12) {
-                $weekData = ReportPeriodWeeks::weekByNumber($yil, $ay, (int) $hafta);
-                if ($weekData !== null) {
-                    $data['faaliyetler'][$i]['hafta_baslangic'] = ReportPeriodWeeks::formatDate($weekData['baslangic']);
-                    $data['faaliyetler'][$i]['hafta_bitis'] = ReportPeriodWeeks::formatDate($weekData['bitis']);
-                }
-            }
+            // Eski kayıtlardaki tarih alanlarını temizle (yalnızca hafta no kullanılır).
+            unset($data['faaliyetler'][$i]['hafta_baslangic'], $data['faaliyetler'][$i]['hafta_bitis']);
         }
 
         return $data;
@@ -1154,18 +1139,6 @@ class AylikFaaliyetResource extends Resource
                                 && ($livewire->getRecord() instanceof AylikFaaliyet)
                                 && $livewire->getRecord()->exists)
                             ->columnSpanFull(),
-                        Forms\Components\Placeholder::make('hafta_tarih_ozeti')
-                            ->label('Aylık Hafta Aralıkları')
-                            ->content(function (Get $get): HtmlString {
-                                $yil = (int) ($get('yil') ?? now()->year);
-                                $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? now()->format('m')));
-
-                                if ($yil <= 0 || $ay < 1 || $ay > 12) {
-                                    return new HtmlString('—');
-                                }
-
-                                return new HtmlString(ReportPeriodWeeks::weeksOverviewHtml($yil, $ay));
-                            }),
                     ])->compact(),
                 Section::make('Uyarı')
                     ->schema([
@@ -1361,7 +1334,7 @@ class AylikFaaliyetResource extends Resource
                                     ->helperText(function (Get $get, $livewire): string {
                                         $week = static::currentReportWeekForForm($get, $livewire);
                                         if ($week > 1) {
-                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Hafta aralıkları Pazartesi–Pazar (tam takvim haftası) kapsar. Kayıt tarihi sisteme kaydedildiği gerçek gündür; rapor dönemi yukarıdaki hafta seçiminden belirlenir.';
+                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Kayıt tarihi sisteme kaydedildiği gerçek gündür; rapor dönemi yukarıdaki hafta seçiminden (1.–4. Hafta) belirlenir.';
                                         }
 
                                         return 'Önce yapılan işi girip kaydedin. Kayıttan sonra aynı raporda tamamlanan iş alanı açılır; eşit değilse fark açıkta kalan olarak hesaplanır. Kayıt tarihi sisteme kaydedildiği gerçek gündür.';
@@ -2640,24 +2613,6 @@ class AylikFaaliyetResource extends Resource
 
                                 return ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
                             }),
-                        TextEntry::make('hafta_tarih_ozeti')
-                            ->label('Aylık Hafta Aralıkları')
-                            ->getStateUsing(function (?AylikFaaliyet $record): HtmlString {
-                                if (! $record instanceof AylikFaaliyet) {
-                                    return new HtmlString('—');
-                                }
-
-                                $yil = (int) ($record->yil ?? 0);
-                                $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? ''));
-
-                                if ($yil <= 0 || $ay < 1 || $ay > 12) {
-                                    return new HtmlString('—');
-                                }
-
-                                return new HtmlString(ReportPeriodWeeks::weeksOverviewHtml($yil, $ay));
-                            })
-                            ->html()
-                            ->columnSpanFull(),
                     ])
                     ->columns(3),
                 InfolistSection::make('Koordinasyon Detayı')

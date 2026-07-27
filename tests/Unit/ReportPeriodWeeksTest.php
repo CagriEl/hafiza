@@ -46,7 +46,7 @@ class ReportPeriodWeeksTest extends TestCase
         $options = ReportPeriodWeeks::selectOptions(2026, 3);
 
         $this->assertArrayHasKey(2, $options);
-        $this->assertSame('2. Hafta (02.03.2026 - 08.03.2026)', $options[2]);
+        $this->assertSame('2. Hafta', $options[2]);
     }
 
     public function test_resolve_week_for_current_date_in_report_period(): void
@@ -141,7 +141,7 @@ class ReportPeriodWeeksTest extends TestCase
     public function test_week_label_for_monthly_period(): void
     {
         $this->assertSame(
-            'Aylık (01.06.2026 - 30.06.2026)',
+            'Aylık',
             ReportPeriodWeeks::weekLabelForRecord(2026, '06', ReportPeriodWeeks::MONTHLY_VALUE)
         );
     }

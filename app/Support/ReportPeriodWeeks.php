@@ -207,17 +207,12 @@ final class ReportPeriodWeeks
 
     public static function weekShortLabel(int $year, int $month, int $week): string
     {
-        $weekData = self::weekByNumber($year, $month, $week);
-        if ($weekData === null) {
+        if ($week < 1 || $week > self::WEEK_COUNT) {
             return $week.'. Hafta';
         }
 
-        return sprintf(
-            '%d. Hafta (%s - %s)',
-            $week,
-            self::formatDate($weekData['baslangic']),
-            self::formatDate($weekData['bitis'])
-        );
+        // Tarih aralığı gösterilmez; yalnızca sıra numarası.
+        return $week.'. Hafta';
     }
 
     public static function monthPeriodLabel(int $year, int $month): string
@@ -250,30 +245,20 @@ final class ReportPeriodWeeks
     {
         $parts = [];
         foreach (self::weeksForMonth($year, $month) as $week) {
-            $parts[] = sprintf(
-                '%d. Hafta: %s – %s',
-                $week['hafta'],
-                self::formatDate($week['baslangic']),
-                self::formatDate($week['bitis'])
-            );
+            $parts[] = ((int) $week['hafta']).'. Hafta';
         }
 
-        return implode(' | ', $parts);
+        return implode(' · ', $parts);
     }
 
     public static function weeksOverviewHtml(int $year, int $month): string
     {
         $parts = [];
         foreach (self::weeksForMonth($year, $month) as $week) {
-            $parts[] = sprintf(
-                '<strong>%d. Hafta:</strong> %s – %s <span style="color:#6b7280;">(Pzt–Paz)</span>',
-                $week['hafta'],
-                e(self::formatDate($week['baslangic'])),
-                e(self::formatDate($week['bitis']))
-            );
+            $parts[] = '<strong>'.((int) $week['hafta']).'. Hafta</strong>';
         }
 
-        return implode(' &nbsp;|&nbsp; ', $parts);
+        return implode(' &nbsp;·&nbsp; ', $parts);
     }
 
     public static function weekLabelForRecord(?int $year, mixed $month, mixed $week): ?string
@@ -334,13 +319,7 @@ final class ReportPeriodWeeks
 
     public static function monthlyPeriodLabel(int $year, int $month): string
     {
-        $bounds = self::monthBounds($year, $month);
-
-        return sprintf(
-            'Aylık (%s - %s)',
-            self::formatDate($bounds['start']),
-            self::formatDate($bounds['end'])
-        );
+        return 'Aylık';
     }
 
     /**
