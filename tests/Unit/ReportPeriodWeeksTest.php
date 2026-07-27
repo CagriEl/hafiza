@@ -12,7 +12,7 @@ class ReportPeriodWeeksTest extends TestCase
     {
         $weeks = ReportPeriodWeeks::computedWeeksForMonth(2026, 7);
 
-        $this->assertCount(4, $weeks);
+        $this->assertCount(5, $weeks);
         $this->assertSame(1, $weeks[0]['hafta']);
         $this->assertSame('29.06.2026', ReportPeriodWeeks::formatDate($weeks[0]['baslangic']));
         $this->assertSame('05.07.2026', ReportPeriodWeeks::formatDate($weeks[0]['bitis']));
@@ -21,7 +21,9 @@ class ReportPeriodWeeksTest extends TestCase
         $this->assertSame('13.07.2026', ReportPeriodWeeks::formatDate($weeks[2]['baslangic']));
         $this->assertSame('19.07.2026', ReportPeriodWeeks::formatDate($weeks[2]['bitis']));
         $this->assertSame('20.07.2026', ReportPeriodWeeks::formatDate($weeks[3]['baslangic']));
-        $this->assertSame('31.07.2026', ReportPeriodWeeks::formatDate($weeks[3]['bitis']));
+        $this->assertSame('26.07.2026', ReportPeriodWeeks::formatDate($weeks[3]['bitis']));
+        $this->assertSame('27.07.2026', ReportPeriodWeeks::formatDate($weeks[4]['baslangic']));
+        $this->assertSame('31.07.2026', ReportPeriodWeeks::formatDate($weeks[4]['bitis']));
     }
 
     public function test_month_starts_on_monday_first_week_is_full_calendar_week(): void
@@ -38,7 +40,8 @@ class ReportPeriodWeeksTest extends TestCase
     {
         $weeks = ReportPeriodWeeks::computedWeeksForMonth(2026, 2);
 
-        $this->assertSame('28.02.2026', ReportPeriodWeeks::formatDate($weeks[3]['bitis']));
+        $this->assertSame(5, $weeks[array_key_last($weeks)]['hafta']);
+        $this->assertSame('28.02.2026', ReportPeriodWeeks::formatDate($weeks[array_key_last($weeks)]['bitis']));
     }
 
     public function test_week_select_options_show_full_week_labels(): void
@@ -71,7 +74,7 @@ class ReportPeriodWeeksTest extends TestCase
     public function test_resolve_week_after_report_period_defaults_to_last_week(): void
     {
         $today = Carbon::create(2026, 7, 1)->startOfDay();
-        $this->assertSame(4, ReportPeriodWeeks::resolveWeekForReportPeriod(2026, 6, $today));
+        $this->assertSame(5, ReportPeriodWeeks::resolveWeekForReportPeriod(2026, 6, $today));
     }
 
     public function test_resolve_week_on_sunday_at_block_start_uses_previous_friday_week(): void

@@ -2,7 +2,7 @@
     <div class="mb-6 rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-900 dark:text-gray-200">
         <div class="font-medium text-gray-950 dark:text-white">Haftalık rapor dönemleri</div>
         <div class="mt-1">
-            Seçtiğiniz yıl/ay için 1–4. haftaların tarih aralıklarını belirleyin.
+            Seçtiğiniz yıl/ay için 1–5. haftaların tarih aralıklarını belirleyin.
             Kayıtlı tanımlar faaliyet raporlarındaki hafta seçiminde kullanılır; tanım yoksa sistem otomatik takvimi uygular.
         </div>
     </div>

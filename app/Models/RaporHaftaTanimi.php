@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\ReportPeriodWeeks;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -54,7 +55,7 @@ class RaporHaftaTanimi extends Model
         return self::query()
             ->where('yil', $yil)
             ->where('ay', $ayPadded)
-            ->whereBetween('hafta', [1, 4])
+            ->whereBetween('hafta', [1, ReportPeriodWeeks::WEEK_COUNT])
             ->orderBy('hafta')
             ->get()
             ->map(fn (self $row): array => [

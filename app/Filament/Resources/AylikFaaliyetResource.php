@@ -1143,7 +1143,7 @@ class AylikFaaliyetResource extends Resource
                 Section::make('Uyarı')
                     ->schema([
                         Forms\Components\Placeholder::make('rapor_olusturma_uyarisi')
-                            ->content('Her müdürlük için aynı yıl/ay döneminde yalnızca 1 rapor oluşturulur. Sonraki güncellemeleri yeni rapor açmadan mevcut raporda "İş Listesi" alanına ekleyiniz.')
+                            ->content('Her müdürlük için aynı yıl/ay döneminde yalnızca 1 rapor oluşturulur. Haftalık işler aynı raporda «Rapor Dönemi» (1.–5. Hafta) ve tarihli kayıtlarla ayrılır; yeni hafta için ayrı rapor açmayınız.')
                             ->extraAttributes(['class' => 'text-amber-700'])
                             ->columnSpanFull(),
                     ])
@@ -1334,7 +1334,7 @@ class AylikFaaliyetResource extends Resource
                                     ->helperText(function (Get $get, $livewire): string {
                                         $week = static::currentReportWeekForForm($get, $livewire);
                                         if ($week > 1) {
-                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Kayıt tarihi sisteme kaydedildiği gerçek gündür; rapor dönemi yukarıdaki hafta seçiminden (1.–4. Hafta) belirlenir.';
+                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar ve açıklama girebilirsiniz. Kayıt tarihi sisteme kaydedildiği gerçek gündür; rapor dönemi yukarıdaki hafta seçiminden (1.–5. Hafta) belirlenir.';
                                         }
 
                                         return 'Önce yapılan işi girip kaydedin. Kayıttan sonra aynı raporda tamamlanan iş alanı açılır; eşit değilse fark açıkta kalan olarak hesaplanır. Kayıt tarihi sisteme kaydedildiği gerçek gündür.';

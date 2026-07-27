@@ -85,7 +85,7 @@ class RaporHaftaTanimlari extends Page implements HasForms
         return $form
             ->schema([
                 Section::make('Dönem')
-                    ->description('Yıl ve ay seçin. İsterseniz otomatik öneriyi yükleyip tarihleri düzenleyebilirsiniz.')
+                    ->description('Yıl ve ay seçin. 1.–5. hafta tarih aralıklarını tanımlayın; isterseniz otomatik öneriyi yükleyip düzenleyebilirsiniz.')
                     ->schema([
                         Grid::make(2)->schema([
                             Select::make('yil')

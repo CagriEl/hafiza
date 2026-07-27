@@ -69,15 +69,28 @@ class AylikFaaliyet extends Model
             return false;
         }
 
+        $variants = \App\Support\AylikFaaliyetPeriodMerge::ayQueryVariants($ay);
+        if ($variants === []) {
+            return false;
+        }
+
         $query = static::query()
             ->where('user_id', $userId)
             ->where('yil', $yil)
-            ->where('ay', trim($ay));
+            ->whereIn('ay', $variants);
 
         if ($exceptId !== null && $exceptId > 0) {
             $query->whereKeyNot($exceptId);
         }
 
         return $query->exists();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function ayQueryVariants(string|int $ay): array
+    {
+        return \App\Support\AylikFaaliyetPeriodMerge::ayQueryVariants($ay);
     }
 }

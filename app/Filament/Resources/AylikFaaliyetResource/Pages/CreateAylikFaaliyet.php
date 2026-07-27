@@ -38,13 +38,14 @@ class CreateAylikFaaliyet extends CreateRecord
     {
         $userId = (int) (auth()->id() ?? 0);
         $yil = (int) ($data['yil'] ?? 0);
-        $ay = str_pad(trim((string) ($data['ay'] ?? '')), 2, '0', STR_PAD_LEFT);
+        $ay = \App\Support\AylikFaaliyetPeriodMerge::normalizeAy((string) ($data['ay'] ?? ''));
 
-        if ($userId > 0 && $yil > 0 && $ay !== '') {
+        if ($userId > 0 && $yil > 0 && $ay !== '' && AylikFaaliyet::existsForUserPeriod($userId, $yil, $ay)) {
             $existing = AylikFaaliyet::query()
                 ->where('user_id', $userId)
                 ->where('yil', $yil)
-                ->where('ay', $ay)
+                ->whereIn('ay', AylikFaaliyet::ayQueryVariants($ay))
+                ->orderBy('id')
                 ->first();
 
             if ($existing instanceof AylikFaaliyet) {
@@ -65,6 +66,8 @@ class CreateAylikFaaliyet extends CreateRecord
                 $this->halt();
             }
         }
+
+        $data['ay'] = $ay;
 
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
 

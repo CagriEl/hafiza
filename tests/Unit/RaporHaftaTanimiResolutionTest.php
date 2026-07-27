@@ -59,8 +59,9 @@ class RaporHaftaTanimiResolutionTest extends TestCase
     {
         $weeks = ReportPeriodWeeks::weeksForMonth(2026, 7);
 
-        $this->assertCount(4, $weeks);
+        $this->assertCount(5, $weeks);
         $this->assertSame('29.06.2026', ReportPeriodWeeks::formatDate($weeks[0]['baslangic']));
+        $this->assertSame(5, $weeks[array_key_last($weeks)]['hafta']);
     }
 
     public function test_analiz_ekibi_needs_flag_to_manage_weeks(): void

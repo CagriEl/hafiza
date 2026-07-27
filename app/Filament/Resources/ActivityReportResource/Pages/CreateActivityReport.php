@@ -5,8 +5,10 @@ namespace App\Filament\Resources\ActivityReportResource\Pages;
 use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
 use App\Filament\Resources\AylikFaaliyetResource;
+use App\Models\AylikFaaliyet;
 use App\Models\User;
 use App\Support\AylikFaaliyetEscalation;
+use App\Support\AylikFaaliyetPeriodMerge;
 use App\Support\AylikFaaliyetRepeaterLock;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification;
@@ -35,6 +37,39 @@ class CreateActivityReport extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        $userId = (int) (auth()->id() ?? 0);
+        $yil = (int) ($data['yil'] ?? 0);
+        $ay = AylikFaaliyetPeriodMerge::normalizeAy((string) ($data['ay'] ?? ''));
+
+        if ($userId > 0 && $yil > 0 && $ay !== '' && AylikFaaliyet::existsForUserPeriod($userId, $yil, $ay)) {
+            $existing = AylikFaaliyet::query()
+                ->where('user_id', $userId)
+                ->where('yil', $yil)
+                ->whereIn('ay', AylikFaaliyet::ayQueryVariants($ay))
+                ->orderBy('id')
+                ->first();
+
+            if ($existing instanceof AylikFaaliyet) {
+                $editUrl = ActivityReportResource::getUrl('edit', ['record' => $existing]);
+
+                Notification::make()
+                    ->warning()
+                    ->title('Bu ay için rapor zaten var')
+                    ->body("{$yil}-{$ay} dönemi için yeni rapor açılamaz. Mevcut rapora yönlendiriliyorsunuz; haftalık güncellemeleri İş Listesi alanına ekleyiniz.")
+                    ->actions([
+                        Action::make('raporaGit')
+                            ->label('Mevcut Raporu Aç')
+                            ->url($editUrl),
+                    ])
+                    ->send();
+
+                $this->redirect($editUrl);
+                $this->halt();
+            }
+        }
+
+        $data['ay'] = $ay;
+
         return AylikFaaliyetResource::prepareFaaliyetlerForSave(
             AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data),
             null,

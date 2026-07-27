@@ -7,13 +7,13 @@ use Carbon\Carbon;
 use Throwable;
 
 /**
- * Aylık faaliyet raporlarında ayı sabit 4 haftalık takvim aralığına böler.
+ * Aylık faaliyet raporlarında ayı sabit 5 haftalık takvim aralığına böler.
  * Analiz ekibi tanımlı tarih aralıkları varsa onlar kullanılır; yoksa otomatik
  * Pazartesi–Pazar algoritması uygulanır.
  */
 final class ReportPeriodWeeks
 {
-    public const WEEK_COUNT = 4;
+    public const WEEK_COUNT = 5;
 
   /** Aylık raporlama dönemi (hafta numarası yerine). */
     public const MONTHLY_VALUE = 'aylik';
@@ -131,10 +131,10 @@ final class ReportPeriodWeeks
     }
 
     /**
-     * Ayı 4 rapor haftasına böler: her hafta tam takvim haftası (Pzt–Paz, 7 gün).
-     * 1. hafta ayın 1’ini içeren haftanın Pazartesinden o Pazar’a;
-     * 2–3. haftalar sonraki tam Pzt–Paz aralıkları;
-     * 4. hafta kalan günler (ay sonuna kadar).
+     * Ayı 5 rapor haftasına böler: ilk 4 hafta tam takvim haftası (Pzt–Paz, 7 gün),
+     * 5. hafta kalan günler (ay sonuna kadar).
+     * 1. hafta ayın 1’ini içeren haftanın Pazartesinden o Pazar’a başlar
+     * (önceki aya taşabilir).
      *
      * @return list<array{hafta: int, baslangic: Carbon, bitis: Carbon}>
      */
@@ -151,8 +151,9 @@ final class ReportPeriodWeeks
         $cursor = $monthStart->copy()->startOfWeek(Carbon::MONDAY);
 
         $weeks = [];
+        $fullWeekCount = self::WEEK_COUNT - 1;
 
-        for ($weekNum = 1; $weekNum <= 3; $weekNum++) {
+        for ($weekNum = 1; $weekNum <= $fullWeekCount; $weekNum++) {
             $baslangic = $cursor->copy();
             $bitis = $baslangic->copy()->addDays(6);
 
@@ -171,7 +172,7 @@ final class ReportPeriodWeeks
 
         if ($cursor->lte($monthEnd)) {
             $weeks[] = [
-                'hafta' => 4,
+                'hafta' => self::WEEK_COUNT,
                 'baslangic' => $cursor->copy(),
                 'bitis' => $monthEnd->copy(),
             ];
@@ -215,7 +216,7 @@ final class ReportPeriodWeeks
     }
 
     /**
-     * Rapor dönemi ve bugünün tarihine göre otomatik hafta numarası (1–4).
+     * Rapor dönemi ve bugünün tarihine göre otomatik hafta numarası (1–5).
      * Hafta sonları, önceki Cuma'nın haftasına göre değerlendirilir.
      */
     public static function resolveWeekForReportPeriod(int $year, int $month, ?Carbon $date = null): int
@@ -364,7 +365,7 @@ final class ReportPeriodWeeks
     }
 
     /**
-     * Raporlama sıklığına göre hafta (1–4) ve/veya aylık seçenekleri.
+     * Raporlama sıklığına göre hafta (1–5) ve/veya aylık seçenekleri.
      *
      * @return array<int|string, string>
      */
