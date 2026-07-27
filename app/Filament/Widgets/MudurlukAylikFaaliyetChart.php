@@ -20,7 +20,9 @@ class MudurlukAylikFaaliyetChart extends ChartWidget
     {
         $user = auth()->user();
 
-        return $user instanceof User && $user->isMudurlukReportingAccount();
+        return $user instanceof User
+            && $user->isMudurlukReportingAccount()
+            && ! $user->isMaliHizmetlerAccount();
     }
 
     protected function getFilters(): ?array

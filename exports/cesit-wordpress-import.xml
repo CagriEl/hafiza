@@ -1,0 +1,887 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0"
+  xmlns:excerpt="http://wordpress.org/export/1.2/excerpt/"
+  xmlns:content="http://purl.org/rss/1.0/modules/content/"
+  xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+  xmlns:dc="http://purl.org/dc/elements/1.1/"
+  xmlns:wp="http://wordpress.org/export/1.2/">
+<channel>
+  <title>Çeşit Mensucat</title>
+  <link>https://www.cesit.com/</link>
+  <description>cesit.com icerik aktarimi</description>
+  <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+  <language>tr</language>
+  <wp:wxr_version>1.2</wp:wxr_version>
+  <wp:base_site_url>https://www.cesit.com/</wp:base_site_url>
+  <wp:base_blog_url>https://www.cesit.com/</wp:base_blog_url>
+  <generator>https://wordpress.org/?v=6.7</generator>
+  <wp:author>
+    <wp:author_id>1</wp:author_id>
+    <wp:author_login><![CDATA[admin]]></wp:author_login>
+    <wp:author_email><![CDATA[admin@example.com]]></wp:author_email>
+    <wp:author_display_name><![CDATA[admin]]></wp:author_display_name>
+    <wp:author_first_name><![CDATA[]]></wp:author_first_name>
+    <wp:author_last_name><![CDATA[]]></wp:author_last_name>
+  </wp:author>
+  <item>
+    <title>Ana Sayfa</title>
+    <link>https://www.cesit.com/index.cfm</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm</guid>
+    <description></description>
+    <content:encoded><![CDATA[<section class="home-slogan">><div class="container"><div class="row"><div class="column col-md-12 col-sm-12 col-xs-12"><div class="home-slogan-header"><h1>BİRLİKTE DEĞER YARATALIM</h1></div></div><div class="column col-md-1 hidden-sm chidden-xs"></div><div class="column col-md-10 col-sm-12 col-xs-12"><div class="home-slogan-header-line"></div></div><div class="column col-md-1 hidden-sm chidden-xs"></div></div><div class="row"><div class="column col-md-2 hidden-sm hidden-xs"></div><div class="column col-md-8 col-sm-12 col-xs-12"><div class="home-slogan-writing"><p>Öngörüyoruz ki, balıkçılığa ve tarıma dayalı kalkınma ülkemizin ve bölgemizin geleceğine katkı sağlayacak iki önemli alandır.<br>Her iki alanda etkin çalışmak, kaynakları verimli kullanmak şarttır.</p><p>Bu vesile ile misyonumuz, her iki sektörde de kullanılan dokuma ağlarını en verimli, kullanışlı, hızlı ve kaliteli bir şekilde balıkçımızın ve çiftçimizin kullanımına sunmaktır.</p><p>Bu misyona yönelik, şirketimizin tüm çalışanları yaratıcılık, sürekli geliştirme, hızlı hareket etme, müşterilerimiz ve tüm satış kanalımız ile birlikte pazar için en iyiyi, en yüksek faydayı arama yolunda her tür çalışmayı gerçekleştirmeyi amaç edinmişlerdir.</p></div></div><div class="column col-md-2 hidden-sm hidden-xs"></div></div></div></div><div class="container-fluid" </section><section class="home-news">><div class="container"><div class="row"><div class="column col-md-1 hidden-sm chidden-xs"></div><div class="column col-md-5 col-sm-12 col-xs-12"><div class="home-news-header"><h2>HABERLER</h2></div><div class="home-news-writing-items-area"><div class="home-writing-item-area-inner show-news-current" id="home-news-item-1"><div class="home-news-writing"><h4>TSEN 1263-1 </h4><p><p>TSEN 1263-1 kriterlerine uygun olarak &uuml;retilen &uuml;r&uuml;nlerimiz i&ccedil;in TSEN 1263-1</p></div><div class="home-news-link"><a href="https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=9" title="News Link">Devamı için tıklayın...</a></div></div><div class="home-writing-item-area-inner show-news-right" id="home-news-item-2"><div class="home-news-writing"><h4>Fabrikamız büyüyor</h4><p><p>Sizlere daha hızlı hizmet edebilmek i&ccedil;in, farklı iplik kalınlıklarında, farklı g&ouml;z</p></div><div class="home-news-link"><a href="https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=6" title="News Link">Devamı için tıklayın...</a></div></div><div class="home-writing-item-area-inner show-news-right" id="home-news-item-3"><div class="home-news-writing"><h4>Düğümsüz 5 göz imalatımız başlamıştır</h4><p><p>Yeni d&uuml;ğ&uuml;ms&uuml;z makinamız ile 5 g&ouml;z imalatımız mevcuttur.</p></p></div><div class="home-news-link"><a href="https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=7" title="News Link">Devamı için tıklayın...</a></div></div><div class="home-writing-item-area-inner show-news-right" id="home-news-item-4"><div class="home-news-writing"><h4>Pendik</h4><p><p>Pendik rutumuz başlamıştır. T&uuml;m siparişleriniz i&ccedil;in 0542 490 5795&nbsp;dan İbrahim</p></div><div class="home-news-link"><a href="https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=4" title="News Link">Devamı için tıklayın...</a></div></div><div class="home-writing-item-area-inner show-news-right" id="home-news-item-5"><div class="home-news-writing"><h4>Yüksek Mukavemet Testi</h4><p><p>&Uuml;r&uuml;nlerimiz TS-EN 1263&#39;e g&ouml;re test edilmiştir ve y&uuml;ksek mukavemetli</p></div><div class="home-news-link"><a href="https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=1" title="News Link">Devamı için tıklayın...</a></div></div><div class="home-writing-item-area-inner show-news-right" id="home-news-item-6"><div class="home-news-writing"><h4>Yeni makinalarımız </h4><p><p>Sizlere daha hızlı hizmet edebilmek i&ccedil;in yeni dokuma tezgahlarımız yolda...</p></p></div><div class="home-news-link"><a href="https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=2" title="News Link">Devamı için tıklayın...</a></div></div><div class="home-writing-item-area-inner show-news-right" id="home-news-item-7"><div class="home-news-writing"><h4>Müşteri Bilgilendirme Platformu</h4><p><p>Firmamızdaki cari hesaplarınıza ulaşmak, siparişlerinizi g&ouml;rmek ve kredi kartı ile</p></div><div class="home-news-link"><a href="https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=5" title="News Link">Devamı için tıklayın...</a></div></div></div><div class="home-news-arrows-area"><div class="home-news-arrow-left"><a href="javascript:void(0)" title="Previous" onclick="newsshowslide(0);"><img src="https://www.cesit.com/assets/images/news-arrow-left.png" alt="Left icon" /></a></div><div class="home-news-arrow-right"><a href="javascript:void(0)" title="Next" onclick="newsshowslide(1);"><img src="https://www.cesit.com/assets/images/news-arrow-right.png" alt="Right icon" /></a></div></div></div><div class="column col-md-5 col-sm-12 col-xs-12"><div class="home-news-header" id="customer-login-area"><h2>MÜŞTERİ GİRİŞİ</h2></div><div class="row"><form class="formee" id="loginform"  method="post" action="customerlogin.cfm" enctype="multipart/form-data"><div class="column col-md-4 col-sm-12 col-xs-12"><div class="home-input-label">Kullanıcı <span>*</span></div></div><div class="column col-md-8 col-sm-12 col-xs-12"><div class="home-input-area"><input type="text" name="kullanici_adi" id="kullanici_adi" required="yes" message="Kullanıcı Adı Eksik !"/></div></div><div class="column col-md-4 col-sm-12 col-xs-12"><div class="home-input-label">Şifre <span>*</span></div></div><div class="column col-md-8 col-sm-12 col-xs-12"><div class="home-input-area"><input type="password" name="sifre" id="sifre" required="yes" message="Şifre Eksik !"/></div></div><div class="column col-md-4 hidden-sm hidden-xs"></div><div class="column col-md-8 col-sm-12 col-xs-12"><div class="home-submit-area"><input type="submit" name="gonder" id="gonder" value="ÜYE GİRİŞİ"/></div></div></form></div></div><div class="column col-md-1 hidden-sm chidden-xs"></div></div></div></div><div class="container-fluid" id="footer"><div id="footer-top"><div class="container"><div class="row"><div class="column col-md-12 col-sm-12 col-xs-12"><div class="footer-writing"><p>Halkalı Asfaltı No: 193 Sefaköy - İstanbul<br>
+                            T 0212 426 71 71 F 0212 592 64 59<br><a href="https://www.cesit.com/cdn-cgi/l/email-protection#60090e060f2003051309144e030f0d" target="_top"><span class="__cf_email__" data-cfemail="eb82858d84ab888e98829fc5888486">[email&#160;protected]</span></a></p></div><div class="footer-social-area"><div class="footer-social-item"><a href="https://twitter.com/cesitmensucat" title="Twitter" target="_blank"><i class="fa fa-twitter" aria-hidden="true"></i></a></div><div class="footer-social-item"><a href="https://www.facebook.com/cesitinfo" title="Facebook" target="_blank"><i class="fa fa-facebook" aria-hidden="true"></i></a></div></div></div></div></div></div><div id="footer-bottom"><div class="container"><div class="row"><div class="column col-md-6 col-sm-12 col-xs-12"><div class="footer-rights">© Copyright 2026 ÇEŞİT MENSUCAT</div></div><div class="column col-md-6 col-sm-12 col-xs-12"><div class="footer-cag"><a href="http://www.codeandgraph.com" title="C&G" target="_blank"><img src="https://www.cesit.com/assets/images/caglogo.png" alt="CAG Logo"/></a></div></div></div></div></div></div><!-- Global site tag (gtag.js) - Google Analytics --><script data-cfasync="false" src="https://www.cesit.com/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script async src="https://www.googletagmanager.com/gtag/js?id=74617934-2"></script><script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+ 
+  gtag('config', 'UA-74617934-2');
+</script><script type="text/javascript">
+$(document).ready(function() {
+	$(".various").fancybox({
+		maxWidth	: 800,
+		maxHeight	: 600,
+		fitToView	: false,
+		width		: '600px',
+		height		: '300px',
+		autoSize	: false,
+		closeClick	: false,
+		openEffect	: 'fade',
+		closeEffect	: 'fade'
+	});
+});
+</script><script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"bf2f6d39955c455b951ca2024efcea00","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script></body></html></section>]]></content:encoded>
+    <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+    <wp:post_id>1</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>ana-sayfa</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>UZMAN EKİP</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=10&amp;page=uzman-eki%CC%87p</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=10&amp;page=uzman-eki%CC%87p</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-header"><h1>UZMAN EKİP</h1></div><div class="content-triangle-picture-area"><div class="content-triangle-picture"><img src="https://www.cesit.com/images/mustafa-uyguner.jpg" alt="Mustafa Uyguner"/></div><div class="content-triangle-picture-info"><div class="content-triangle-picture-name">Mustafa Uyguner</div><div class="content-triangle-picture-position">( Genel Koordinatör &amp; İş Güvenliği Uzmanı )</div></div><div class="content-triangle-area"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#670a121e0012090215270402140e134904080a" title="Mail"><span class="__cf_email__" data-cfemail="bed3cbc7d9cbd0dbccfedddbcdd7ca90ddd1d3">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="column col-md-3 col-sm-6 col-xs-12"><div class="content-triangle-picture-area"><div class="content-triangle-picture"><img src="https://www.cesit.com/images/cem-senturk.jpg" alt="Cem Şentürk"/></div><div class="content-triangle-picture-info"><div class="content-triangle-picture-name">Cem Şentürk</div><div class="content-triangle-picture-position">( Lojistik )</div></div><div class="content-triangle-area"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#f49787919a8081869fb49791879d80da979b99" title="Mail"><span class="__cf_email__" data-cfemail="4d2e3e282339383f260d2e283e2439632e2220">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="column col-md-3 col-sm-6 col-xs-12"><div class="content-triangle-picture-area"><div class="content-triangle-picture"><img src="https://www.cesit.com/images/metin-ucarkus.jpg" alt="Metin Uçarkuş"/></div><div class="content-triangle-picture-info"><div class="content-triangle-picture-name">Metin Uçarkuş</div><div class="content-triangle-picture-position">( İmalat )</div></div><div class="content-triangle-area"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#8be6fee8eaf9e0fef8cbe8eef8e2ffa5e8e4e6" title="Mail"><span class="__cf_email__" data-cfemail="b5d8c0d6d4c7dec0c6f5d6d0c6dcc19bd6dad8">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="column col-md-3 col-sm-6 col-xs-12"><div class="content-triangle-picture-area"><div class="content-triangle-picture"><img src="https://www.cesit.com/images/sami-demirbas.jpg" alt="Sami Demirbaş"/></div><div class="content-triangle-picture-info"><div class="content-triangle-picture-name">Sami Demirbaş</div><div class="content-triangle-picture-position">( Mali Müşavir )</div></div><div class="content-triangle-area"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#cdbea9a8a0a4bfafacbe8daea8bea4b9e3aea2a0" title="Mail"><span class="__cf_email__" data-cfemail="7f0c1b1a12160d1d1e0c3f1c1a0c160b511c1012">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#670a121e0012090215270402140e134904080a" title="Mail"><span class="__cf_email__" data-cfemail="bed3cbc7d9cbd0dbccfedddbcdd7ca90ddd1d3">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#f49787919a8081869fb49791879d80da979b99" title="Mail"><span class="__cf_email__" data-cfemail="4d2e3e282339383f260d2e283e2439632e2220">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#8be6fee8eaf9e0fef8cbe8eef8e2ffa5e8e4e6" title="Mail"><span class="__cf_email__" data-cfemail="b5d8c0d6d4c7dec0c6f5d6d0c6dcc19bd6dad8">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#cdbea9a8a0a4bfafacbe8daea8bea4b9e3aea2a0" title="Mail"><span class="__cf_email__" data-cfemail="7f0c1b1a12160d1d1e0c3f1c1a0c160b511c1012">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+    <wp:post_id>2</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>uzman-ekip</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>İnsan Kaynakları</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=11&amp;menu=insan-kaynaklari</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=11&amp;menu=insan-kaynaklari</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-header"><h1>İNSAN KAYNAKLARI</h1></div><div class="content-writing"><p>İnsan kaynakları politikamız bireyleri sorumluluk üstlenmeye, insiyatif kullanmaya, böylece işlerine ve işlerinin sonuçlarına sahip çıkmaya yönlendirmektedir. Bir yandan bireyi geliştirerek, diğer yandan da ekip çalışmasını teşvik ederek çalışanlarımızın iş hedeflerinde daha başarılı olmasını sağlamak da bir diğer hedefimizdir. Böylece hem şirketin hem de bireylerin başarısındaki rolünü ön plana çıkarabileceğimize inanıyoruz. Gelişirken, geliştiren, üreten, ülke ekonomisine katkı sağlayan dinamik ve genç bir ekip de kendinizi görmek istiyorsanız, aşağıdaki iletişim formundan başvurunuzu yapabilirsiniz.</p></div></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+    <wp:post_id>3</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>insan-kaynaklari</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>KUŞ ÖNLEME FİLESİ / AĞI</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=11&amp;page=kus-onleme-fi%CC%87lesi%CC%87-%2F-agi</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=11&amp;page=kus-onleme-fi%CC%87lesi%CC%87-%2F-agi</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-products-right-list-writing"><h1>KUŞ ÖNLEME FİLESİ / AĞI</h1><p>Kuş koruma ağları ile ilgili detaylı bilgi i&ccedil;in l&uuml;tfen&nbsp;<a href="https://shieldnetstore.com/tr/kus-koruma-aglari" target="_blank">kuş &ouml;nleme&nbsp;filesi</a>&nbsp;adresini ziyaret edin.</p></div></div><div class="content-products-image-area" style="background-image:url('https://www.cesit.com/uploads/cover/slide_04.jpg');"></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Kuşların olumsuz etkilediği kurumsal ve bireysel yaşam alanlarına yönelik çözümler.]]></excerpt:encoded>
+    <wp:post_id>4</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>kus-onleme-filesi</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>İletişim</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=12&amp;menu=iletisim</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=12&amp;menu=iletisim</guid>
+    <description></description>
+    <content:encoded><![CDATA[<section class="contact-page">><div id="gmap"></div><div class="contact-map-bottom-area"><div class="contact-map-area-bottom"><div class="contact-map-area-bottom-left"></div><div class="contact-map-area-bottom-right"></div></div></div></div><div class="container-fluid" id="contact-area"><div class="container"><div class="row"><div class="column col-md-4 hidden-sm hidden-xs"></div><div class="column col-md-4 col-sm-12 col-xs-12"><div class="contact-address-area">
+                    Halkalı Asfaltı No: 193<br>
+                    Sefaköy - İstanbul<br><b>T</b> 0212 426 71 71 <b>F</b> 0212 592 64 59
+                </div><div class="home-slogan-header-line"></div></div><div class="column col-md-4 hidden-sm hidden-xs"></div></div><div class="row"><div class="column col-md-12 col-sm-12 col-xs-12"><div class="contact-buy-area"><div class="contact-buy-area-inner"><div class="contact-buy-area-up"></div><div class="contact-buy-area-down"></div><div class="contact-buy-area-writing">
+                                SİPARİŞLERİNİZ İÇİN<br><a href="https://www.cesit.com/cdn-cgi/l/email-protection#681b0118091a011b280b0d1b011c460b0705" title="Sipariş"><span class="__cf_email__" data-cfemail="f182988190839882b19294829885df929e9c">[email&#160;protected]</span></a></div></div></div></div></div><div class="row"><div class="column col-md-2 hidden-sm hidden-xs"></div><div class="column col-md-8 col-sm-12 col-xs-12"><div class="row"><form name="contactform" method="post" enctype="multipart/form-data" action="/index.cfm?action=index&id=12&menu=iletisim&send=ok"><div class="column col-md-6 col-sm-12 col-xs-12"><div class="contact-input-area"><input type="text" name="adsoyad" id="adsoyad" placeholder="AD SOYAD" required="yes" message="AD SOYAD EKSİK!"/></div></div><div class="column col-md-6 col-sm-12 col-xs-12"><div class="contact-input-area"><input type="text" name="eposta" id="eposta" placeholder="E-POSTA" required="yes" message="E-POSTA EKSİK!"/></div></div><div class="column col-md-6 col-sm-12 col-xs-12"><div class="contact-input-area"><input type="text" name="telefon" id="telefon" placeholder="TELEFON" required="yes" message="TELEFON EKSİK!"/></div></div><div class="column col-md-6 col-sm-12 col-xs-12"><div class="contact-input-area"><input type="text" name="konu" id="konu" placeholder="KONU" required="yes" message="KONU EKSİK!"/></div></div><div class="column col-md-12 col-sm-12 col-xs-12"><div class="contact-textarea-area"><textarea rows="6" name="mesaj" id="mesaj" placeholder="MESAJ"></textarea></div></div><div class="column col-md-12 col-sm-12 col-xs-12"><div class="contact-submit-area"><input type="submit" name="submit" id="submit" value="GÖNDER" /></div></div></form></div></div><div class="column col-md-2 hidden-sm hidden-xs"></div></div></div></div><script data-cfasync="false" src="https://www.cesit.com/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="text/javascript">
+            // When the window has finished loading create our google map below
+    
+            function initMap() {
+                // Basic options for a simple Google Map
+                // For more options see: https://developers.google.com/maps/documentation/javascript/reference#MapOptions
+                var mapOptions = {
+                    // How zoomed in you want the map to start at (always required)
+                    zoom: 15,
+
+                    // The latitude and longitude to center the map (always required)
+                    center: new google.maps.LatLng(41.006354, 28.794840), // New York
+
+                    // How you would like to style the map. 
+                    // This is where you would paste any style found on Snazzy Maps.
+                    styles: [
+    {
+        "featureType": "landscape.man_made",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#eaeaea"
+            }
+        ]
+    },
+    {
+        "featureType": "landscape.natural",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#f0ede5"
+            }
+        ]
+    },
+    {
+        "featureType": "landscape.natural.terrain",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "visibility": "on"
+            }
+        ]
+    },
+    {
+        "featureType": "poi",
+        "elementType": "labels",
+        "stylers": [
+            {
+                "visibility": "on"
+            }
+        ]
+    },
+    {
+        "featureType": "poi.business",
+        "elementType": "all",
+        "stylers": [
+            {
+                "visibility": "on"
+            }
+        ]
+    },
+    {
+        "featureType": "poi.medical",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#fbd3da"
+            }
+        ]
+    },
+    {
+        "featureType": "poi.park",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#bde6ab"
+            }
+        ]
+    },
+    {
+        "featureType": "road",
+        "elementType": "geometry.stroke",
+        "stylers": [
+            {
+                "visibility": "on"
+            }
+        ]
+    },
+    {
+        "featureType": "road",
+        "elementType": "labels",
+        "stylers": [
+            {
+                "visibility": "on"
+            }
+        ]
+    },
+    {
+        "featureType": "road.highway",
+        "elementType": "geometry.fill",
+        "stylers": [
+            {
+                "color": "#fff1b9"
+            }
+        ]
+    },
+    {
+        "featureType": "road.highway",
+        "elementType": "geometry.stroke",
+        "stylers": [
+            {
+                "color": "#efd151"
+            }
+        ]
+    },
+    {
+        "featureType": "road.arterial",
+        "elementType": "geometry.fill",
+        "stylers": [
+            {
+                "color": "#ffffff"
+            }
+        ]
+    },
+    {
+        "featureType": "road.local",
+        "elementType": "geometry.fill",
+        "stylers": [
+            {
+                "color": "black"
+            }
+        ]
+    },
+    {
+        "featureType": "transit.station.airport",
+        "elementType": "geometry.fill",
+        "stylers": [
+            {
+                "color": "#cfb2db"
+            }
+        ]
+    },
+    {
+        "featureType": "water",
+        "elementType": "geometry",
+        "stylers": [
+            {
+                "color": "#a2daf2"
+            }
+        ]
+    }
+]
+                };
+
+                // Get the HTML DOM element that will contain your map 
+                // We are using a div with id="map" seen below in the <body>
+                var mapElement = document.getElementById('gmap');
+
+                // Create the Google Map using our element and options defined above
+                var map = new google.maps.Map(mapElement, mapOptions);
+
+                // Let's also add a marker while we're at it
+                var gmarker = {url: 'assets/images/gmap-icon.png',
+                scaledSize: new google.maps.Size(47, 65)};
+            var beachMarker = new google.maps.Marker({
+            position: new google.maps.LatLng(41.006354, 28.794840),
+            map: map,
+            icon: gmarker
+  });
+            }
+        </script><script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAsoaUm3yl7gVlu3R1FYPYg2jp7R-qRqmg&callback=initMap"></script><div class="container-fluid" </section>]]></content:encoded>
+    <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+    <wp:post_id>5</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>iletisim</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>TARIM AĞI VE GÖLGELİKLER</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=12&amp;page=tarim-agi-ve-golgeli%CC%87kler</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=12&amp;page=tarim-agi-ve-golgeli%CC%87kler</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-products-right-list-writing"><h1>TARIM AĞI VE GÖLGELİKLER</h1><p>Tarım ağları ve g&ouml;lgelikler ile ilgili detaylı bilgi i&ccedil;in l&uuml;tfen&nbsp;<a href="https://shieldnetstore.com/">www.shieldnetstore.com</a>&nbsp;adresini ziyaret edin.</p></div></div><div class="content-products-image-area" style="background-image:url('https://www.cesit.com/uploads/cover/slide_05.jpg');"></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Tarım ürünlerinin korunması ve hasatında kullanılan ağlar.]]></excerpt:encoded>
+    <wp:post_id>6</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>tarim-agi-ve-golgelikler</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>AKDENİZ BÖLGESİ</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=13&amp;page=akdeni%CC%87z-bolgesi%CC%87</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=13&amp;page=akdeni%CC%87z-bolgesi%CC%87</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-products-right-list-writing"><h1>AKDENİZ BÖLGESİ</h1><h2>İSKENDERUN</h2><p>Ziyaret Tarihi:&nbsp;<em>Bu ay i&ccedil;in planlanmış bir ziyaretimiz yoktur.</em><br />
+Sipariş Hattı: 0542 441 08 38<br />
+&nbsp;</p><h2>ADANA</h2><p>Ziyaret Tarihi:&nbsp;<em>Bu ay i&ccedil;in planlanmış bir ziyaretimiz yoktur.</em><br />
+Sipariş Hattı: 0542 441 08 38</p></div></div><div class="content-products-image-area" style="background-image:url('https://www.cesit.com/uploads/cover/2014_03_07_12_51_10.jpg');"></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Sıcak satış rut planlarımız]]></excerpt:encoded>
+    <wp:post_id>7</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>akdeniz-bolgesi</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>EGE BÖLGESİ</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=14&amp;page=ege-bolgesi%CC%87</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=14&amp;page=ege-bolgesi%CC%87</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-products-right-list-writing"><h1>EGE BÖLGESİ</h1><h2>&Ccedil;ANAKKALE</h2><p>Ziyaret Tarihi: <em>Her ay bir seyahat planlanmaktadır.</em><br />
+Sipariş Hattı: 0542 441 08 36</p><h2>İZMİR</h2><p>Ziyaret Tarihi:&nbsp;<em>Her ay bir seyahat planlanmaktadır.</em><br />
+Sipariş Hattı: 0542 441 08 45&nbsp;</p><h2>BODRUM</h2><p>Ziyaret Tarihi:&nbsp;<em>Bu ay seyahat planlanmamaktadır.</em><br />
+Sipariş Hattı: 0542 441 08 36</p></div></div><div class="content-products-image-area" style="background-image:url('https://www.cesit.com/uploads/cover/2014_03_07_12_51_18.jpg');"></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Sıcak satış rut planlarımız]]></excerpt:encoded>
+    <wp:post_id>8</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>ege-bolgesi</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>KARADENİZ BÖLGESİ</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=15&amp;page=karadeni%CC%87z-bolgesi%CC%87</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=15&amp;page=karadeni%CC%87z-bolgesi%CC%87</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-products-right-list-writing"><h1>KARADENİZ BÖLGESİ</h1><h2>ZONGULDAK</h2><p>Ziyaret Tarihi:&nbsp;<em>Bu ay seyahat planlanmamaktadır.</em><br />
+Sipariş Hattı: 0542 441 08 38</p><h2>ŞİLE&nbsp;</h2><p>Ziyaret Tarihi: <em>Her ay bir seyahat planlanmaktadır.</em><br />
+Sipariş Hattı: 0542 490 57 95</p><h2>SİNOP-HOPA-TRABZON-RİZE-GİRESUN-ORDU-SAMSUN</h2><p><em>Bu ay planlanan bir program yoktur.</em><br />
+Sipariş Hattı: 0542 441 08 38&nbsp;</p></div></div><div class="content-products-image-area" style="background-image:url('https://www.cesit.com/uploads/cover/2014_03_06_12_33_14.jpg');"></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Sıcak satış rut planlarımız]]></excerpt:encoded>
+    <wp:post_id>9</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>karadeniz-bolgesi</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>MARMARA BÖLGESİ</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=16&amp;page=marmara-bolgesi%CC%87</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=16&amp;page=marmara-bolgesi%CC%87</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-products-right-list-writing"><h1>MARMARA BÖLGESİ</h1><h2>AVCILAR-SİLİVRİ</h2><p>Ziyaret Tarihi:&nbsp;<em>Her hafta Salı, &Ccedil;arşamba g&uuml;nleri Avcılar, Silivri, Tekirdağ rutumuz yapılmaktadır.</em><br />
+Sipariş Hattı: &nbsp;0542 490 57 95</p><h2>BOĞAZ</h2><p>Ziyaret Tarihi:&nbsp;<em>Her iki haftada bir seyahat planlanmaktadır.</em></p><p>Sipariş Hattı: &nbsp;0542 490 57 95</p><h2>KIYIK&Ouml;Y- İĞNEADA</h2><p>Ziyaret tarihi:&nbsp;<em>Bu ay i&ccedil;in planlanan seyahat bulunmamaktadır.&nbsp;</em><br />
+Sipariş Hattı: 0542 441 08 45</p><h2>ANADOLU FENERİ&nbsp;</h2><p>Ziyaret Tarihi:&nbsp;<em>Her iki haftada bir seyahat planlanmaktadır.</em><br />
+Sipariş Hattı: &nbsp;0542 490 57 95</p><h2>PENDİK</h2><p>Ziyaret Tarihi:&nbsp;<em>Her iki haftada bir seyahat planlanmaktadır.</em><br />
+Sipariş Hattı: &nbsp;0542 490 57 95</p><h2>MUDANYA<br />
+BALIKESİR</h2><p>Ziyaret Tarihi: <em>Her ay bir seyahat planlanmaktadır.</em><br />
+Sipariş Hattı: 0542 441 08 45</p><h2>BANDIRMA</h2><p>Ziyaret Tarihi: <em>Her ay bir seyahat planlanmaktadır.</em><br />
+Sipariş Hattı: 0542 441 08 38</p><p>&nbsp;</p></div></div><div class="content-products-image-area" style="background-image:url('https://www.cesit.com/uploads/cover/2014_03_07_12_51_27.jpg');"></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Sıcak satış rut planlarımız]]></excerpt:encoded>
+    <wp:post_id>10</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>marmara-bolgesi</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>NAYLON İPLİK</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=17&amp;page=naylon-i%CC%87pli%CC%87k</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=17&amp;page=naylon-i%CC%87pli%CC%87k</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-products-right-list-writing"><h1>NAYLON İPLİK</h1><p>Fabrikamız b&uuml;nyesinde bulunan g&uuml;nl&uuml;k 1 ton kapasiteli iplik b&uuml;k&uuml;m tesisinde %100 Nylon, y&uuml;ksek mukavemetli iplik &uuml;retimi yapılmaktadır. İplik kalınlıkları 210/2 kattan 210/200 kata kadar olup, minimum 6,5 gr/denye y&uuml;ksek mukavemete sahiptir. &Uuml;r&uuml;nlerimiz istenilen renkte boyanır, 100 gr&#39;lık ve 500 gr&#39;lık bobinlerde Deniz Kızı markamız ile satışa sunulur.</p><p>Halat ve İplikler ile ilgili detaylı bilgi i&ccedil;in l&uuml;tfen&nbsp;<a href="https://shieldnetstore.com/tr/halat-ve-Iplikler">iplik fabrikası</a>&nbsp;linkine tıklaynız.&nbsp;</p><p><strong>Kullanım Alanları</strong></p><ul><li>Balık Ağı Donanımı</li><li>Dikiş (Ağ-Tekstil-&Ccedil;uval vb.)</li><li>Trambolinler</li><li>Oyun Parkları</li><li>Ayakkabı Sekt&ouml;r&uuml;&nbsp;</li></ul></div></div><div class="content-products-image-area" style="background-image:url('https://www.cesit.com/uploads/cover/2014_03_10_06_03_08.jpg');"></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Naylon iplik]]></excerpt:encoded>
+    <wp:post_id>11</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>naylon-iplik</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>SATIŞ EKİBİ</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=18&amp;page=satis-eki%CC%87bi%CC%87</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=18&amp;page=satis-eki%CC%87bi%CC%87</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-header"><h1>UZMAN EKİP</h1></div><div class="content-triangle-picture-area"><div class="content-triangle-picture"><img src="https://www.cesit.com/images/Ahmet-Ustun.jpg" alt="Ahmet Üstün"/></div><div class="content-triangle-picture-info"><div class="content-triangle-picture-name">Ahmet Üstünr</div><div class="content-triangle-picture-position">( Satış - Pazarlama )</div></div><div class="content-triangle-area"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#ccadb9bfb8b9a28cafa9bfa5b8e2afa3a1" title="Mail"><span class="__cf_email__" data-cfemail="1b7a6e686f6e755b787e68726f35787476">[email&#160;protected]</span>/a></div><div class="home-slogan-header-line"></div></div><div class="column col-md-3 col-sm-6 col-xs-12"><div class="content-triangle-picture-area"><div class="content-triangle-picture"><img src="https://www.cesit.com/images/Alper-Tabak.jpg" alt="Alper Tabak"/></div><div class="content-triangle-picture-info"><div class="content-triangle-picture-name">Alper Tabak</div><div class="content-triangle-picture-position">( Satış - Pazarlama )</div></div><div class="content-triangle-area"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#adccd9cccfccc6edcec8dec4d983cec2c0" title="Mail"><span class="__cf_email__" data-cfemail="32534653505359725157415b461c515d5f">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="column col-md-3 col-sm-6 col-xs-12"><div class="content-triangle-picture-area"><div class="content-triangle-picture"><img src="https://www.cesit.com/images/ibrahim-ozcan.jpg" alt="İbrahim Özcan"/></div><div class="content-triangle-picture-info"><div class="content-triangle-picture-name">İbrahim Özcan</div><div class="content-triangle-picture-position">( Satış - Pazarlama )</div></div><div class="content-triangle-area"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#533a3c2930323d133036203a277d303c3e" title="Mail"><span class="__cf_email__" data-cfemail="ec8583968f8d82ac8f899f8598c28f8381">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#ccadb9bfb8b9a28cafa9bfa5b8e2afa3a1" title="Mail"><span class="__cf_email__" data-cfemail="1b7a6e686f6e755b787e68726f35787476">[email&#160;protected]</span>/a></div><div class="home-slogan-header-line"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#adccd9cccfccc6edcec8dec4d983cec2c0" title="Mail"><span class="__cf_email__" data-cfemail="32534653505359725157415b461c515d5f">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="content-team-writing"><a href="https://www.cesit.com/cdn-cgi/l/email-protection#533a3c2930323d133036203a277d303c3e" title="Mail"><span class="__cf_email__" data-cfemail="ec8583968f8d82ac8f899f8598c28f8381">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+    <wp:post_id>12</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>satis-ekibi</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>BALIKÇILIK MALZEMELERİ</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=19&amp;page=balikcilik-malzemeleri%CC%87</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=19&amp;page=balikcilik-malzemeleri%CC%87</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-products-right-list-writing"><h1>BALIKÇILIK MALZEMELERİ</h1><p>Her t&uuml;rl&uuml; balık avcılığına y&ouml;nelik balık&ccedil;ılık malzemesi satışımız mevcuttur.&nbsp;</p><ul><li>Halat</li><li>Kurşunlu Halat</li><li>Mantar</li><li>Trol Topu</li><li>Naylon &Ouml;rme Yaka</li><li>Mantarlı &Ouml;rme Yaka</li><li>Kurşunlu &Ouml;rme Yaka</li><li>Kurşun</li><li>Mapa</li><li>Şamandıra</li><li>&Ccedil;izme</li><li>Yağmurluk</li></ul><p><strong>Halat</strong></p><p><strong>Halat</strong>&nbsp;bilindiği &uuml;zere balık avının olmazsa olmaz malzemeleri arasında yer almaktadır. Hammaddelerine g&ouml;re halatların sunduğu avantajlar farklılık g&ouml;stermektedir. PE, PP, Polysteel, Nylon hammadde halat se&ccedil;enekleri mevcuttur. Tercih edeceğiniz halatlar mutlaka aşınmaya ve g&uuml;neş ışınlarına dayanıklı olmalıdır.</p><p><strong>Mantar</strong></p><p>Balık avında kullanılan&nbsp;<strong>ağ mantarı</strong>&nbsp;plastik, fiberglas ve polyester malzemelerden oluşmaktadır. Genel yapısı yuvarlak top şeklindedir. Mantarların i&ccedil;leri boştur bu sayede su y&uuml;zeyinde durur ve ağın hizalı olmasını sağlar.</p><p><strong>Şamandıra</strong></p><p>İşlev bakımından mantara bir hayli benzeyen&nbsp;<strong>şamandıra</strong>, i&ccedil;i boş metal fı&ccedil;ılardır. Denizde yol g&ouml;stermeye ve ge&ccedil;iş yolunu haber vermeye yaramaktadır.</p><p><strong>&Ccedil;izme</strong></p><p><strong>Balık&ccedil;ı &ccedil;izmeleri</strong>&nbsp;balık avı ile uğraşanların &ouml;nem verdiği detaylar arasında yer alır. Rahat hareket ve konforlu kullanım imkanı sağlaması gerekli olan bu &uuml;r&uuml;nler mutlaka yırtılmaz ve su ge&ccedil;irmez &ouml;zellikte olmalıdır.</p><p><strong>Yağmurluk</strong></p><p>Zor şartlar altında &ccedil;alışan balık&ccedil;ıların soğuk hava ve yağmurdan korunmaları i&ccedil;in&nbsp;<strong>yağmurluk&nbsp;</strong>kullanmaları gerekmektedir. Balık&ccedil;ı yağmurlukları kap&uuml;şonlu, kolları lastikli, %100 su ge&ccedil;irmez ve &ccedil;ift taraflı kullanım &ouml;zelliğine sahip olmalıdır.</p><p>Online Satış İ&ccedil;in <a href="https://cesit.com.tr" target="_blank">cesit.com.tr</a> sitemizi de ziyaret edebilirsiniz.</p></div></div><div class="content-products-image-area" style="background-image:url('https://www.cesit.com/uploads/cover/2014_03_10_07_16_04.jpg');"></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Her türlü balık avcılığına yönelik çok çeşitli donam malzemelerinin satışı mevcuttur.]]></excerpt:encoded>
+    <wp:post_id>13</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>balikcilik-malzemeleri</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>KALİTE POLİTİKAMIZ</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=20&amp;page=kali%CC%87te-poli%CC%87ti%CC%87kamiz</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=20&amp;page=kali%CC%87te-poli%CC%87ti%CC%87kamiz</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-header"><h1>KALİTE POLİTİKAMIZ</h1></div><div class="content-history-writing"><p><strong>VİZYONUMUZ</strong></p><p>Balık&ccedil;ılık malzemeleri ile avcılık sekt&ouml;r&uuml;nde, ShieldNets markası ile g&uuml;venlik ve koruma ama&ccedil;lı farklı ağ kullanım alanlarında pazarın ilk tercih edilen markası olmak</p><p><strong>MİSYONUMUZ</strong></p><p>&Ccedil;alışanlarımızın gelişimi ve katılımı ile s&uuml;rekli olarak balık&ccedil;ılık malzemeleri pazarının ve ağın kullanıldığı t&uuml;m diğer alanlarda, &ccedil;&ouml;z&uuml;m odaklı olarak beklentilerini aşmak, paydaşlarımıza y&uuml;ksek kazan&ccedil; sağlamak ve &uuml;lkemizin gelişmesine katkıda bulunmak.</p><p><strong>KALİTE POLİTİKAMIZ</strong></p><p>&Ccedil;eşit Mensucat A.Ş, m&uuml;şteri beklentilerindeki değişimleri s&uuml;rekli izleyen ve doğru olarak tespit eden, bu beklentilere eksiksiz ve hatasız karşılık vermeyi ama&ccedil;layan, m&uuml;şteri memnuniyetini &ouml;nemseyen, yasal şartlara uyum sağlayarak, Kalite Y&ouml;netim Sistemine &ouml;nem veren ve s&uuml;rekli gelişmeye a&ccedil;ık bir kuruluştur. Ama&ccedil; ve bağlamına y&ouml;nelik hedeflerini geliştirir.</p><p><strong>KALİTELİ İŞLETME HEDEFİMİZ</strong></p><p>Hammadde alımı ve depolama dahil t&uuml;m zincirde &ldquo;ilk defada ve her zaman doğru&rdquo; prensibine uygun işletme ve y&ouml;netim anlayışı uygulamaktır. Bu ama&ccedil;la uygunsuzlukların tespitine ve uygunsuzluğun &ouml;nlenmesi i&ccedil;in d&uuml;zeltici faaliyetlerin aksatılmadan yerine getirilmesine &ouml;nem verilir.&nbsp;</p><p><strong>KALİTELİ TASARIM HEDEFİMİZ</strong></p><p>Yeni bir &uuml;r&uuml;n geliştirirken m&uuml;şteri beklentisine en uygun kalite ve m&uuml;mk&uuml;n olabilecek en d&uuml;ş&uuml;k maliyetteki &uuml;r&uuml;nde meydana gelebilecek uygunsuzlukları &ouml;nceden g&ouml;rmek ve &ouml;nlemektir.</p><p><strong>HATALARA ANINDA VE SİSTEMLİ M&Uuml;DAHELEMİZ</strong></p><p>Uygunsuzlukları doğru zaman ve aşamada saptamak ve s&uuml;rekli kalite gelişmesi amacıyla izlemektir. Belirlenen hedeflerin dışına &ccedil;ıkan sapmalarda d&uuml;zeltici &ouml;nleyici faaliyetleri başlatmak ve izlemektir.</p></div></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+    <wp:post_id>14</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>kalite-politikamiz</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>KİŞİSEL VERİLERİN KORUNMASI</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=21&amp;page=ki%CC%87si%CC%87sel-veri%CC%87leri%CC%87n-korunmasi</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=21&amp;page=ki%CC%87si%CC%87sel-veri%CC%87leri%CC%87n-korunmasi</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-header"><h1>KİŞİSEL VERİLERİN KORUNMASI KANUNU</h1></div><div class="content-history-writing"><p><i class="fa fa-file-pdf-o" aria-hidden="true"></i><a href="https://www.cesit.com/uploads/page/files/2020_01_28_12_54_23.pdf">Başvuru Formu</a></p><p><i class="fa fa-file-pdf-o" aria-hidden="true"></i><a href="https://www.cesit.com/uploads/page/files/2020_01_28_12_55_28.pdf">Kişisel Verilen Korunması Politikası</a></p><p><i class="fa fa-file-pdf-o" aria-hidden="true"></i><a href="https://www.cesit.com/uploads/page/files/2020_01_28_12_56_20.pdf">Çalışan Aydınlatma Metni</a></p><p><i class="fa fa-file-pdf-o" aria-hidden="true"></i><a href="https://www.cesit.com/uploads/page/files/2020_01_28_12_56_46.pdf">Üçüncü Parti Aydınlatma Metni</a></p><p>&nbsp;</p><p>Yukarıda sıralanan dosyalardaki haklarınıza yönelik başvurularınızı, www.cesit.com internet adresinde yer alan Başvuru Formu’nu kullanarak iletebilirsiniz.</p><p>Şirket’imiz, talebin niteliğine göre talebi en kısa sürede ve en geç otuz (30) gün içinde ücretsiz olarak sonuçlandıracaktır. Ancak, işlemin ayrıca bir maliyeti gerektirmesi hâlinde, tarafımızca Kişisel Verileri Koruma Kurulu tarafından belirlenen tarifedeki ücret alınacaktır.</p></div></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+    <wp:post_id>15</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>kisisel-verilerin-korunmasi</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>TARİHÇE</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=5&amp;page=tari%CC%87hce</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=5&amp;page=tari%CC%87hce</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-header"><h1>TARİHÇE</h1></div><div class="content-writing"><p>Yönetimdeki 2. kuşağın bilgi birikimi, 3. kuşağın dinamizmi ve konusunda uzman ekibi ile Çeşit Mensucat A.Ş. müşteri memnuniyetini her daim öncelikli tutmayı hedefler. </p><p>Kuruluşundan günümüze “kendinden hep bir adım önde olmayı” misyon edinen Çeşit Mensucat A.Ş.‘nin hizmet vermiş olduğu tüm sektörlerde öncü ve lider kuruluş olarak anılmasının en belirgin sebebi yenilikleri yakından takip ederek hızla uygulamaya geçmesidir. Yarım asır önce, 
+                            ilk tercih edilen marka olma vizyonu ile yola çıkan Çeşit Mensucat A.Ş. üretmenin vermiş olduğu haklı gururu tüm ekibi ve müşterileriyle paylaşmaktadır.</p></div></div><div class="content-history-writing"><p>Çeşit Mensucat A.Ş., Türkiye’nin ilk naylon balıkağı fabrikası olarak 1962 yılında Mümtaz Özbilen ve oğulları tarafından kurulmuştur. Kuruluş amacı üç tarafı denizlerle çevrili olan ülkemizdeki balıkçılık sektörüne hizmet etmek olan Çeşit Mensucat A.Ş., </p></div></div><div class="content-history-image"><img src="https://www.cesit.com/assets/images/kurucumuz.png" alt="Kurucumuz"/></div></div><div class="content-history-factoryimage"><img src="https://www.cesit.com/assets/images/ilkfabrika.png" alt="İlk Fabrika"/></div></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Türkiyenin ilk balık ağı fabrikası]]></excerpt:encoded>
+    <wp:post_id>16</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>tarihce</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>YÖNETİM KURULU</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=6&amp;page=yoneti%CC%87m-kurulu</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=6&amp;page=yoneti%CC%87m-kurulu</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-header"><h1>YÖNETİM KURULU</h1></div><div class="content-triangle-picture-area"><div class="content-triangle-picture"><img src="https://www.cesit.com/images/fatos-ozbilen-kapusiz.jpg" alt="Fatoş Özbilen Kapusız"/></div><div class="content-triangle-picture-info"><div class="content-triangle-picture-name">Fatoş Özbilen Kapusız</div><div class="content-triangle-picture-position">( Yönetim Kurulu Başkanı )</div></div><div class="content-triangle-area"></div></div><div class="content-team-writing"><p>Fatoş Özbilen Kapusız Yıldız Teknik Üniversitesi’nde Kimya Mühendisliği bölümünden lisans derecesi ile mezun olduktan sonra, Drexel University’de Gıda Bilimlerinde yüksek lisansını tamamlamıştır. Çalışma hayatına Unilever’de başlayan Kapusız 1999 yılından beri Çeşit Mensucat A.Ş.’de yönetici olarak görev almaktadır.</p><a href="https://www.cesit.com/cdn-cgi/l/email-protection#90f6fbf1e0e5e3f9ead0f3f5e3f9e4bef3fffd" title="Mail"><span class="__cf_email__" data-cfemail="096f6268797c7a6073496a6c7a607d276a6664">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="column col-md-3 col-sm-6 col-xs-12"><div class="content-triangle-picture-area"><div class="content-triangle-picture"><img src="https://www.cesit.com/images/murat-ozbilen.jpg" alt="Murat Özbilen"/></div><div class="content-triangle-picture-info"><div class="content-triangle-picture-name">Murat Özbilen</div><div class="content-triangle-picture-position">( Yönetim Kurulu Üyesi )</div></div><div class="content-triangle-area"></div></div><div class="content-team-writing"><p>Murat Özbilen, Polytechnic Institute of NYU Endüstri Mühendisliği bölümünden lisans derecesi ile mezun olduktan sonra, sanayi mühendisliği bölümünde de yüksek lisans yapmıştır. İş hayatında Anderson Consulting, Arthur Anderson, ARGE Danışmanlık ve IBM Consulting Group'da, strateji danışmanı, yönetici ve şirket ortağı olarak çeşitli görevlerde bulunmuştur. Çeşit Mensucat A.Ş.'ye 2005 yılında katılan Murat Özbilen, aynı zamanda Business Management Consultants'da kıdemli şirket ortağı ve Orta Doğu/Afrika Direktörlüğü görevini sürdürmektedir.</p><a href="https://www.cesit.com/cdn-cgi/l/email-protection#086567726a61646d66486b6d7b617c266b6765" title="Mail"><span class="__cf_email__" data-cfemail="e18c8e9b83888d848fa18284928895cf828e8c">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="column col-md-3 col-sm-6 col-xs-12"><div class="content-triangle-picture-area"><div class="content-triangle-picture"><img src="https://www.cesit.com/images/ipek-ozbilen-celik.jpg" alt="İpek Özbilen Çelik"/></div><div class="content-triangle-picture-info"><div class="content-triangle-picture-name">İpek Özbilen Çelik</div><div class="content-triangle-picture-position">( Yönetim Kurulu Üyesi )</div></div><div class="content-triangle-area"></div></div><div class="content-team-writing"><p>İpek Özbilen Çelik Queens University of Charlotte İşletme Fakültesinden mezun olmuştur. İş hayatına TİFAŞ-Tüyap İnterpro Fuarcılık A.Ş.’de başlayan Çelik 2008 yılında Çeşit Mensucat A.Ş. bünyesine katılmıştır. Çeşit Mensucat A.Ş de yönetici olarak görev almaktadır.</p><a href="https://www.cesit.com/cdn-cgi/l/email-protection#781b1d141113381b1d0b110c561b1715" title="Mail"><span class="__cf_email__" data-cfemail="96f5f3fafffdd6f5f3e5ffe2b8f5f9fb">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="column col-md-3 col-sm-6 col-xs-12"><div class="content-triangle-picture-area"><div class="content-triangle-picture"><img src="https://www.cesit.com/images/Mumtaz_Ozbilen.jpg" alt="Mümtaz Özbilen"/></div><div class="content-triangle-picture-info"><div class="content-triangle-picture-name">Mümtaz Özbilen</div><div class="content-triangle-picture-position">( Yönetim Kurulu Üyesi )</div></div><div class="content-triangle-area"></div></div><div class="content-team-writing"><p>Mümtaz Özbilen Queens University of Charlotte İşletme Fakültesinden mezun olduktan sonra Pfeiffer University’de İşletme Yüksek Lisansını tamamlamıştır. Çalışma hayatına Kuehne Nagel’de başlayan Özbilen daha sonra Bergen International Movers’da görev yapmıştır. 2014 yılı itibarı ile Çeşit Mensucat A.Ş bünyesine katılan Mümtaz Özbilen aynı zamanda Simurg Fine Art Lojistik kurucu ortağıdır.</p><a href="https://www.cesit.com/cdn-cgi/l/email-protection#5439213920352e7a3b2e363d38313a143731273d207a373b39" title="Mail"><span class="__cf_email__" data-cfemail="630e160e1702194d0c19010a0f060d230006100a174d000c0e">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div></div><div class="content-team-writing"><p>Fatoş Özbilen Kapusız Yıldız Teknik Üniversitesi’nde Kimya Mühendisliği bölümünden lisans derecesi ile mezun olduktan sonra, Drexel University’de Gıda Bilimlerinde yüksek lisansını tamamlamıştır. Çalışma hayatına Unilever’de başlayan Kapusız 1999 yılından beri Çeşit Mensucat A.Ş.’de yönetici olarak görev almaktadır.</p><a href="https://www.cesit.com/cdn-cgi/l/email-protection#90f6fbf1e0e5e3f9ead0f3f5e3f9e4bef3fffd" title="Mail"><span class="__cf_email__" data-cfemail="096f6268797c7a6073496a6c7a607d276a6664">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="content-team-writing"><p>Murat Özbilen, Polytechnic Institute of NYU Endüstri Mühendisliği bölümünden lisans derecesi ile mezun olduktan sonra, sanayi mühendisliği bölümünde de yüksek lisans yapmıştır. İş hayatında Anderson Consulting, Arthur Anderson, ARGE Danışmanlık ve IBM Consulting Group'da, strateji danışmanı, yönetici ve şirket ortağı olarak çeşitli görevlerde bulunmuştur. Çeşit Mensucat A.Ş.'ye 2005 yılında katılan Murat Özbilen, aynı zamanda Business Management Consultants'da kıdemli şirket ortağı ve Orta Doğu/Afrika Direktörlüğü görevini sürdürmektedir.</p><a href="https://www.cesit.com/cdn-cgi/l/email-protection#086567726a61646d66486b6d7b617c266b6765" title="Mail"><span class="__cf_email__" data-cfemail="e18c8e9b83888d848fa18284928895cf828e8c">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="content-team-writing"><p>İpek Özbilen Çelik Queens University of Charlotte İşletme Fakültesinden mezun olmuştur. İş hayatına TİFAŞ-Tüyap İnterpro Fuarcılık A.Ş.’de başlayan Çelik 2008 yılında Çeşit Mensucat A.Ş. bünyesine katılmıştır. Çeşit Mensucat A.Ş de yönetici olarak görev almaktadır.</p><a href="https://www.cesit.com/cdn-cgi/l/email-protection#781b1d141113381b1d0b110c561b1715" title="Mail"><span class="__cf_email__" data-cfemail="96f5f3fafffdd6f5f3e5ffe2b8f5f9fb">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div><div class="content-team-writing"><p>Mümtaz Özbilen Queens University of Charlotte İşletme Fakültesinden mezun olduktan sonra Pfeiffer University’de İşletme Yüksek Lisansını tamamlamıştır. Çalışma hayatına Kuehne Nagel’de başlayan Özbilen daha sonra Bergen International Movers’da görev yapmıştır. 2014 yılı itibarı ile Çeşit Mensucat A.Ş bünyesine katılan Mümtaz Özbilen aynı zamanda Simurg Fine Art Lojistik kurucu ortağıdır.</p><a href="https://www.cesit.com/cdn-cgi/l/email-protection#5439213920352e7a3b2e363d38313a143731273d207a373b39" title="Mail"><span class="__cf_email__" data-cfemail="630e160e1702194d0c19010a0f060d230006100a174d000c0e">[email&#160;protected]</span></a></div><div class="home-slogan-header-line"></div></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[]]></excerpt:encoded>
+    <wp:post_id>17</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>yonetim-kurulu</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>BALIK AĞI</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=7&amp;page=balik-agi</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=7&amp;page=balik-agi</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-products-right-list-writing"><h1>BALIK AĞI</h1><p>Y&uuml;ksek mukavemetli naylon iplikten &uuml;retilen &Ccedil;eşit Mensucat&nbsp;<em>balık ağları</em>, 1962 yılından bu yana kalitesi ile balık&ccedil;ılık sekt&ouml;r&uuml;n&uuml;n ilk tercihi olmuş ve olmaya devam etmektedir. M&uuml;şteri memnuniyeti esas alınarak yapılan&nbsp;<strong><a href="https://cesit.com.tr" target="_blank">balık ağı</a> &uuml;retimi, satışı</strong>&nbsp;ve satış sonrası hizmet politikası &Ccedil;eşit markasının en &ouml;nemli değeridir.</p><p>&Ccedil;eşit Mensucat A.Ş. sahibi olduğu geniş&nbsp;<strong>balık ağı</strong>&nbsp;<strong>fabrikası</strong>&nbsp;makina parkuru sayesinde 105/2 kattan 210/200 kata kadar iplik kalınlığında istenilen her t&uuml;rl&uuml; g&ouml;z a&ccedil;ıklığında&nbsp;<strong>kaliteli balık ağı</strong>&nbsp;&uuml;retebilmektedir.</p><h2><strong>D&Uuml;Ğ&Uuml;ML&Uuml; BALIK AĞI &Ccedil;EŞİTLERİ</strong></h2><ul><li><strong>Trol Ağı</strong></li><li><strong>Tekir Ağı</strong></li><li><strong>Barbun Ağı</strong></li><li><strong><a href="https://cesit.com.tr/torik-agi" target="_blank">Torik Ağı</a></strong></li><li><strong>Uzatma Ağı</strong></li><li><strong>Voli Ağı</strong></li><li><a href="https://cesit.com.tr/hamsi-agi" target="_blank"><strong>Hamsi Ağı</strong></a></li><li><strong>Kalkan Ağı</strong></li><li><a href="https://cesit.com.tr/istavrit-agi" target="_blank"><strong>İstavrit Ağı</strong></a></li><li><strong>Gırgır Ağı</strong></li><li><strong>Mantar Aykırısı</strong></li><li><strong>Kurşun Aykırısı</strong></li><li><strong>G&ouml;l ve Baraj Ağları</strong></li><li><strong>Bocilik Ağı</strong></li><li><strong>Dip Ağı</strong></li><li><strong>Fanya</strong></li></ul><h2><strong>D&Uuml;Ğ&Uuml;MS&Uuml;Z BALIK AĞI &Ccedil;EŞİTLERİ</strong></h2><ul><li><strong>Kafes Ağı</strong></li><li><strong>Gırgır Ağı</strong></li><li><strong>Hamsi Ağı</strong></li></ul><p><strong>Trol Ağı</strong></p><p>Su &uuml;r&uuml;nleri avcılığında en sık kullanılan ağ t&uuml;rleri arasında&nbsp;<strong>trol ağı</strong>&nbsp;yer almaktadır. Trol ağlarının genel amacı dip balıklarının avlanmasıdır. B ama&ccedil;la pek &ccedil;ok trol ağı &ccedil;eşidi geliştirilmiştir bunların başlıcaları arasında kapılı ve kapısız trol ağları yer almaktadır.</p><p>&nbsp;</p><p><strong>Barbun Ağı</strong></p><p><strong>Barbun ağı</strong>&nbsp;barbun balığı adı verilen balık t&uuml;r&uuml;n&uuml; avlamak i&ccedil;in &ouml;zel olarak imal edilen&nbsp;<em><strong>balık ağı</strong></em>&nbsp;&ccedil;eşitidir. Genel yapı itibariyle tekir ağının &ouml;zelliklerini taşımaktadır. En sık kullanılan &ccedil;eşidi fanyalı barbun ağıdır.</p><p><strong>Voli Ağı</strong></p><p>Fanyalı &ccedil;evirme ağ grubunda yer alan&nbsp;<strong>voli ağı</strong>&nbsp;genellikle palamut, l&uuml;fer, kefal gibi balıkları avlamak i&ccedil;in kullanılır. B&uuml;y&uuml;k tip tekneler i&ccedil;in &ccedil;ok pratik ve kullanışlı bir ağ &ccedil;eşitidir.</p><p><strong>Gırgır Ağı</strong></p><p><strong>Gırgır ağı&nbsp;</strong>&ccedil;evirmeli balık ağı grubunda yer almaktadır ve t&uuml;m balık ağları arasında pelajik balıkların avlanması i&ccedil;in kullanılan en etkili ağ t&uuml;r&uuml;d&uuml;r. Gırgır ağlarının temel amacı s&uuml;r&uuml;n&uuml;n etrafını &ccedil;evreleyerek hapsetmeye dayanmaktadır.</p><p>&nbsp;</p><p><strong>Kalkan Ağı</strong></p><p><strong>Kalkan ağı</strong>&nbsp;genellikle 200-300 metre uzunluğunda kalkan balığı avcılığında kullanılan ağ &ccedil;eşitleri arasında yer almaktadır. Kalkan ağının &uuml;st kısmında mantar, alt kısmında ise kurşun bulunur. Mantar ağın su &uuml;zerinde kalmasını sağlarken kurşun ağın alt kısmının dibe inmesini sağlamaktadır.</p><p><strong>Fanya</strong></p><p><strong>Fanya ağı</strong>&nbsp;k&uuml;&ccedil;&uuml;k g&ouml;zeli tor ağının &ouml;n ve arka kısmına yerleştirilen&nbsp;&nbsp;&uuml;&ccedil; katlı ağ d&uuml;zeneğidir. Fanya ağları uzatma ağlar grubunda yer almaktadır ve balık avcılığında etkili ve sık tercih edilen ağ &ccedil;eşitidir.</p></div></div><div class="content-products-image-area" style="background-image:url('https://www.cesit.com/uploads/cover/slide_01.jpg');"></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Açık deniz, göl, baraj ve akuakültür balıkçılığına yönelik tüm düğümlü balık ağı çeşitleri, düğümsüz balık ağı çeşitleri ve ekipmanları.]]></excerpt:encoded>
+    <wp:post_id>18</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>balik-agi</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>SPOR AĞI</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=8&amp;page=spor-agi</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=8&amp;page=spor-agi</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-products-right-list-writing"><h1>SPOR AĞI</h1><p>Spor Ağları ile ilgili detaylı&nbsp;bilgiler i&ccedil;in l&uuml;tfen&nbsp;<a href="http://www.shieldnets.com/">www.shieldnets.com</a>&nbsp;veya&nbsp;<a href="https://shieldnetstore.com/tr/kale-filesi-500m">kale filesi</a>&nbsp;adresini ziyaret edin.</p><p>&nbsp;</p></div></div><div class="content-products-image-area" style="background-image:url('https://www.cesit.com/uploads/cover/slide_02.jpg');"></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Çeşitli branşlarda kullanılan spor ağları ve bu alanlarda kullanılan sistemlere yönelik ağlar.]]></excerpt:encoded>
+    <wp:post_id>19</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>spor-agi</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>GÜVENLİK AĞI</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=9&amp;page=guvenli%CC%87k-agi</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=9&amp;page=guvenli%CC%87k-agi</guid>
+    <description></description>
+    <content:encoded><![CDATA[<div class="content-products-right-list-writing"><h1>GÜVENLİK AĞI</h1><p>G&uuml;venlik ağları ile ilgili detaylı bilgi i&ccedil;in l&uuml;tfen&nbsp;www.shieldnets.com&nbsp;veya&nbsp;<a href="https://shieldnetstore.com/">inşaat g&uuml;venlik ağı</a>&nbsp;adresimizi&nbsp;ziyaret edin.</p></div></div><div class="content-products-image-area" style="background-image:url('https://www.cesit.com/uploads/cover/slide_03.jpg');"></div>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Tüm yaşam ve çalışma alanlarına yönelik güvenlik çözümleri.]]></excerpt:encoded>
+    <wp:post_id>20</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>guvenlik-agi</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>page</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>TSEN 1263-1</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=9</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=9</guid>
+    <description></description>
+    <content:encoded><![CDATA[<p><p>TSEN 1263-1 kriterlerine uygun olarak &uuml;retilen &uuml;r&uuml;nlerimiz i&ccedil;in TSEN 1263-1</p>]]></content:encoded>
+    <excerpt:encoded><![CDATA[TSEN 1263-1 kriterlerine uygun olarak üretilen ürünlerimiz için TSEN 1263-1]]></excerpt:encoded>
+    <wp:post_id>21</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>tsen-1263-1</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>post</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>Fabrikamız büyüyor</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=6</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=6</guid>
+    <description></description>
+    <content:encoded><![CDATA[<p><p>Sizlere daha hızlı hizmet edebilmek i&ccedil;in, farklı iplik kalınlıklarında, farklı g&ouml;z</p>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Sizlere daha hızlı hizmet edebilmek için, farklı iplik kalınlıklarında, farklı göz]]></excerpt:encoded>
+    <wp:post_id>22</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>fabrikamz-buyuyor</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>post</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>Düğümsüz 5 göz imalatımız başlamıştır</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=7</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=7</guid>
+    <description></description>
+    <content:encoded><![CDATA[<p><p>Yeni d&uuml;ğ&uuml;ms&uuml;z makinamız ile 5 g&ouml;z imalatımız mevcuttur.</p>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Yeni düğümsüz makinamız ile 5 göz imalatımız mevcuttur.]]></excerpt:encoded>
+    <wp:post_id>23</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>dugumsuz-5-goz-imalatmz-baslamstr</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>post</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>Pendik</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=4</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=4</guid>
+    <description></description>
+    <content:encoded><![CDATA[<p><p>Pendik rutumuz başlamıştır. T&uuml;m siparişleriniz i&ccedil;in 0542 490 5795&nbsp;dan İbrahim</p>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Pendik rutumuz başlamıştır. Tüm siparişleriniz için 0542 490 5795 dan İbrahim]]></excerpt:encoded>
+    <wp:post_id>24</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>pendik</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>post</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>Yüksek Mukavemet Testi</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=1</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=1</guid>
+    <description></description>
+    <content:encoded><![CDATA[<p><p>&Uuml;r&uuml;nlerimiz TS-EN 1263&#39;e g&ouml;re test edilmiştir ve y&uuml;ksek mukavemetli</p>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Ürünlerimiz TS-EN 1263'e göre test edilmiştir ve yüksek mukavemetli]]></excerpt:encoded>
+    <wp:post_id>25</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>yuksek-mukavemet-testi</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>post</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>Yeni makinalarımız</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=2</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=2</guid>
+    <description></description>
+    <content:encoded><![CDATA[<p><p>Sizlere daha hızlı hizmet edebilmek i&ccedil;in yeni dokuma tezgahlarımız yolda...</p>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Sizlere daha hızlı hizmet edebilmek için yeni dokuma tezgahlarımız yolda...]]></excerpt:encoded>
+    <wp:post_id>26</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>yeni-makinalarmz</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>post</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+  <item>
+    <title>Müşteri Bilgilendirme Platformu</title>
+    <link>https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=5</link>
+    <pubDate>Thu, 11 Jun 2026 21:25:56 +0000</pubDate>
+    <dc:creator><![CDATA[admin]]></dc:creator>
+    <guid isPermaLink="false">https://www.cesit.com/index.cfm?action=index&amp;id=99&amp;menu=haberler&amp;no=5</guid>
+    <description></description>
+    <content:encoded><![CDATA[<p><p>Firmamızdaki cari hesaplarınıza ulaşmak, siparişlerinizi g&ouml;rmek ve kredi kartı ile</p>]]></content:encoded>
+    <excerpt:encoded><![CDATA[Firmamızdaki cari hesaplarınıza ulaşmak, siparişlerinizi görmek ve kredi kartı ile]]></excerpt:encoded>
+    <wp:post_id>27</wp:post_id>
+    <wp:post_date>2026-06-12 00:25:56</wp:post_date>
+    <wp:post_date_gmt>2026-06-11 21:25:56</wp:post_date_gmt>
+    <wp:post_modified>2026-06-12 00:25:56</wp:post_modified>
+    <wp:post_modified_gmt>2026-06-11 21:25:56</wp:post_modified_gmt>
+    <wp:comment_status>closed</wp:comment_status>
+    <wp:ping_status>closed</wp:ping_status>
+    <wp:post_name>musteri-bilgilendirme-platformu</wp:post_name>
+    <wp:status>publish</wp:status>
+    <wp:post_parent>0</wp:post_parent>
+    <wp:menu_order>0</wp:menu_order>
+    <wp:post_type>post</wp:post_type>
+    <wp:post_password></wp:post_password>
+    <wp:is_sticky>0</wp:is_sticky>
+  </item>
+</channel>
+</rss>

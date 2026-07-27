@@ -120,6 +120,11 @@ class ActivityReportResource extends Resource
 
     public static function canViewAny(): bool
     {
+        $user = auth()->user();
+        if ($user instanceof User && $user->isMaliHizmetlerAccount() && ! $user->isReportingSuperAdmin()) {
+            return false;
+        }
+
         return auth()->check();
     }
 
@@ -138,6 +143,9 @@ class ActivityReportResource extends Resource
         }
         if ($u->isViceMayorAccount() || $u->isControlTeam()) {
             return static::getEloquentQuery()->whereKey($record->getKey())->exists();
+        }
+        if ($u->isMaliHizmetlerAccount() && ! $u->isReportingSuperAdmin()) {
+            return false;
         }
         if ($u->isMudurlukReportingAccount()) {
             if (AylikFaaliyetRepeaterLock::actorOwnsAylikFaaliyetRecord($record, $u)) {

@@ -114,7 +114,12 @@ class User extends Authenticatable
                 'Mudurluk',
                 'müdürlük',
                 'MÜDÜRLÜK',
-            ]);
+            ])
+            // Gelirler Müdürlüğü rapor setinden çıkarılır (talimat).
+            ->where(function (Builder $q): void {
+                $q->whereDoesntHave('directorate', fn (Builder $d) => $d->where('code', 'GM'))
+                    ->orWhereDoesntHave('directorate');
+            });
 
         if ($viceIds->isNotEmpty()) {
             $query->whereNotIn($query->qualifyColumn('id'), $viceIds->all());
@@ -276,6 +281,10 @@ class User extends Authenticatable
 
     public function isMaliHizmetlerAccount(): bool
     {
+        if ($this->directorate?->code === 'MHM') {
+            return true;
+        }
+
         $name = mb_strtolower(trim((string) ($this->name ?? '')));
 
         return str_contains($name, 'mali hizmetler');

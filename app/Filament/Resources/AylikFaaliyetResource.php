@@ -2210,8 +2210,15 @@ class AylikFaaliyetResource extends Resource
                     ->titlePrefixedWithLabel(false)
                     ->getTitleFromRecordUsing(fn (AylikFaaliyet $record): string => static::mudurlukGroupTitle($record))
                     ->collapsible(),
+                TableGroup::make('ay')
+                    ->label('Müdürlük / Dönem')
+                    ->titlePrefixedWithLabel(false)
+                    ->getKeyFromRecordUsing(fn (AylikFaaliyet $record): string => static::mudurlukAyGroupKey($record))
+                    ->getTitleFromRecordUsing(fn (AylikFaaliyet $record): string => static::mudurlukAyGroupTitle($record))
+                    ->collapsible(),
             ])
             ->defaultGroup('user.name')
+            ->groupingSettingsHidden(false)
             ->filters([
                 Tables\Filters\Filter::make('mudurluk_faaliyet_katalog')
                     ->label('Müdürlük / Faaliyet')
@@ -2286,7 +2293,9 @@ class AylikFaaliyetResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->label('Raporu düzenle')
                     ->visible(fn (AylikFaaliyet $record) => static::canEdit($record)),
-            ]);
+            ])
+            // Raporlar tek ekranda; sayfa başına kısıtı yok.
+            ->paginated(false);
     }
 
     private static function mudurlukGroupTitle(AylikFaaliyet $record): string
@@ -2831,6 +2840,11 @@ class AylikFaaliyetResource extends Resource
 
     public static function canViewAny(): bool
     {
+        $user = auth()->user();
+        if ($user instanceof User && $user->isMaliHizmetlerAccount() && ! $user->isReportingSuperAdmin()) {
+            return false;
+        }
+
         return auth()->check();
     }
 
@@ -2891,8 +2905,8 @@ class AylikFaaliyetResource extends Resource
             return false;
         }
 
-        // Yalnızca müdürlük raporlayan hesap yeni rapor oluşturabilir.
-        return $u->isMudurlukReportingAccount();
+        // Yalnızca müdürlük raporlayan hesap yeni rapor oluşturabilir (Mali Hizmetler hariç).
+        return $u->isMudurlukReportingAccount() && ! $u->isMaliHizmetlerAccount();
     }
 
     /**
