@@ -385,11 +385,12 @@ class AylikFaaliyetResource extends Resource
             }
 
             $locked = (bool) ($row['ay_sonu_performans_kilitli'] ?? false);
-            if ($locked && ($row['hafta'] !== null && $row['hafta'] !== '')) {
+            $hafta = $row['hafta'] ?? null;
+            if ($locked && ($hafta !== null && $hafta !== '')) {
                 continue;
             }
 
-            if ($row['hafta'] === null || $row['hafta'] === '') {
+            if ($hafta === null || $hafta === '') {
                 $frequency = trim((string) ($row['raporlama_sikligi'] ?? ''));
                 $data['faaliyetler'][$i]['hafta'] = ($yil > 0 && $ay >= 1 && $ay <= 12)
                     ? ReportPeriodWeeks::defaultPeriodForReportingFrequency($yil, $ay, $frequency)
