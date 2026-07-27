@@ -3,13 +3,10 @@
 namespace App\Filament\Resources\AylikFaaliyetResource\Pages;
 
 use App\Filament\Resources\AylikFaaliyetResource;
-use App\Models\ExtraordinarySituation;
 use App\Models\User;
 use App\Services\ActivityService;
-use App\Support\AylikFaaliyetWeeklyCarryover;
-use App\Support\ReportPeriodWeeks;
+use App\Support\AylikFaaliyetPdfHtml;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
@@ -64,10 +61,11 @@ class ListAylikFaaliyets extends ListRecords
                 ->icon('heroicon-o-arrow-down-tray')
                 ->visible(fn () => auth()->id() === 1)
                 ->action(function () {
-                    // Tablodaki o an filtreli olan tüm kayıtları çek
-                    $records = $this->getFilteredTableQuery()->get();
+                    $records = $this->getFilteredTableQuery()
+                        ->with('user')
+                        ->get();
 
-                    $pdf = Pdf::loadHTML($this->generateAylikFaaliyetHtml($records))
+                    $pdf = Pdf::loadHTML(AylikFaaliyetPdfHtml::render($records))
                         ->setPaper('a4', 'landscape')
                         ->setWarnings(false);
 
@@ -76,136 +74,5 @@ class ListAylikFaaliyets extends ListRecords
                     }, 'aylik_faaliyet_raporu_'.now()->format('d_m_Y').'.pdf');
                 }),
         ];
-    }
-
-    /**
-     * PDF İçeriği için HTML Şablonu (Türkçe Karakter Destekli)
-     */
-    protected function generateAylikFaaliyetHtml($records)
-    {
-        $html = '
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-            <style>
-                body { font-family: "DejaVu Sans", sans-serif; font-size: 10px; color: #333; }
-                table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-                th, td { padding: 6px; border: 1px solid #999; text-align: left; }
-                th { background-color: #f2f2f2; font-weight: bold; }
-                .title { text-align: center; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
-            </style>
-        </head>
-        <body>
-            <div class="title">AYLIK FAALİYET VE PLANLAMA GENEL RAPORU</div>
-            <p style="text-align:right">Rapor Tarihi: '.now()->format('d.m.Y').'</p>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th width="15%">Müdürlük</th>
-                        <th width="10%">Dönem</th>
-                        <th width="75%">Faaliyet Detayları (Konu - Durum - Son Tarih)</th>
-                    </tr>
-                </thead>
-                <tbody>';
-
-        foreach ($records as $record) {
-            $isler = is_string($record->faaliyetler) ? json_decode($record->faaliyetler, true) : $record->faaliyetler;
-            $isDetaylari = '';
-
-            if (is_array($isler)) {
-                foreach ($isler as $is) {
-                    $durum = match ($is['durum'] ?? '') {
-                        'tamam' => 'Tamamlandı',
-                        'devam' => 'Devam Ediyor',
-                        'bekliyor' => 'Planlandı',
-                        default => $is['durum']
-                    };
-
-                    $sonTarih = isset($is['son_tarih']) ? Carbon::parse($is['son_tarih'])->format('d.m.Y') : '-';
-                    $baslik = trim((string) ($is['konu'] ?? ''));
-                    if ($baslik === '') {
-                        $baslik = trim((string) ($is['faaliyet_kodu'] ?? 'Faaliyet'));
-                    }
-
-                    $kapsamIcerigi = trim((string) ($is['kapsam_icerigi'] ?? ''));
-                    $olcuBirimi = trim((string) ($is['olcu_birimi'] ?? ''));
-                    $gerceklesen = $is['gerceklesen'] ?? '-';
-                    $bekleyen = $is['bekleyen_is'] ?? '-';
-                    $extraordinary = ExtraordinarySituation::query()
-                        ->where('target_user_id', (int) ($record->user_id ?? 0))
-                        ->where('yil', (int) ($record->yil ?? 0))
-                        ->where('ay', str_pad((string) ($record->ay ?? ''), 2, '0', STR_PAD_LEFT))
-                        ->latest('id')
-                        ->first();
-                    $extraordinaryText = null;
-                    if ($extraordinary instanceof ExtraordinarySituation) {
-                        $reporter = User::find((int) ($extraordinary->reporter_user_id ?? 0));
-                        $reporterName = $reporter?->name ? trim((string) $reporter->name) : 'Sistem';
-                        $message = trim((string) ($extraordinary->message ?? ''));
-                        $extraordinaryText = $message === '' ? $reporterName : $reporterName.': '.$message;
-                    }
-
-                    $kapsamKalemleri = '';
-                    $satirlar = $is['kapsam_verileri'] ?? [];
-                    if (is_array($satirlar) && $satirlar !== []) {
-                        $pairs = [];
-                        foreach ($satirlar as $satir) {
-                            if (! is_array($satir)) {
-                                continue;
-                            }
-                            $kalem = trim((string) ($satir['kalem'] ?? ''));
-                            if ($kalem === '') {
-                                continue;
-                            }
-                            $ong = $satir['ongorulen'] ?? $satir['deger'] ?? null;
-                            $ger = $satir['gerceklesen'] ?? null;
-                            $acik = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($satir);
-                            $acikText = $acik > 0.0 ? (string) (floor($acik) === $acik ? (int) $acik : $acik) : '0';
-                            $pairs[] = e($kalem).': yapılacak '.e(filled($ong) ? (string) $ong : '-').' / yapılan '.e(filled($ger) ? (string) $ger : '-').' / bekleyen '.e($acikText);
-                        }
-                        if ($pairs !== []) {
-                            $kapsamKalemleri = '<br><b>Kapsam Kalemleri:</b> '.implode(' | ', $pairs);
-                        }
-                    }
-
-                    $haftaLabel = ReportPeriodWeeks::weekLabelForRecord(
-                        (int) ($record->yil ?? 0),
-                        $record->ay ?? null,
-                        $is['hafta'] ?? null
-                    );
-
-                    $isDetaylari .= "<div style='margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;'>
-                                        <b>[".e($durum).']</b> '.e($baslik).'
-                                        '.($haftaLabel ? '<br><b>Hafta:</b> '.e($haftaLabel) : '').'
-                                        <br><b>Ay sonu gerçekleşen / Ay sonu bekleyen:</b> '.e((string) $gerceklesen).' / '.e((string) $bekleyen).'
-                                        '.($olcuBirimi !== '' ? '<br><b>Ölçü birimi:</b> '.e($olcuBirimi) : '').'
-                                        '.($kapsamIcerigi !== '' ? '<br><b>Kapsam:</b> '.e($kapsamIcerigi) : '').'
-                                        '.(filled($extraordinaryText) ? '<br><b>Olağanüstü durum:</b> '.e((string) $extraordinaryText) : '').'
-                                        '.$kapsamKalemleri.'
-                                        <br><b>Bitiş:</b> '.$sonTarih.'
-                                     </div>';
-                }
-            }
-
-            $yil = (int) ($record->yil ?? 0);
-            $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? ''));
-            $donem = $yil > 0 && $ay >= 1 && $ay <= 12
-                ? e(ReportPeriodWeeks::monthPeriodLabel($yil, $ay))
-                : e((string) ($record->yil.' / '.$record->ay));
-            $kayitTarihi = e(AylikFaaliyetResource::reportRecordSavedAtLabel($record) ?? '—');
-            $raporHaftalari = e(AylikFaaliyetResource::reportAssignedWeeksSummary($record) ?? '—');
-
-            $html .= '<tr>
-                        <td>'.e($record->user->name ?? 'Belirtilmemiş').'</td>
-                        <td>'.$donem.'<br><small>Kayıt: '.$kayitTarihi.'</small><br><small>Hafta: '.$raporHaftalari.'</small></td>
-                        <td>'.($isDetaylari ?: 'Kayıtlı faaliyet yok.').'</td>
-                      </tr>';
-        }
-
-        $html .= '</tbody></table></body></html>';
-
-        return $html;
     }
 }

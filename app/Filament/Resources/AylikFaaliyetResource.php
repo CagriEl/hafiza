@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\ActivityCatalogMetadataByCode;
 use App\Support\AylikFaaliyetEscalation;
+use App\Support\AylikFaaliyetPeriodMerge;
 use App\Support\AylikFaaliyetRepeaterLock;
 use App\Support\AylikFaaliyetWeeklyCarryover;
 use App\Support\CoordinationAccess;
@@ -41,6 +42,7 @@ use Filament\Tables\Grouping\Group as TableGroup;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
 use Illuminate\Validation\Rule;
 
@@ -449,9 +451,10 @@ class AylikFaaliyetResource extends Resource
     }
 
     /**
-     * Rapordaki iş satırlarında seçilen hafta dönemlerinin özeti.
+     * Rapordaki hafta özeti.
+     * $includePeriodSiblings true ise aynı aydaki tüm haftalık raporlar sırayla listelenir (PDF).
      */
-    public static function reportAssignedWeeksSummary(?AylikFaaliyet $record): ?string
+    public static function reportAssignedWeeksSummary(?AylikFaaliyet $record, bool $includePeriodSiblings = false): ?string
     {
         if (! $record instanceof AylikFaaliyet) {
             return null;
@@ -461,6 +464,22 @@ class AylikFaaliyetResource extends Resource
         $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? ''));
         if ($yil <= 0 || $ay < 1 || $ay > 12) {
             return null;
+        }
+
+        if ($includePeriodSiblings) {
+            $labels = [];
+            foreach (static::periodSiblingReports($record) as $sibling) {
+                if (! filled($sibling->hafta ?? null)) {
+                    continue;
+                }
+                $label = ReportPeriodWeeks::periodLabelForRecord($yil, $ay, $sibling->hafta);
+                if ($label !== null && $label !== '') {
+                    $labels[$label] = true;
+                }
+            }
+            if ($labels !== []) {
+                return implode(' · ', array_keys($labels));
+            }
         }
 
         if (filled($record->hafta ?? null)) {
@@ -1158,7 +1177,7 @@ class AylikFaaliyetResource extends Resource
                                 $weeks = static::reportAssignedWeeksSummary($record);
                                 $out = 'Kayıt tarihi: '.$savedAt;
                                 if ($weeks !== null && $weeks !== '') {
-                                    $out .= ' | Rapor haftası: '.$weeks;
+                                    $out .= ' | Haftalar: '.$weeks;
                                 }
 
                                 return $out;
@@ -2696,16 +2715,131 @@ class AylikFaaliyetResource extends Resource
     }
 
     /**
-     * Rapor satırlarını, müdürlüğe ait katalogdaki eksik faaliyetlerle tamamlar.
-     * Böylece raporda yalnızca kaydedilen satırlar değil, o müdürlüğün tüm faaliyetleri görünür.
+     * Aynı müdürlük + yıl + ay için haftalık rapor kayıtları (1.–5. / aylık, sıralı).
+     *
+     * @return Collection<int, AylikFaaliyet>
+     */
+    public static function monthPeriodReports(AylikFaaliyet $record): Collection
+    {
+        return static::periodSiblingReports($record);
+    }
+
+    /**
+     * Aynı müdürlük + yıl + ay için tüm haftalık rapor satırlarını
+     * (1.–5. hafta / aylık) sıralı birleştirir.
      *
      * @return list<array<string, mixed>>
      */
-    private static function rowsForReportPresentation(?AylikFaaliyet $record): array
+    private static function collectSortedPeriodFaaliyetRows(?AylikFaaliyet $record): array
     {
-        $rows = is_array($record?->faaliyetler)
-            ? array_values(array_filter($record->faaliyetler, fn ($row): bool => is_array($row)))
-            : [];
+        if (! $record instanceof AylikFaaliyet) {
+            return [];
+        }
+
+        $merged = [];
+        foreach (static::periodSiblingReports($record) as $sibling) {
+            $reportHafta = ReportPeriodWeeks::normalizeReportHafta($sibling->hafta ?? null);
+            $rows = is_array($sibling->faaliyetler) ? $sibling->faaliyetler : [];
+            foreach ($rows as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                if (($row['hafta'] ?? null) === null || $row['hafta'] === '') {
+                    if ($reportHafta !== null) {
+                        $row['hafta'] = ReportPeriodWeeks::isMonthlyPeriod($reportHafta)
+                            ? ReportPeriodWeeks::MONTHLY_VALUE
+                            : (int) $reportHafta;
+                    }
+                }
+                $merged[] = $row;
+            }
+        }
+
+        usort($merged, function (array $a, array $b): int {
+            $wa = static::haftaSortKey($a['hafta'] ?? null);
+            $wb = static::haftaSortKey($b['hafta'] ?? null);
+            if ($wa !== $wb) {
+                return $wa <=> $wb;
+            }
+
+            return strcmp(
+                trim((string) ($a['faaliyet_kodu'] ?? '')),
+                trim((string) ($b['faaliyet_kodu'] ?? ''))
+            );
+        });
+
+        return $merged;
+    }
+
+    /**
+     * @return Collection<int, AylikFaaliyet>
+     */
+    private static function periodSiblingReports(AylikFaaliyet $record): Collection
+    {
+        $userId = (int) ($record->user_id ?? 0);
+        $yil = (int) ($record->yil ?? 0);
+        $ay = AylikFaaliyetPeriodMerge::normalizeAy((string) ($record->ay ?? ''));
+        if ($userId <= 0 || $yil <= 0 || $ay === '') {
+            return collect([$record]);
+        }
+
+        $variants = AylikFaaliyetPeriodMerge::ayQueryVariants($ay);
+        $siblings = AylikFaaliyet::query()
+            ->where('user_id', $userId)
+            ->where('yil', $yil)
+            ->whereIn('ay', $variants)
+            ->orderBy('id')
+            ->get()
+            ->sortBy(function (AylikFaaliyet $sibling): int {
+                return (static::haftaSortKey($sibling->hafta ?? null) * 1_000_000)
+                    + (int) ($sibling->id ?? 0);
+            })
+            ->values();
+
+        return $siblings->isEmpty() ? collect([$record]) : $siblings;
+    }
+
+    private static function haftaSortKey(mixed $hafta): int
+    {
+        $raw = mb_strtolower(trim((string) ($hafta ?? '')), 'UTF-8');
+        if (in_array($raw, ['aylik', 'aylık', 'monthly', '0'], true) || $hafta === 0) {
+            return 99;
+        }
+
+        $normalized = ReportPeriodWeeks::normalizeReportHafta($hafta);
+        if ($normalized === ReportPeriodWeeks::MONTHLY_VALUE) {
+            return 99;
+        }
+        if ($normalized !== null && is_numeric($normalized)) {
+            return (int) $normalized;
+        }
+
+        if (is_numeric($hafta)) {
+            $week = (int) $hafta;
+            if ($week >= 1 && $week <= ReportPeriodWeeks::WEEK_COUNT) {
+                return $week;
+            }
+        }
+
+        return 50;
+    }
+
+    /**
+     * Rapor satırlarını, müdürlüğe ait katalogdaki eksik faaliyetlerle tamamlar.
+     * $includePeriodSiblings true ise aynı ayın tüm hafta raporları birleştirilip
+     * hafta sırasına göre listelenir (PDF).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private static function rowsForReportPresentation(?AylikFaaliyet $record, bool $includePeriodSiblings = false): array
+    {
+        if ($includePeriodSiblings) {
+            $rows = static::collectSortedPeriodFaaliyetRows($record);
+        } else {
+            $rows = is_array($record?->faaliyetler)
+                ? array_values(array_filter($record->faaliyetler, fn ($row): bool => is_array($row)))
+                : [];
+        }
 
         if (! $record instanceof AylikFaaliyet) {
             return $rows;
@@ -2815,6 +2949,12 @@ class AylikFaaliyetResource extends Resource
         }
 
         usort($rows, function (array $a, array $b): int {
+            $wa = static::haftaSortKey($a['hafta'] ?? null);
+            $wb = static::haftaSortKey($b['hafta'] ?? null);
+            if ($wa !== $wb) {
+                return $wa <=> $wb;
+            }
+
             return strcmp(
                 trim((string) ($a['faaliyet_kodu'] ?? '')),
                 trim((string) ($b['faaliyet_kodu'] ?? ''))
@@ -3462,7 +3602,7 @@ class AylikFaaliyetResource extends Resource
 
     public static function reportPdfHtml(?AylikFaaliyet $record): string
     {
-        $summary = static::summarizeReportForPresentation($record);
+        $summary = static::summarizeReportForPresentation($record, true);
         $mudurluk = trim((string) ($record?->user?->name ?? 'Belirtilmemiş'));
         $yil = (int) ($record?->yil ?? 0);
         $ay = (int) preg_replace('/\D/', '', (string) ($record?->ay ?? ''));
@@ -3470,7 +3610,7 @@ class AylikFaaliyetResource extends Resource
             ? ReportPeriodWeeks::monthPeriodLabel($yil, $ay)
             : trim((string) (($record?->yil ?? '—').' / '.str_pad((string) ($record?->ay ?? '—'), 2, '0', STR_PAD_LEFT)));
         $savedAt = static::reportRecordSavedAtLabel($record) ?? now()->format('d.m.Y H:i');
-        $reportWeeks = static::reportAssignedWeeksSummary($record);
+        $reportWeeks = static::reportAssignedWeeksSummary($record, true);
         $rowsHtml = '';
 
         foreach ($summary['items'] as $item) {
@@ -3545,7 +3685,7 @@ class AylikFaaliyetResource extends Resource
 <body>
     <div class="title">Faaliyet Raporu — '.e($mudurluk).'</div>
     <div class="meta">Dönem: '.e($period).' | Kayıt tarihi: '.e($savedAt)
-        .($reportWeeks !== null && $reportWeeks !== '' ? ' | Rapor haftası: '.e($reportWeeks) : '').'</div>
+        .($reportWeeks !== null && $reportWeeks !== '' ? ' | Haftalar: '.e($reportWeeks) : '').'</div>
     <div class="summary">Yapılan: <b>'.e(number_format((float) $summary['total_done'], 0, ',', '.')).'</b>
         · Açıkta: <b>'.e(number_format((float) $summary['total_pending'], 0, ',', '.')).'</b>
         · Toplam: <b>'.e(number_format((float) $summary['total_plan'], 0, ',', '.')).'</b>
@@ -3602,9 +3742,9 @@ class AylikFaaliyetResource extends Resource
      *   }>
      * }
      */
-    private static function summarizeReportForPresentation(?AylikFaaliyet $record): array
+    private static function summarizeReportForPresentation(?AylikFaaliyet $record, bool $includePeriodSiblings = false): array
     {
-        $rows = static::rowsForReportPresentation($record);
+        $rows = static::rowsForReportPresentation($record, $includePeriodSiblings);
         $items = [];
         $totalDone = 0.0;
         $totalPending = 0.0;

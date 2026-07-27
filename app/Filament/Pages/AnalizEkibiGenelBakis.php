@@ -35,6 +35,9 @@ class AnalizEkibiGenelBakis extends Page implements HasForms
     /** @var array<string, mixed>|null */
     public ?array $data = [];
 
+    /** @var array<string, mixed>|null */
+    protected ?array $reportCache = null;
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -49,6 +52,12 @@ class AnalizEkibiGenelBakis extends Page implements HasForms
             'yil' => (int) $now->year,
             'ay' => (int) $now->month,
         ]);
+        $this->clearReportCache();
+    }
+
+    protected function clearReportCache(): void
+    {
+        $this->reportCache = null;
     }
 
     public function form(Form $form): Form
@@ -69,12 +78,14 @@ class AnalizEkibiGenelBakis extends Page implements HasForms
                                 ->label('Yıl')
                                 ->options($years)
                                 ->required()
-                                ->live(),
+                                ->live(debounce: 400)
+                                ->afterStateUpdated(fn () => $this->clearReportCache()),
                             Select::make('ay')
                                 ->label('Ay')
                                 ->options(ReportPeriodWeeks::turkishMonthNames())
                                 ->required()
-                                ->live(),
+                                ->live(debounce: 400)
+                                ->afterStateUpdated(fn () => $this->clearReportCache()),
                         ]),
                     ]),
             ])
@@ -86,9 +97,13 @@ class AnalizEkibiGenelBakis extends Page implements HasForms
      */
     public function getReport(): array
     {
+        if (is_array($this->reportCache)) {
+            return $this->reportCache;
+        }
+
         $user = auth()->user();
         if (! $user instanceof User || ! $user->isControlTeam()) {
-            return [
+            return $this->reportCache = [
                 'yil' => (int) now()->year,
                 'ay' => str_pad((string) now()->month, 2, '0', STR_PAD_LEFT),
                 'donem_etiketi' => '',
@@ -111,7 +126,7 @@ class AnalizEkibiGenelBakis extends Page implements HasForms
         $yil = (int) ($this->data['yil'] ?? now()->year);
         $ay = (int) ($this->data['ay'] ?? now()->month);
 
-        return AnalizEkibiMudurlukRapor::buildForUser($user, $yil, $ay);
+        return $this->reportCache = AnalizEkibiMudurlukRapor::buildForUser($user, $yil, $ay);
     }
 
     public function getMaxContentWidth(): MaxWidth|string|null

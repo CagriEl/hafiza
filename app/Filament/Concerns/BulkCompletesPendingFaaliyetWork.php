@@ -68,7 +68,12 @@ trait BulkCompletesPendingFaaliyetWork
                 ]);
 
                 $record->refresh();
-                $this->fillForm();
+                // Tam fillForm katalog senkronunu yeniden çalıştırıp formu şişiriyor; yalnızca veri alanını yenile.
+                if (method_exists($this, 'refreshFormData')) {
+                    $this->refreshFormData(['faaliyetler']);
+                } else {
+                    $this->fillForm();
+                }
 
                 $after = AylikFaaliyetWeeklyCarryover::countPendingKapsamItems([
                     'yil' => $record->yil,
