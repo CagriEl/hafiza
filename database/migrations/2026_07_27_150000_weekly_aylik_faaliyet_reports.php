@@ -89,10 +89,9 @@ return new class extends Migration
                         ->whereKeyNot($extra->id)
                         ->exists();
                     if ($monthlyTaken) {
-                        // Son çare: silinemez; unique bozulmasın diye id bazlı geçici değer kullanma —
-                        // en az çakışan haftayı zorla overwrite etme, kaydı hafta 1'e bırakıp
-                        // unique eklemeden önce silmek yerine delete extras that still conflict.
-                        $extra->delete();
+                        // Do not delete reports. Leave a non-conflicting temporary week label.
+                        $extra->hafta = 'x'.$extra->id;
+                        $extra->saveQuietly();
 
                         return;
                     }
