@@ -373,6 +373,27 @@ final class ReportPeriodWeeks
         return false;
     }
 
+    /**
+     * Rapor kaydı düzeyindeki hafta değeri: "1".."5" veya "aylik".
+     */
+    public static function normalizeReportHafta(mixed $hafta): ?string
+    {
+        if (self::isMonthlyPeriod($hafta)) {
+            return self::MONTHLY_VALUE;
+        }
+
+        if (! is_numeric($hafta)) {
+            return null;
+        }
+
+        $week = (int) $hafta;
+        if ($week < 1 || $week > self::WEEK_COUNT) {
+            return null;
+        }
+
+        return (string) $week;
+    }
+
     public static function isMonthlyReportingFrequency(?string $frequency): bool
     {
         $normalized = mb_strtolower(trim((string) $frequency));

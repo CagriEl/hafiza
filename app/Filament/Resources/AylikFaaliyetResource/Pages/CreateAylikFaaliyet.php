@@ -39,22 +39,27 @@ class CreateAylikFaaliyet extends CreateRecord
         $userId = (int) (auth()->id() ?? 0);
         $yil = (int) ($data['yil'] ?? 0);
         $ay = \App\Support\AylikFaaliyetPeriodMerge::normalizeAy((string) ($data['ay'] ?? ''));
+        $hafta = \App\Support\ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null)
+            ?? (string) \App\Support\ReportPeriodWeeks::resolveWeekForReportPeriod($yil, (int) $ay);
 
-        if ($userId > 0 && $yil > 0 && $ay !== '' && AylikFaaliyet::existsForUserPeriod($userId, $yil, $ay)) {
+        if ($userId > 0 && $yil > 0 && $ay !== ''
+            && AylikFaaliyet::existsForUserPeriodWeek($userId, $yil, $ay, $hafta)) {
             $existing = AylikFaaliyet::query()
                 ->where('user_id', $userId)
                 ->where('yil', $yil)
                 ->whereIn('ay', AylikFaaliyet::ayQueryVariants($ay))
+                ->where('hafta', $hafta)
                 ->orderBy('id')
                 ->first();
 
             if ($existing instanceof AylikFaaliyet) {
                 $editUrl = ActivityReportResource::getUrl('edit', ['record' => $existing]);
+                $label = \App\Support\ReportPeriodWeeks::periodLabelForRecord($yil, (int) $ay, $hafta) ?? $hafta;
 
                 Notification::make()
                     ->warning()
-                    ->title('Bu ay için rapor zaten var')
-                    ->body("{$yil}-{$ay} dönemi için yeni rapor açılamaz. Mevcut rapora yönlendiriliyorsunuz; İş Listesi alanına ekleme yapabilirsiniz.")
+                    ->title('Bu hafta için rapor zaten var')
+                    ->body("{$yil}-{$ay} · {$label} için yeni rapor açılamaz. Mevcut hafta raporuna yönlendiriliyorsunuz.")
                     ->actions([
                         Action::make('raporaGit')
                             ->label('Mevcut Raporu Aç')
@@ -68,6 +73,7 @@ class CreateAylikFaaliyet extends CreateRecord
         }
 
         $data['ay'] = $ay;
+        $data['hafta'] = $hafta;
 
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
 

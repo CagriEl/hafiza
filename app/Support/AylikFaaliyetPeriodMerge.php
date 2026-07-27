@@ -57,8 +57,9 @@ final class AylikFaaliyetPeriodMerge
         return $all
             ->groupBy(function (AylikFaaliyet $record): string {
                 $ay = self::normalizeAy((string) ($record->ay ?? ''));
+                $hafta = \App\Support\ReportPeriodWeeks::normalizeReportHafta($record->hafta ?? null) ?? '1';
 
-                return ((int) $record->user_id).'|'.((int) $record->yil).'|'.$ay;
+                return ((int) $record->user_id).'|'.((int) $record->yil).'|'.$ay.'|'.$hafta;
             })
             ->filter(fn (Collection $group): bool => $group->count() > 1)
             ->values();

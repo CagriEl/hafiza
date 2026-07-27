@@ -222,6 +222,13 @@ class AylikFaaliyetResource extends Resource
             return $selectedWeek;
         }
 
+        if (is_object($livewire) && property_exists($livewire, 'data') && is_array($livewire->data)) {
+            $reportHafta = ReportPeriodWeeks::normalizeReportHafta($livewire->data['hafta'] ?? null);
+            if ($reportHafta !== null && ! ReportPeriodWeeks::isMonthlyPeriod($reportHafta)) {
+                return (int) $reportHafta;
+            }
+        }
+
         return ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay);
     }
 
@@ -360,7 +367,7 @@ class AylikFaaliyetResource extends Resource
                 && ($get('hafta') !== null && $get('hafta') !== ''))
             ->dehydrated(true)
             ->columnSpanFull()
-            ->helperText('Haftalık sıklıkta 1–5. haftayı; aylık sıklıkta «Aylık» seçeneğini kullanın. Seçenekler raporlama sıklığına göre listelenir.');
+            ->helperText('Haftalık sıklıkta satır dönemi rapor haftasıyla uyumludur; aylık sıklıkta «Aylık» kullanılır.');
     }
 
     private static function applyDefaultHaftaForRow(Set $set, Get $get, mixed $livewire = null): void
@@ -402,6 +409,7 @@ class AylikFaaliyetResource extends Resource
 
         $yil = (int) ($data['yil'] ?? 0);
         $ay = (int) preg_replace('/\D/', '', (string) ($data['ay'] ?? ''));
+        $reportHafta = ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null);
 
         foreach ($data['faaliyetler'] as $i => $row) {
             if (! is_array($row)) {
@@ -414,8 +422,17 @@ class AylikFaaliyetResource extends Resource
                 continue;
             }
 
-            if ($hafta === null || $hafta === '') {
-                $frequency = trim((string) ($row['raporlama_sikligi'] ?? ''));
+            $frequency = trim((string) ($row['raporlama_sikligi'] ?? ''));
+            $monthlyOnly = ReportPeriodWeeks::isMonthlyReportingFrequency($frequency)
+                && ! ReportPeriodWeeks::isWeeklyReportingFrequency($frequency);
+
+            if ($monthlyOnly) {
+                $data['faaliyetler'][$i]['hafta'] = ReportPeriodWeeks::MONTHLY_VALUE;
+            } elseif ($reportHafta !== null) {
+                $data['faaliyetler'][$i]['hafta'] = ReportPeriodWeeks::isMonthlyPeriod($reportHafta)
+                    ? ReportPeriodWeeks::MONTHLY_VALUE
+                    : (int) $reportHafta;
+            } elseif ($hafta === null || $hafta === '') {
                 $data['faaliyetler'][$i]['hafta'] = ($yil > 0 && $ay >= 1 && $ay <= 12)
                     ? ReportPeriodWeeks::defaultPeriodForReportingFrequency($yil, $ay, $frequency)
                     : 1;
@@ -466,6 +483,10 @@ class AylikFaaliyetResource extends Resource
         $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? ''));
         if ($yil <= 0 || $ay < 1 || $ay > 12) {
             return null;
+        }
+
+        if (filled($record->hafta ?? null)) {
+            return ReportPeriodWeeks::periodLabelForRecord($yil, $ay, $record->hafta);
         }
 
         $labels = [];
@@ -1126,14 +1147,46 @@ class AylikFaaliyetResource extends Resource
                                 ->required()
                                 ->live(),
                         ]),
+                        Forms\Components\Select::make('hafta')
+                            ->label('Rapor Haftası')
+                            ->options(function (Get $get): array {
+                                $yil = (int) ($get('yil') ?? now()->year);
+                                $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? now()->format('m')));
+                                if ($yil <= 0 || $ay < 1 || $ay > 12) {
+                                    return [];
+                                }
+
+                                return ReportPeriodWeeks::periodSelectOptions($yil, $ay, 'Haftalık / Aylık');
+                            })
+                            ->default(function (Get $get): int|string {
+                                $yil = (int) ($get('yil') ?? now()->year);
+                                $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? now()->format('m')));
+                                if ($yil <= 0 || $ay < 1 || $ay > 12) {
+                                    return 1;
+                                }
+
+                                return ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay);
+                            })
+                            ->required()
+                            ->live()
+                            ->helperText('Her hafta için ayrı rapor oluşturabilirsiniz (ayda en fazla 5 haftalık + isteğe bağlı aylık).')
+                            ->columnSpanFull(),
                         Forms\Components\Placeholder::make('donem_tarih_araligi')
-                            ->label('Dönem Tarih Aralığı')
+                            ->label('Seçili Dönem')
                             ->content(function (Get $get): string {
                                 $yil = (int) ($get('yil') ?? now()->year);
                                 $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? now()->format('m')));
 
                                 if ($yil <= 0 || $ay < 1 || $ay > 12) {
                                     return '—';
+                                }
+
+                                $hafta = $get('hafta');
+                                if (ReportPeriodWeeks::isMonthlyPeriod($hafta)) {
+                                    return ReportPeriodWeeks::monthPeriodLabel($yil, $ay).' · Aylık';
+                                }
+                                if (filled($hafta) && is_numeric($hafta)) {
+                                    return ReportPeriodWeeks::weekShortLabel($yil, $ay, (int) $hafta);
                                 }
 
                                 return ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
@@ -1173,7 +1226,7 @@ class AylikFaaliyetResource extends Resource
 
                                 return $out;
                             })
-                            ->helperText('Tarih raporun sisteme son kaydedildiği anı gösterir. Hafta bilgisi iş satırlarındaki «Rapor Dönemi» seçiminden gelir.')
+                            ->helperText('Tarih raporun sisteme son kaydedildiği anı gösterir.')
                             ->visible(fn ($livewire): bool => is_object($livewire)
                                 && method_exists($livewire, 'getRecord')
                                 && ($livewire->getRecord() instanceof AylikFaaliyet)
@@ -1183,7 +1236,7 @@ class AylikFaaliyetResource extends Resource
                 Section::make('Uyarı')
                     ->schema([
                         Forms\Components\Placeholder::make('rapor_olusturma_uyarisi')
-                            ->content('Her müdürlük için aynı yıl/ay döneminde yalnızca 1 rapor oluşturulur. Haftalık işler aynı raporda «Rapor Dönemi» (1.–5. Hafta) ve tarihli kayıtlarla ayrılır; yeni hafta için ayrı rapor açmayınız.')
+                            ->content('Aynı yıl/ay içinde 1.–5. hafta ve «Aylık» için ayrı raporlar açabilirsiniz. Aynı hafta için ikinci rapor açılamaz; mevcut hafta raporunu düzenleyiniz.')
                             ->extraAttributes(['class' => 'text-amber-700'])
                             ->columnSpanFull(),
                     ])
@@ -2150,8 +2203,11 @@ class AylikFaaliyetResource extends Resource
                     }),
                 Tables\Columns\TextColumn::make('rapor_haftalari')
                     ->label('Rapor Haftası')
-                    ->getStateUsing(fn (AylikFaaliyet $record): string => static::reportAssignedWeeksSummary($record) ?? '—')
+                    ->getStateUsing(fn (AylikFaaliyet $record): string => $record->raporHaftasiLabel())
                     ->wrap()
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy('hafta', $direction);
+                    })
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('talep_tarihi')
                     ->label('Talep Tarihi')

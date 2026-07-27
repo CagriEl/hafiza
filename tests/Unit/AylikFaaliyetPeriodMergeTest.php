@@ -31,6 +31,7 @@ class AylikFaaliyetPeriodMergeTest extends TestCase
             $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedSmallInteger('yil')->nullable();
             $table->string('ay')->nullable();
+            $table->string('hafta', 16)->default('1');
             $table->integer('memur')->default(0);
             $table->integer('sozlesmeli_memur')->default(0);
             $table->integer('kadrolu_isci')->default(0);
@@ -128,6 +129,7 @@ class AylikFaaliyetPeriodMergeTest extends TestCase
                 'user_id' => $user->id,
                 'yil' => 2026,
                 'ay' => '07',
+                'hafta' => '1',
                 'faaliyetler' => [
                     ['activity_catalog_id' => 1, 'hafta' => 1, 'gerceklesen' => 1],
                 ],
@@ -136,6 +138,7 @@ class AylikFaaliyetPeriodMergeTest extends TestCase
                 'user_id' => $user->id,
                 'yil' => 2026,
                 'ay' => '7',
+                'hafta' => '1',
                 'faaliyetler' => [
                     ['activity_catalog_id' => 1, 'hafta' => 2, 'gerceklesen' => 2],
                 ],
@@ -143,14 +146,17 @@ class AylikFaaliyetPeriodMergeTest extends TestCase
         });
 
         $this->assertSame(1, AylikFaaliyetPeriodMerge::mergeAllDuplicates());
+        $this->assertSame(1, AylikFaaliyet::query()->where('hafta', '1')->count());
+        // Farklı hafta ayrı rapor olarak kalabilir; bu test aynı hafta duplicate birleştirir.
         $this->assertSame(1, AylikFaaliyet::query()->count());
 
         $report = AylikFaaliyet::query()->first();
         $this->assertSame('07', $report->ay);
+        $this->assertSame('1', (string) $report->hafta);
         $this->assertCount(2, $report->faaliyetler);
     }
 
-    public function test_exists_for_user_period_respects_ay_variants(): void
+    public function test_exists_for_user_period_week_is_week_scoped(): void
     {
         $user = User::query()->create([
             'name' => 'Fen2',
@@ -163,11 +169,13 @@ class AylikFaaliyetPeriodMergeTest extends TestCase
                 'user_id' => $user->id,
                 'yil' => 2026,
                 'ay' => '07',
+                'hafta' => '1',
                 'faaliyetler' => [],
             ]);
         });
 
+        $this->assertTrue(AylikFaaliyet::existsForUserPeriodWeek((int) $user->id, 2026, '07', 1));
+        $this->assertFalse(AylikFaaliyet::existsForUserPeriodWeek((int) $user->id, 2026, '07', 2));
         $this->assertTrue(AylikFaaliyet::existsForUserPeriod((int) $user->id, 2026, '7'));
-        $this->assertTrue(AylikFaaliyet::existsForUserPeriod((int) $user->id, 2026, '07'));
     }
 }

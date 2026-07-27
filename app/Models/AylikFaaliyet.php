@@ -86,11 +86,55 @@ class AylikFaaliyet extends Model
         return $query->exists();
     }
 
+    public static function existsForUserPeriodWeek(
+        int $userId,
+        int $yil,
+        string $ay,
+        int|string $hafta,
+        ?int $exceptId = null
+    ): bool {
+        if ($userId <= 0 || $yil <= 0 || trim($ay) === '') {
+            return false;
+        }
+
+        $variants = \App\Support\AylikFaaliyetPeriodMerge::ayQueryVariants($ay);
+        if ($variants === []) {
+            return false;
+        }
+
+        $haftaKey = \App\Support\ReportPeriodWeeks::normalizeReportHafta($hafta);
+        if ($haftaKey === null) {
+            return false;
+        }
+
+        $query = static::query()
+            ->where('user_id', $userId)
+            ->where('yil', $yil)
+            ->whereIn('ay', $variants)
+            ->where('hafta', $haftaKey);
+
+        if ($exceptId !== null && $exceptId > 0) {
+            $query->whereKeyNot($exceptId);
+        }
+
+        return $query->exists();
+    }
+
     /**
      * @return list<string>
      */
     public static function ayQueryVariants(string|int $ay): array
     {
         return \App\Support\AylikFaaliyetPeriodMerge::ayQueryVariants($ay);
+    }
+
+    public function raporHaftasiLabel(): string
+    {
+        $yil = (int) ($this->yil ?? 0);
+        $ay = (int) preg_replace('/\D/', '', (string) ($this->ay ?? ''));
+        $hafta = $this->hafta ?? null;
+
+        return \App\Support\ReportPeriodWeeks::periodLabelForRecord($yil, $ay, $hafta)
+            ?? (string) ($hafta ?? '—');
     }
 }
