@@ -79,12 +79,65 @@ class AylikFaaliyetWeeklyCarryoverTest extends TestCase
         $this->assertSame(7.0, (float) $result['faaliyetler'][0]['kapsam_verileri'][0]['gerceklesen']);
     }
 
-    public function test_kapsam_shows_follow_up_only_after_first_week_with_pending(): void
+    public function test_kapsam_shows_follow_up_only_is_disabled_for_separate_weekly_reports(): void
     {
         $row = ['ongorulen' => 20, 'gerceklesen' => 5];
 
         $this->assertFalse(AylikFaaliyetWeeklyCarryover::kapsamShowsFollowUpOnly($row, 1));
-        $this->assertTrue(AylikFaaliyetWeeklyCarryover::kapsamShowsFollowUpOnly($row, 2));
+        $this->assertFalse(AylikFaaliyetWeeklyCarryover::kapsamShowsFollowUpOnly($row, 2));
+        $this->assertTrue(AylikFaaliyetWeeklyCarryover::kapsamVisibleInCurrentWeek($row, 2));
+    }
+
+    public function test_current_week_prefers_report_hafta_over_row(): void
+    {
+        $week = AylikFaaliyetWeeklyCarryover::resolveWeekForFaaliyetRow(
+            ['hafta' => 1],
+            ['yil' => 2026, 'ay' => '07', 'hafta' => '3']
+        );
+
+        $this->assertSame(3, $week);
+    }
+
+    public function test_restrict_faaliyetler_keeps_only_report_week(): void
+    {
+        $data = [
+            'hafta' => '2',
+            'faaliyetler' => [
+                [
+                    'hafta' => 1,
+                    'faaliyet_kodu' => 'A-01',
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'X',
+                            'haftalik_kayitlar' => [
+                                ['hafta' => 1, 'miktar' => 5],
+                                ['hafta' => 2, 'miktar' => 3],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'hafta' => 2,
+                    'faaliyet_kodu' => 'B-01',
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'Y',
+                            'haftalik_kayitlar' => [
+                                ['hafta' => 2, 'miktar' => 7],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = AylikFaaliyetWeeklyCarryover::restrictFaaliyetlerToReportHafta($data);
+
+        $this->assertCount(1, $result['faaliyetler']);
+        $this->assertSame(2, $result['faaliyetler'][0]['hafta']);
+        $this->assertSame('B-01', $result['faaliyetler'][0]['faaliyet_kodu']);
+        $this->assertCount(1, $result['faaliyetler'][0]['kapsam_verileri'][0]['haftalik_kayitlar']);
+        $this->assertSame(2, $result['faaliyetler'][0]['kapsam_verileri'][0]['haftalik_kayitlar'][0]['hafta']);
     }
 
     public function test_current_week_uses_faaliyet_row_hafta(): void

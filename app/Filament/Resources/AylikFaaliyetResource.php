@@ -323,57 +323,44 @@ class AylikFaaliyetResource extends Resource
         );
     }
 
-    public static function faaliyetHaftaSelectField(): Forms\Components\Select
+    public static function faaliyetHaftaSelectField(): Forms\Components\Hidden
     {
-        return Forms\Components\Select::make('hafta')
-            ->label('Rapor Dönemi')
-            ->options(function (Get $get, Forms\Components\Select $component): array {
-                [$yil, $ay] = static::resolveReportPeriodFromLivewire($component->getLivewire());
-                if ($yil <= 0 || $ay < 1 || $ay > 12) {
-                    $yil = (int) ($get('../../yil') ?? $get('../../../yil') ?? 0);
-                    $ay = (int) preg_replace('/\D/', '', (string) ($get('../../ay') ?? $get('../../../ay') ?? ''));
+        return Forms\Components\Hidden::make('hafta')
+            ->default(function (Get $get, Forms\Components\Hidden $component): int|string {
+                $livewire = $component->getLivewire();
+                $reportHafta = null;
+                if (is_object($livewire) && property_exists($livewire, 'data') && is_array($livewire->data)) {
+                    $reportHafta = ReportPeriodWeeks::normalizeReportHafta($livewire->data['hafta'] ?? null);
                 }
-                if ($yil <= 0 || $ay < 1 || $ay > 12) {
-                    return [];
-                }
-
-                return ReportPeriodWeeks::periodSelectOptions(
-                    $yil,
-                    $ay,
-                    (string) ($get('raporlama_sikligi') ?? '')
+                $reportHafta ??= ReportPeriodWeeks::normalizeReportHafta(
+                    $get('../../hafta') ?? $get('../../../hafta') ?? null
                 );
-            })
-            ->default(function (Get $get, Forms\Components\Select $component): int|string {
-                $current = $get('hafta');
-                if ($current !== null && $current !== '') {
-                    return ReportPeriodWeeks::isMonthlyPeriod($current)
+                if ($reportHafta !== null) {
+                    return ReportPeriodWeeks::isMonthlyPeriod($reportHafta)
                         ? ReportPeriodWeeks::MONTHLY_VALUE
-                        : (int) $current;
-                }
-                [$yil, $ay] = static::resolveReportPeriodFromLivewire($component->getLivewire());
-                if ($yil <= 0 || $ay < 1 || $ay > 12) {
-                    return 1;
+                        : (int) $reportHafta;
                 }
 
-                return ReportPeriodWeeks::defaultPeriodForReportingFrequency(
-                    $yil,
-                    $ay,
-                    (string) ($get('raporlama_sikligi') ?? '')
-                );
+                return 1;
             })
-            ->required()
-            ->live()
-            ->disabled(fn (Get $get, $livewire): bool => (bool) ($get('ay_sonu_performans_kilitli') ?? false)
-                && ($get('hafta') !== null && $get('hafta') !== ''))
-            ->dehydrated(true)
-            ->columnSpanFull()
-            ->helperText('Haftalık sıklıkta satır dönemi rapor haftasıyla uyumludur; aylık sıklıkta «Aylık» kullanılır.');
+            ->dehydrated(true);
     }
 
     private static function applyDefaultHaftaForRow(Set $set, Get $get, mixed $livewire = null): void
     {
-        if ((bool) ($get('ay_sonu_performans_kilitli') ?? false)
-            && ($get('hafta') !== null && $get('hafta') !== '')) {
+        $reportHafta = null;
+        if (is_object($livewire) && property_exists($livewire, 'data') && is_array($livewire->data)) {
+            $reportHafta = ReportPeriodWeeks::normalizeReportHafta($livewire->data['hafta'] ?? null);
+        }
+        $reportHafta ??= ReportPeriodWeeks::normalizeReportHafta(
+            $get('../../hafta') ?? $get('../../../hafta') ?? null
+        );
+
+        if ($reportHafta !== null) {
+            $set('hafta', ReportPeriodWeeks::isMonthlyPeriod($reportHafta)
+                ? ReportPeriodWeeks::MONTHLY_VALUE
+                : (int) $reportHafta);
+
             return;
         }
 
@@ -394,7 +381,7 @@ class AylikFaaliyetResource extends Resource
     }
 
     /**
-     * Her iş listesi satırında hafta alanını doldurur.
+     * Her iş listesi satırında hafta alanını rapor haftasına kilitler.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -407,8 +394,9 @@ class AylikFaaliyetResource extends Resource
             return $data;
         }
 
-        $yil = (int) ($data['yil'] ?? 0);
-        $ay = (int) preg_replace('/\D/', '', (string) ($data['ay'] ?? ''));
+        // Önce yabancı hafta satırlarını/kayıtlarını ayıkla; sonra kalanları rapor haftasına yaz.
+        $data = AylikFaaliyetWeeklyCarryover::restrictFaaliyetlerToReportHafta($data);
+
         $reportHafta = ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null);
 
         foreach ($data['faaliyetler'] as $i => $row) {
@@ -416,29 +404,19 @@ class AylikFaaliyetResource extends Resource
                 continue;
             }
 
-            $locked = (bool) ($row['ay_sonu_performans_kilitli'] ?? false);
-            $hafta = $row['hafta'] ?? null;
-            if ($locked && ($hafta !== null && $hafta !== '')) {
-                continue;
-            }
-
-            $frequency = trim((string) ($row['raporlama_sikligi'] ?? ''));
-            $monthlyOnly = ReportPeriodWeeks::isMonthlyReportingFrequency($frequency)
-                && ! ReportPeriodWeeks::isWeeklyReportingFrequency($frequency);
-
-            if ($monthlyOnly) {
-                $data['faaliyetler'][$i]['hafta'] = ReportPeriodWeeks::MONTHLY_VALUE;
-            } elseif ($reportHafta !== null) {
+            if ($reportHafta !== null) {
                 $data['faaliyetler'][$i]['hafta'] = ReportPeriodWeeks::isMonthlyPeriod($reportHafta)
                     ? ReportPeriodWeeks::MONTHLY_VALUE
                     : (int) $reportHafta;
-            } elseif ($hafta === null || $hafta === '') {
+            } elseif (($row['hafta'] ?? null) === null || $row['hafta'] === '') {
+                $yil = (int) ($data['yil'] ?? 0);
+                $ay = (int) preg_replace('/\D/', '', (string) ($data['ay'] ?? ''));
+                $frequency = trim((string) ($row['raporlama_sikligi'] ?? ''));
                 $data['faaliyetler'][$i]['hafta'] = ($yil > 0 && $ay >= 1 && $ay <= 12)
                     ? ReportPeriodWeeks::defaultPeriodForReportingFrequency($yil, $ay, $frequency)
                     : 1;
             }
 
-            // Eski kayıtlardaki tarih alanlarını temizle (yalnızca hafta no kullanılır).
             unset($data['faaliyetler'][$i]['hafta_baslangic'], $data['faaliyetler'][$i]['hafta_bitis']);
         }
 
@@ -713,23 +691,12 @@ class AylikFaaliyetResource extends Resource
             return true;
         }
 
-        if (static::isMonthlyPeriodForRow($get)) {
-            return ! static::kapsamYapilanIsDbKayitli($get, $livewire);
-        }
-
-        if (static::currentReportWeekForForm($get, $livewire) <= 1) {
-            if (! static::kapsamYapilanIsDbKayitli($get, $livewire)) {
-                return true;
-            }
-            $u = auth()->user();
-            if ($u instanceof User && $u->isReportingSuperAdmin()) {
-                return true;
-            }
-
-            return false;
-        }
-
         if (! static::kapsamYapilanIsDbKayitli($get, $livewire)) {
+            return true;
+        }
+
+        $u = auth()->user();
+        if ($u instanceof User && $u->isReportingSuperAdmin()) {
             return true;
         }
 
@@ -792,47 +759,13 @@ class AylikFaaliyetResource extends Resource
 
     public static function kapsamShowsWeeklyFollowUpFields(Get $get, mixed $livewire): bool
     {
-        if (static::isMonthlyPeriodForRow($get)) {
-            return false;
-        }
-        if (! $livewire instanceof EditRecord) {
-            return false;
-        }
-        if (AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get)) {
-            return false;
-        }
-        if (trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '') {
-            return false;
-        }
-        if (static::currentReportWeekForForm($get, $livewire) <= 1) {
-            return false;
-        }
-
-        return AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get)) > 0.0;
+        // Her hafta ayrı rapor: takip-sadece (önceki haftadan açık iş) modu yok.
+        return false;
     }
 
     public static function kapsamKalemVisibleInCurrentWeek(Get $get, mixed $livewire): bool
     {
-        if (static::isMonthlyPeriodForRow($get)) {
-            return true;
-        }
-        if (! $livewire instanceof EditRecord) {
-            return true;
-        }
-        if (trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '') {
-            return true;
-        }
-
-        $week = static::currentReportWeekForForm($get, $livewire);
-        if ($week <= 1) {
-            return true;
-        }
-
-        if ($livewire instanceof EditRecord && ! static::kapsamYapilanIsDbKayitli($get, $livewire)) {
-            return true;
-        }
-
-        return AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get)) > 0.0;
+        return true;
     }
 
     /**
@@ -857,8 +790,10 @@ class AylikFaaliyetResource extends Resource
 
         $data = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
 
-        return static::applyAutoHaftaToFaaliyetler(
-            AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data)
+        return AylikFaaliyetWeeklyCarryover::restrictFaaliyetlerToReportHafta(
+            static::applyAutoHaftaToFaaliyetler(
+                AylikFaaliyetRepeaterLock::stripInternalKeysFromFaaliyetler($data)
+            )
         );
     }
 
@@ -1169,7 +1104,9 @@ class AylikFaaliyetResource extends Resource
                             })
                             ->required()
                             ->live()
-                            ->helperText('Her hafta için ayrı rapor oluşturabilirsiniz (ayda en fazla 5 haftalık + isteğe bağlı aylık).')
+                            ->disabled(fn ($livewire): bool => $livewire instanceof EditRecord)
+                            ->dehydrated()
+                            ->helperText('Her hafta ayrı rapordur. 1. hafta yalnızca 1. hafta, 2. hafta yalnızca 2. hafta verisini içerir.')
                             ->columnSpanFull(),
                         Forms\Components\Placeholder::make('donem_tarih_araligi')
                             ->label('Seçili Dönem')
@@ -1236,7 +1173,7 @@ class AylikFaaliyetResource extends Resource
                 Section::make('Uyarı')
                     ->schema([
                         Forms\Components\Placeholder::make('rapor_olusturma_uyarisi')
-                            ->content('Aynı yıl/ay içinde 1.–5. hafta ve «Aylık» için ayrı raporlar açabilirsiniz. Aynı hafta için ikinci rapor açılamaz; mevcut hafta raporunu düzenleyiniz.')
+                            ->content('Aynı yıl/ay içinde 1.–5. hafta ve «Aylık» için ayrı raporlar açılır. Her rapor yalnızca seçilen haftaya aittir; aynı hafta için ikinci rapor açılamaz.')
                             ->extraAttributes(['class' => 'text-amber-700'])
                             ->columnSpanFull(),
                     ])
@@ -1412,6 +1349,17 @@ class AylikFaaliyetResource extends Resource
                                     ->extraAttributes(['class' => 'bg-gray-50']),
 
                                 static::faaliyetHaftaSelectField(),
+                                Forms\Components\Placeholder::make('faaliyet_rapor_donemi')
+                                    ->label('Satır Dönemi')
+                                    ->content(function (Get $get, $livewire): string {
+                                        $weekLabel = static::selectedRaporHaftasiLabelForFormContext($get, $livewire);
+                                        if ($weekLabel) {
+                                            return $weekLabel.' — bu satırlar yalnızca bu hafta raporuna kaydedilir.';
+                                        }
+
+                                        return 'Rapor haftasıyla aynıdır.';
+                                    })
+                                    ->columnSpanFull(),
 
                                 Repeater::make('kapsam_verileri')
                                     ->label(function (Get $get, $livewire): string {
@@ -1425,12 +1373,7 @@ class AylikFaaliyetResource extends Resource
                                         return $base;
                                     })
                                     ->helperText(function (Get $get, $livewire): string {
-                                        $week = static::currentReportWeekForForm($get, $livewire);
-                                        if ($week > 1) {
-                                            return 'Bu hafta yalnızca açıkta kalan işler için tamamlanan miktar, tamamlanma tarihi ve açıklama girebilirsiniz. Rapor dönemi yukarıdaki hafta seçiminden (1.–5. Hafta) belirlenir.';
-                                        }
-
-                                        return 'Önce yapılan işi girip kaydedin. Kayıttan sonra aynı raporda tamamlanan iş alanı açılır; eşit değilse fark açıkta kalan olarak hesaplanır. Kayıt tarihi sisteme kaydedildiği gerçek gündür.';
+                                        return 'Bu rapor yalnızca seçili haftaya aittir. Yapılan işi girip kaydedin; kayıt sonrası tamamlanan iş alanı açılır.';
                                     })
                                     ->dehydrated()
                                     ->schema([

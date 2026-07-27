@@ -5,7 +5,8 @@ namespace App\Support;
 use Carbon\Carbon;
 
 /**
- * Açıkta kalan işlerin sonraki haftalarda yalnızca devam girişi ile takibi.
+ * Haftalık rapor kayıtları (her rapor ayrı hafta) için ilerleme / birleştirme.
+ * Bir rapor yalnızca kendi haftasına aittir; haftalar arası tek kayıt birikimi yoktur.
  */
 final class AylikFaaliyetWeeklyCarryover
 {
@@ -31,6 +32,11 @@ final class AylikFaaliyetWeeklyCarryover
 
     public static function currentWeekForReportData(array $data): int
     {
+        $reportHafta = ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null);
+        if ($reportHafta !== null && ! ReportPeriodWeeks::isMonthlyPeriod($reportHafta)) {
+            return (int) $reportHafta;
+        }
+
         $yil = (int) ($data['yil'] ?? 0);
         $ay = (int) preg_replace('/\D/', '', (string) ($data['ay'] ?? ''));
 
@@ -47,6 +53,16 @@ final class AylikFaaliyetWeeklyCarryover
      */
     public static function resolveWeekForFaaliyetRow(array $row, array $data): int
     {
+        // Rapor düzeyindeki hafta egemendir: 2. hafta raporuna 1. hafta yazılmaz.
+        $reportHafta = ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null);
+        if ($reportHafta !== null) {
+            if (ReportPeriodWeeks::isMonthlyPeriod($reportHafta)) {
+                return 0;
+            }
+
+            return (int) $reportHafta;
+        }
+
         if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
             return 0;
         }
@@ -62,25 +78,103 @@ final class AylikFaaliyetWeeklyCarryover
     }
 
     /**
-     * Sonraki haftalarda yalnızca açıkta kalan iş için devam girişi.
+     * Eski tek-rapor modeli; artık her hafta ayrı rapor olduğu için kullanılmaz.
      *
      * @param  array<string, mixed>  $kapsamRow
      */
     public static function kapsamShowsFollowUpOnly(array $kapsamRow, int $currentWeek): bool
     {
-        return $currentWeek > 1 && self::kapsamPendingAmount($kapsamRow) > 0.0;
+        return false;
     }
 
     /**
+     * Her haftalık rapor kendi kalemlerini tam gösterir.
+     *
      * @param  array<string, mixed>  $kapsamRow
      */
     public static function kapsamVisibleInCurrentWeek(array $kapsamRow, int $currentWeek): bool
     {
-        if ($currentWeek <= 1) {
-            return true;
+        return true;
+    }
+
+    /**
+     * Faaliyet satırlarını ve haftalık kayıtları rapor haftasına hizalar.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function restrictFaaliyetlerToReportHafta(array $data): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
         }
 
-        return self::kapsamPendingAmount($kapsamRow) > 0.0;
+        $reportHafta = ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null);
+        if ($reportHafta === null) {
+            return $data;
+        }
+
+        $isMonthlyReport = ReportPeriodWeeks::isMonthlyPeriod($reportHafta);
+        $reportWeek = $isMonthlyReport ? null : (int) $reportHafta;
+        $kept = [];
+
+        foreach ($data['faaliyetler'] as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $rowHafta = $row['hafta'] ?? null;
+            if ($isMonthlyReport) {
+                $row['hafta'] = ReportPeriodWeeks::MONTHLY_VALUE;
+            } else {
+                // Yabancı hafta satırlarını bu rapora alma.
+                if (filled($rowHafta)
+                    && ! ReportPeriodWeeks::isMonthlyPeriod($rowHafta)
+                    && is_numeric($rowHafta)
+                    && (int) $rowHafta !== $reportWeek) {
+                    continue;
+                }
+                $row['hafta'] = $reportWeek;
+            }
+
+            $kv = $row['kapsam_verileri'] ?? null;
+            if (is_array($kv)) {
+                foreach ($kv as $ki => $kapsamRow) {
+                    if (! is_array($kapsamRow)) {
+                        continue;
+                    }
+                    $kayitlar = $kapsamRow['haftalik_kayitlar'] ?? null;
+                    if (! is_array($kayitlar)) {
+                        continue;
+                    }
+                    $filtered = [];
+                    foreach ($kayitlar as $kayit) {
+                        if (! is_array($kayit)) {
+                            continue;
+                        }
+                        $kh = $kayit['hafta'] ?? null;
+                        if ($isMonthlyReport) {
+                            if (ReportPeriodWeeks::isMonthlyPeriod($kh) || $kh === null || $kh === '') {
+                                $filtered[] = $kayit;
+                            }
+                            continue;
+                        }
+                        if ($kh === null || $kh === '' || (is_numeric($kh) && (int) $kh === $reportWeek)) {
+                            $kayit['hafta'] = $reportWeek;
+                            $filtered[] = $kayit;
+                        }
+                    }
+                    $kv[$ki]['haftalik_kayitlar'] = array_values($filtered);
+                }
+                $row['kapsam_verileri'] = array_values($kv);
+            }
+
+            $kept[] = $row;
+        }
+
+        $data['faaliyetler'] = $kept;
+
+        return $data;
     }
 
     /**
