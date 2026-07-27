@@ -2,12 +2,14 @@
 
 namespace App\Support;
 
+use App\Models\RaporHaftaTanimi;
 use Carbon\Carbon;
+use Throwable;
 
 /**
  * Aylık faaliyet raporlarında ayı sabit 4 haftalık takvim aralığına böler.
- * Her hafta Pazartesi–Pazar (7 gün) tam takvim haftasıdır; 1. hafta ayın 1’ini
- * içeren haftanın Pazartesinden başlar (önceki aya taşabilir).
+ * Analiz ekibi tanımlı tarih aralıkları varsa onlar kullanılır; yoksa otomatik
+ * Pazartesi–Pazar algoritması uygulanır.
  */
 final class ReportPeriodWeeks
 {
@@ -90,6 +92,45 @@ final class ReportPeriodWeeks
     }
 
     /**
+     * Ayın rapor haftaları: önce manuel tanımlar, yoksa otomatik hesap.
+     *
+     * @return list<array{hafta: int, baslangic: Carbon, bitis: Carbon}>
+     */
+    public static function weeksForMonth(int $year, int $month): array
+    {
+        if ($year <= 0 || $month < 1 || $month > 12) {
+            return [];
+        }
+
+        $custom = self::customWeeksForMonth($year, $month);
+        if ($custom !== null) {
+            return $custom;
+        }
+
+        return self::computedWeeksForMonth($year, $month);
+    }
+
+    /**
+     * Analiz ekibi tarafından kaydedilmiş hafta tanımları.
+     *
+     * @return list<array{hafta: int, baslangic: Carbon, bitis: Carbon}>|null
+     */
+    public static function customWeeksForMonth(int $year, int $month): ?array
+    {
+        try {
+            if (! RaporHaftaTanimi::hasDefinitionsForPeriod($year, $month)) {
+                return null;
+            }
+
+            $weeks = RaporHaftaTanimi::weeksForPeriod($year, $month);
+
+            return $weeks === [] ? null : $weeks;
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /**
      * Ayı 4 rapor haftasına böler: her hafta tam takvim haftası (Pzt–Paz, 7 gün).
      * 1. hafta ayın 1’ini içeren haftanın Pazartesinden o Pazar’a;
      * 2–3. haftalar sonraki tam Pzt–Paz aralıkları;
@@ -97,7 +138,7 @@ final class ReportPeriodWeeks
      *
      * @return list<array{hafta: int, baslangic: Carbon, bitis: Carbon}>
      */
-    public static function weeksForMonth(int $year, int $month): array
+    public static function computedWeeksForMonth(int $year, int $month): array
     {
         if ($year <= 0 || $month < 1 || $month > 12) {
             return [];

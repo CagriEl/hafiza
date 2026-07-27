@@ -10,7 +10,7 @@ class ReportPeriodWeeksTest extends TestCase
 {
     public function test_july_first_week_is_full_calendar_week_from_monday(): void
     {
-        $weeks = ReportPeriodWeeks::weeksForMonth(2026, 7);
+        $weeks = ReportPeriodWeeks::computedWeeksForMonth(2026, 7);
 
         $this->assertCount(4, $weeks);
         $this->assertSame(1, $weeks[0]['hafta']);
@@ -26,7 +26,7 @@ class ReportPeriodWeeksTest extends TestCase
 
     public function test_month_starts_on_monday_first_week_is_full_calendar_week(): void
     {
-        $weeks = ReportPeriodWeeks::weeksForMonth(2026, 6);
+        $weeks = ReportPeriodWeeks::computedWeeksForMonth(2026, 6);
 
         $this->assertSame('01.06.2026', ReportPeriodWeeks::formatDate($weeks[0]['baslangic']));
         $this->assertSame('07.06.2026', ReportPeriodWeeks::formatDate($weeks[0]['bitis']));
@@ -36,7 +36,7 @@ class ReportPeriodWeeksTest extends TestCase
 
     public function test_february_last_week_ends_on_month_end(): void
     {
-        $weeks = ReportPeriodWeeks::weeksForMonth(2026, 2);
+        $weeks = ReportPeriodWeeks::computedWeeksForMonth(2026, 2);
 
         $this->assertSame('28.02.2026', ReportPeriodWeeks::formatDate($weeks[3]['bitis']));
     }

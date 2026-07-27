@@ -39,6 +39,7 @@ class User extends Authenticatable
         'directorate_id',
         'role',
         'include_in_performance_charts',
+        'can_manage_rapor_haftalari',
     ];
 
     /**
@@ -65,6 +66,7 @@ class User extends Authenticatable
             'vekalet_bitis' => 'date',
             'vekalet_tam_yetki' => 'boolean',
             'include_in_performance_charts' => 'boolean',
+            'can_manage_rapor_haftalari' => 'boolean',
         ];
     }
 
@@ -300,5 +302,14 @@ class User extends Authenticatable
     public function isControlTeam(): bool
     {
         return trim((string) $this->role) === self::ROLE_ANALIZ_EKIBI;
+    }
+
+    public function canManageRaporHaftalari(): bool
+    {
+        if ($this->isReportingSuperAdmin()) {
+            return true;
+        }
+
+        return $this->isControlTeam() && (bool) $this->can_manage_rapor_haftalari;
     }
 }
