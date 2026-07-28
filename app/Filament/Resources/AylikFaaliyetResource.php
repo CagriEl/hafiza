@@ -3617,31 +3617,67 @@ class AylikFaaliyetResource extends Resource
             $doneColor = (bool) ($item['missing_done'] ?? false) ? '#b91c1c' : '#111827';
             $pendingColor = (bool) ($item['missing_pending'] ?? false) ? '#b91c1c' : '#111827';
             $planColor = (bool) ($item['missing_plan'] ?? false) ? '#b91c1c' : '#111827';
-            $weeklyNotes = '';
-            foreach ($item['kapsam_rows'] ?? [] as $kapsam) {
-                $kayitlar = $kapsam['haftalik_kayitlar'] ?? [];
-                if (! is_array($kayitlar) || $kayitlar === []) {
-                    continue;
-                }
-                foreach ($kayitlar as $kayit) {
-                    if (! is_array($kayit)) {
+            $kapsamDetailHtml = '';
+            $kapsamRows = is_array($item['kapsam_rows'] ?? null) ? $item['kapsam_rows'] : [];
+            if ($kapsamRows !== []) {
+                $kalemRowsHtml = '';
+                foreach ($kapsamRows as $kapsam) {
+                    if (! is_array($kapsam)) {
                         continue;
                     }
-                    $tarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($kayit['yapilma_tarihi'] ?? null) ?? '—';
-                    $haftaNo = (int) ($kayit['hafta'] ?? 0);
-                    $weekLabel = ($yil > 0 && $ay >= 1 && $ay <= 12 && $haftaNo >= 1)
-                        ? (ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $haftaNo) ?? ('H'.$haftaNo))
-                        : ('H'.$haftaNo);
-                    $weeklyNotes .= '<div style="font-size:6.5px;color:#374151;">'
-                        .e((string) ($kapsam['kalem'] ?? '')).': '.e($weekLabel)
-                        .' · Kayıt: '.$tarih
-                        .' · '.e((string) ($kayit['miktar'] ?? ''))
-                        .' — '.e((string) ($kayit['aciklama'] ?? ''))
-                        .'</div>';
+                    $kalem = trim((string) ($kapsam['kalem'] ?? ''));
+                    if ($kalem === '') {
+                        continue;
+                    }
+                    $kPlan = number_format((float) ($kapsam['ongorulen'] ?? 0), 0, ',', '.');
+                    $kDone = number_format((float) ($kapsam['gerceklesen'] ?? 0), 0, ',', '.');
+                    $kPending = number_format((float) ($kapsam['acikta_kalan'] ?? 0), 0, ',', '.');
+                    $weeklyNotes = '';
+                    $kayitlar = $kapsam['haftalik_kayitlar'] ?? [];
+                    if (is_array($kayitlar)) {
+                        foreach ($kayitlar as $kayit) {
+                            if (! is_array($kayit)) {
+                                continue;
+                            }
+                            $tarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($kayit['yapilma_tarihi'] ?? null) ?? '—';
+                            $haftaNo = (int) ($kayit['hafta'] ?? 0);
+                            $weekLabel = ($yil > 0 && $ay >= 1 && $ay <= 12 && $haftaNo >= 1)
+                                ? (ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $haftaNo) ?? ('H'.$haftaNo))
+                                : ('H'.$haftaNo);
+                            $weeklyNotes .= '<div style="font-size:6px;color:#6b7280;margin-top:1px;">'
+                                .e($weekLabel)
+                                .' · Kayıt: '.$tarih
+                                .' · '.e((string) ($kayit['miktar'] ?? ''))
+                                .' — '.e((string) ($kayit['aciklama'] ?? ''))
+                                .'</div>';
+                        }
+                    }
+                    $kalemRowsHtml .= '<tr>'
+                        .'<td style="border:1px solid #e5e7eb;padding:1px 3px;">'.e($kalem).$weeklyNotes.'</td>'
+                        .'<td style="border:1px solid #e5e7eb;padding:1px 3px;text-align:right;">'.e($kDone).'</td>'
+                        .'<td style="border:1px solid #e5e7eb;padding:1px 3px;text-align:right;">'.e($kPending).'</td>'
+                        .'<td style="border:1px solid #e5e7eb;padding:1px 3px;text-align:right;">'.e($kPlan).'</td>'
+                        .'</tr>';
+                }
+                if ($kalemRowsHtml !== '') {
+                    $kapsamDetailHtml = '<div style="margin-top:3px;">'
+                        .'<div style="font-size:6.5px;font-weight:700;color:#374151;margin-bottom:1px;">Alt kalemler</div>'
+                        .'<table style="width:100%;border-collapse:collapse;font-size:6.5px;">'
+                        .'<thead><tr style="background:#f9fafb;">'
+                        .'<th style="border:1px solid #e5e7eb;padding:1px 3px;text-align:left;">Kalem</th>'
+                        .'<th style="border:1px solid #e5e7eb;padding:1px 3px;text-align:right;width:16%;">Yapılan</th>'
+                        .'<th style="border:1px solid #e5e7eb;padding:1px 3px;text-align:right;width:16%;">Açıkta</th>'
+                        .'<th style="border:1px solid #e5e7eb;padding:1px 3px;text-align:right;width:16%;">Toplam</th>'
+                        .'</tr></thead>'
+                        .'<tbody>'.$kalemRowsHtml.'</tbody>'
+                        .'</table></div>';
                 }
             }
             $sonTarih = '';
-            foreach ($item['kapsam_rows'] ?? [] as $kapsam) {
+            foreach ($kapsamRows as $kapsam) {
+                if (! is_array($kapsam)) {
+                    continue;
+                }
                 $formatted = AylikFaaliyetWeeklyCarryover::formatDisplayDate($kapsam['son_yapilma_tarihi'] ?? null);
                 if ($formatted) {
                     $sonTarih = $formatted;
@@ -3651,7 +3687,7 @@ class AylikFaaliyetResource extends Resource
             $rowsHtml .= '<tr>'
                 .'<td>'.e((string) $item['code']).'</td>'
                 .'<td>'.e((string) ($item['week_label'] ?? '—')).'</td>'
-                .'<td>'.e((string) $item['title']).($weeklyNotes !== '' ? '<br>'.$weeklyNotes : '').'</td>'
+                .'<td>'.e((string) $item['title']).$kapsamDetailHtml.'</td>'
                 .'<td style="color:'.$doneColor.';">'.e(number_format((float) $item['done'], 0, ',', '.')).'</td>'
                 .'<td style="color:'.$pendingColor.';">'.e(number_format((float) $item['pending'], 0, ',', '.')).'</td>'
                 .'<td style="color:'.$planColor.';">'.e(number_format((float) $item['plan'], 0, ',', '.')).'</td>'
@@ -3696,7 +3732,7 @@ class AylikFaaliyetResource extends Resource
             <tr>
                 <th style="width:7%;">Kod</th>
                 <th style="width:12%;">Hafta</th>
-                <th style="width:28%;">Faaliyet / Haftalık Not</th>
+                <th style="width:28%;">Faaliyet / Alt Kalemler</th>
                 <th style="width:7%;">Yapılan</th>
                 <th style="width:8%;">Açıkta</th>
                 <th style="width:7%;">Toplam</th>
@@ -3922,7 +3958,16 @@ class AylikFaaliyetResource extends Resource
 
     /**
      * @param  array<string, mixed>  $row
-     * @return list<array{kalem:string, gerceklesen:float, acikta_kalan:float}>
+     * @return list<array{
+     *   kalem: string,
+     *   ongorulen: float,
+     *   gerceklesen: float,
+     *   acikta_kalan: float,
+     *   haftalik_kayitlar: list<mixed>,
+     *   son_yapilma_tarihi: mixed,
+     *   acikta_revize_tarihi: mixed,
+     *   acikta_revize_notu: mixed
+     * }>
      */
     private static function kapsamRowsForSummary(array $row): array
     {
@@ -3940,11 +3985,13 @@ class AylikFaaliyetResource extends Resource
             if ($kalem === '') {
                 continue;
             }
+            $plan = static::toFloatNumber($kapsamRow['ongorulen'] ?? $kapsamRow['deger'] ?? 0);
             $done = static::toFloatNumber($kapsamRow['gerceklesen'] ?? 0);
             $pending = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($kapsamRow);
 
             $out[] = [
                 'kalem' => $kalem,
+                'ongorulen' => max(0.0, $plan),
                 'gerceklesen' => max(0.0, $done),
                 'acikta_kalan' => max(0.0, $pending),
                 'haftalik_kayitlar' => is_array($kapsamRow['haftalik_kayitlar'] ?? null) ? $kapsamRow['haftalik_kayitlar'] : [],
