@@ -144,4 +144,78 @@ class AnalizEkibiYoneticiRaporTest extends TestCase
         $this->assertFalse($report['rapor_var']);
         $this->assertSame(0, $report['ozet']['toplam_kod']);
     }
+
+    public function test_weekly_overview_covers_all_assigned_mudurluks(): void
+    {
+        // id=1 süper admin sayıldığı için analiz hesabını 1 yapma.
+        User::query()->create([
+            'name' => 'Sistem',
+            'email' => 'sistem@example.com',
+            'password' => 'secret',
+            'role' => null,
+        ]);
+
+        $analiz = User::query()->create([
+            'name' => 'Analiz',
+            'email' => 'analiz-all@example.com',
+            'password' => 'secret',
+            'role' => User::ROLE_ANALIZ_EKIBI,
+        ]);
+
+        $fen = User::query()->create([
+            'name' => 'Fen İşleri',
+            'email' => 'fen-all@example.com',
+            'password' => 'secret',
+            'role' => null,
+        ]);
+        $kultur = User::query()->create([
+            'name' => 'Kültür',
+            'email' => 'kultur-all@example.com',
+            'password' => 'secret',
+            'role' => null,
+        ]);
+        $analiz->assignedDirectorates()->attach([$fen->id, $kultur->id]);
+
+        AylikFaaliyet::withoutEvents(function () use ($fen, $kultur): void {
+            AylikFaaliyet::query()->create([
+                'user_id' => $fen->id,
+                'yil' => 2026,
+                'ay' => '07',
+                'hafta' => '1',
+                'faaliyetler' => [
+                    [
+                        'faaliyet_kodu' => 'FNM-01',
+                        'hedef' => 10,
+                        'gerceklesen' => 0,
+                        'bekleyen_is' => 10,
+                    ],
+                ],
+            ]);
+            AylikFaaliyet::query()->create([
+                'user_id' => $kultur->id,
+                'yil' => 2026,
+                'ay' => '07',
+                'hafta' => '1',
+                'faaliyetler' => [
+                    [
+                        'faaliyet_kodu' => 'KLT-01',
+                        'hedef' => 5,
+                        'gerceklesen' => 5,
+                        'bekleyen_is' => 0,
+                    ],
+                ],
+            ]);
+        });
+
+        $report = AnalizEkibiYoneticiRapor::buildWeeklyOverview($analiz, 2026, 7, 1);
+
+        $this->assertSame(2, $report['ozet']['mudurluk_sayisi']);
+        $this->assertSame(2, $report['ozet']['rapor_olan']);
+        $this->assertSame(1, $report['ozet']['sifir_kod_sayisi']);
+        $this->assertSame(5.0, $report['ozet']['yapilan']);
+        $this->assertSame(10.0, $report['ozet']['acikta']);
+        $this->assertCount(2, $report['mudurlukler']);
+        $this->assertNotEmpty($report['risk_haritasi']);
+        $this->assertNotEmpty($report['aksiyonlar']);
+    }
 }

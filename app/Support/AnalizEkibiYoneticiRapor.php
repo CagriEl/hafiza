@@ -79,6 +79,8 @@ final class AnalizEkibiYoneticiRapor
         $sifirKodlar = [];
         $aciktaIsler = [];
         $aciktaToplam = 0.0;
+        $hedefToplam = 0.0;
+        $gerceklesenToplam = 0.0;
 
         foreach ($rows as $row) {
             if (! is_array($row)) {
@@ -86,6 +88,9 @@ final class AnalizEkibiYoneticiRapor
             }
 
             $mapped = self::mapFaaliyetRow($row);
+            $hedefToplam += (float) $mapped['hedef'];
+            $gerceklesenToplam += (float) $mapped['gerceklesen'];
+
             if ((float) $mapped['gerceklesen'] <= 0.0) {
                 $sifirKodlar[] = $mapped;
             }
@@ -149,9 +154,175 @@ final class AnalizEkibiYoneticiRapor
                 'sifir_kod_sayisi' => count($sifirKodlar),
                 'acikta_kalem_sayisi' => count($aciktaIsler),
                 'acikta_toplam' => $aciktaToplam,
+                'hedef' => $hedefToplam,
+                'gerceklesen' => $gerceklesenToplam,
+                'tamamlanma_orani' => AnalizEkibiRaporVerileri::completionPercent(
+                    (int) round($gerceklesenToplam),
+                    (int) round($hedefToplam > 0.0 ? $hedefToplam : ($gerceklesenToplam + $aciktaToplam))
+                ),
             ],
             'sifir_girilen_kodlar' => $sifirKodlar,
             'acikta_kalan_isler' => $aciktaIsler,
+        ];
+    }
+
+    /**
+     * Tüm erişilebilir müdürlükler için haftalık yönetici özeti
+     * (örnek rapor düzeninde KPI + listeler).
+     *
+     * @return array<string, mixed>
+     */
+    public static function buildWeeklyOverview(
+        User $user,
+        int $yil,
+        int|string $ay,
+        mixed $hafta,
+    ): array {
+        $ayPadded = AylikFaaliyetPeriodMerge::normalizeAy($ay);
+        $haftaNorm = ReportPeriodWeeks::normalizeReportHafta($hafta) ?? (string) max(1, (int) $hafta);
+        $donemEtiketi = self::periodLabel($yil, $ayPadded, $haftaNorm);
+        $options = self::mudurlukOptionsForUser($user);
+
+        $mudurlukler = [];
+        $toplamHedef = 0.0;
+        $toplamYapilan = 0.0;
+        $toplamAcikta = 0.0;
+        $toplamSifir = 0;
+        $toplamKod = 0;
+        $raporOlan = 0;
+        $aksiyonlar = [];
+        $riskHaritasi = [];
+        $tumAcikta = [];
+        $tumSifir = [];
+
+        foreach ($options as $id => $name) {
+            $detail = self::buildForUser($user, (int) $id, $yil, $ay, $haftaNorm);
+            $ozet = $detail['ozet'];
+            $toplamKod += (int) $ozet['toplam_kod'];
+            $toplamSifir += (int) $ozet['sifir_kod_sayisi'];
+            $toplamHedef += (float) ($ozet['hedef'] ?? 0);
+            $toplamYapilan += (float) ($ozet['gerceklesen'] ?? 0);
+            $toplamAcikta += (float) $ozet['acikta_toplam'];
+
+            if ($detail['rapor_var']) {
+                $raporOlan++;
+            }
+
+            foreach ($detail['acikta_kalan_isler'] as $is) {
+                $tumAcikta[] = array_merge($is, [
+                    'mudurluk_id' => $detail['mudurluk_id'],
+                    'mudurluk_adi' => $detail['mudurluk_adi'],
+                ]);
+            }
+            foreach ($detail['sifir_girilen_kodlar'] as $kod) {
+                $tumSifir[] = array_merge($kod, [
+                    'mudurluk_id' => $detail['mudurluk_id'],
+                    'mudurluk_adi' => $detail['mudurluk_adi'],
+                ]);
+            }
+
+            $riskLevel = 'low';
+            $riskNote = 'Bu hafta kritik açık iş görünmüyor.';
+            if (! $detail['rapor_var']) {
+                $riskLevel = 'high';
+                $riskNote = 'Seçilen hafta için rapor girilmemiş.';
+            } elseif ((int) $ozet['sifir_kod_sayisi'] > 0 || (float) $ozet['acikta_toplam'] >= 10) {
+                $riskLevel = 'high';
+                $riskNote = (int) $ozet['sifir_kod_sayisi'].' kodda 0 giriş, açıkta '
+                    .number_format((float) $ozet['acikta_toplam'], 0, ',', '.').' iş.';
+            } elseif ((float) $ozet['acikta_toplam'] > 0) {
+                $riskLevel = 'mid';
+                $riskNote = (int) $ozet['acikta_kalem_sayisi'].' kalemde açıkta iş var.';
+            }
+
+            $riskHaritasi[] = [
+                'mudurluk_adi' => $detail['mudurluk_adi'],
+                'seviye' => $riskLevel,
+                'aciklama' => $riskNote,
+                'rapor_var' => $detail['rapor_var'],
+                'rapor_url' => $detail['rapor_url'],
+            ];
+
+            $mudurlukler[] = $detail;
+        }
+
+        usort($tumAcikta, fn (array $a, array $b): int => ((float) $b['acikta']) <=> ((float) $a['acikta']));
+        usort($tumSifir, fn (array $a, array $b): int => strcmp(
+            (string) $a['mudurluk_adi'].'|'.$a['faaliyet_kodu'],
+            (string) $b['mudurluk_adi'].'|'.$b['faaliyet_kodu']
+        ));
+        usort($riskHaritasi, function (array $a, array $b): int {
+            $order = ['high' => 0, 'mid' => 1, 'low' => 2];
+
+            return ($order[$a['seviye']] ?? 9) <=> ($order[$b['seviye']] ?? 9);
+        });
+
+        foreach (array_slice($tumAcikta, 0, 8) as $is) {
+            $aksiyonlar[] = sprintf(
+                '%s — %s (%s): açıkta %s iş kapatılsın / takip edilsin.',
+                $is['mudurluk_adi'],
+                $is['etiket'] !== '' ? $is['etiket'] : $is['faaliyet_kodu'],
+                $is['kalem'],
+                number_format((float) $is['acikta'], 0, ',', '.')
+            );
+        }
+        foreach (array_slice($tumSifir, 0, 5) as $kod) {
+            if ((float) ($kod['kalan'] ?? 0) <= 0 && (float) ($kod['hedef'] ?? 0) <= 0) {
+                $aksiyonlar[] = sprintf(
+                    '%s — %s kodunda veri girişi tamamlanmamış (0 / boş).',
+                    $kod['mudurluk_adi'],
+                    $kod['faaliyet_kodu'] !== '' ? $kod['faaliyet_kodu'] : $kod['etiket']
+                );
+            }
+        }
+        $aksiyonlar = array_values(array_unique($aksiyonlar));
+
+        $mudurlukSayisi = count($options);
+        $payda = $toplamHedef > 0.0 ? $toplamHedef : ($toplamYapilan + $toplamAcikta);
+        $tamamlanma = AnalizEkibiRaporVerileri::completionPercent(
+            (int) round($toplamYapilan),
+            (int) round($payda)
+        );
+
+        $veriKalitesi = $toplamKod > 0
+            ? (int) max(0, min(100, round((1 - ($toplamSifir / max(1, $toplamKod))) * 100)))
+            : ($raporOlan > 0 ? 100 : 0);
+        $zamaninda = $tamamlanma ?? 0;
+        $riskYonetimi = $mudurlukSayisi > 0
+            ? (int) max(0, min(100, round((1 - (count(array_filter($riskHaritasi, fn ($r) => $r['seviye'] === 'high')) / max(1, $mudurlukSayisi))) * 100)))
+            : 0;
+        $aksiyonDisiplin = $toplamAcikta + $toplamYapilan > 0
+            ? (int) max(0, min(100, round(($toplamYapilan / max(1.0, $toplamYapilan + $toplamAcikta)) * 100)))
+            : ($raporOlan > 0 ? 100 : 0);
+
+        return [
+            'yil' => $yil,
+            'ay' => $ayPadded,
+            'hafta' => $haftaNorm,
+            'donem_etiketi' => $donemEtiketi,
+            'ozet' => [
+                'mudurluk_sayisi' => $mudurlukSayisi,
+                'rapor_olan' => $raporOlan,
+                'rapor_olmayan' => max(0, $mudurlukSayisi - $raporOlan),
+                'hedef' => $toplamHedef,
+                'yapilan' => $toplamYapilan,
+                'acikta' => $toplamAcikta,
+                'tamamlanma_orani' => $tamamlanma,
+                'sifir_kod_sayisi' => $toplamSifir,
+                'toplam_kod' => $toplamKod,
+                'acikta_kalem_sayisi' => count($tumAcikta),
+            ],
+            'olgunluk' => [
+                'veri_kalitesi' => $veriKalitesi,
+                'zamaninda_kapanis' => $zamaninda,
+                'risk_yonetimi' => $riskYonetimi,
+                'aksiyon_kapanis' => $aksiyonDisiplin,
+            ],
+            'aksiyonlar' => array_slice($aksiyonlar, 0, 10),
+            'risk_haritasi' => $riskHaritasi,
+            'sifir_girilen_kodlar' => $tumSifir,
+            'acikta_kalan_isler' => $tumAcikta,
+            'mudurlukler' => $mudurlukler,
         ];
     }
 
@@ -225,6 +396,9 @@ final class AnalizEkibiYoneticiRapor
                 'sifir_kod_sayisi' => 0,
                 'acikta_kalem_sayisi' => 0,
                 'acikta_toplam' => 0.0,
+                'hedef' => 0.0,
+                'gerceklesen' => 0.0,
+                'tamamlanma_orani' => null,
             ],
             'sifir_girilen_kodlar' => [],
             'acikta_kalan_isler' => [],

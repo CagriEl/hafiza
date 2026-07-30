@@ -23,7 +23,7 @@ class AnalizEkibiYoneticiRaporu extends Page implements HasForms
 
     protected static ?string $navigationLabel = 'Yönetici Raporu';
 
-    protected static ?string $title = 'Yönetici Raporu';
+    protected static ?string $title = 'Haftalık Yönetici Raporu';
 
     protected static ?string $navigationGroup = 'Raporlama';
 
@@ -48,16 +48,10 @@ class AnalizEkibiYoneticiRaporu extends Page implements HasForms
 
     public function mount(): void
     {
-        $user = auth()->user();
-        $options = $user instanceof User
-            ? AnalizEkibiYoneticiRapor::mudurlukOptionsForUser($user)
-            : [];
-        $firstMudurluk = array_key_first($options);
         $yil = (int) now()->year;
         $ay = (int) now()->month;
 
         $this->form->fill([
-            'mudurluk_id' => $firstMudurluk !== null ? (int) $firstMudurluk : null,
             'yil' => $yil,
             'ay' => $ay,
             'hafta' => ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay),
@@ -80,22 +74,9 @@ class AnalizEkibiYoneticiRaporu extends Page implements HasForms
 
         return $form
             ->schema([
-                Section::make('Müdürlük ve Hafta')
-                    ->description('Size bağlı müdürlüklerden birini ve haftayı seçin. 0 girilen kodlar ile açıkta kalan işler listelenir.')
+                Section::make('Rapor Haftası')
+                    ->description('Tüm müdürlüklerin seçilen haftaya ait performans, 0 girilen kod ve açıkta kalan iş özeti.')
                     ->schema([
-                        Select::make('mudurluk_id')
-                            ->label('Müdürlük')
-                            ->options(function (): array {
-                                $user = auth()->user();
-
-                                return $user instanceof User
-                                    ? AnalizEkibiYoneticiRapor::mudurlukOptionsForUser($user)
-                                    : [];
-                            })
-                            ->searchable()
-                            ->required()
-                            ->live(debounce: 300)
-                            ->afterStateUpdated(fn () => $this->clearReportCache()),
                         Grid::make(3)->schema([
                             Select::make('yil')
                                 ->label('Yıl')
@@ -157,33 +138,41 @@ class AnalizEkibiYoneticiRaporu extends Page implements HasForms
         $yil = (int) ($this->data['yil'] ?? now()->year);
         $ay = (int) ($this->data['ay'] ?? now()->month);
         $hafta = $this->data['hafta'] ?? ReportPeriodWeeks::resolveWeekForReportPeriod($yil, $ay);
-        $mudurlukId = (int) ($this->data['mudurluk_id'] ?? 0);
 
         if (! $user instanceof User) {
             return $this->reportCache = [
-                'mudurluk_id' => 0,
-                'mudurluk_adi' => '',
                 'yil' => $yil,
                 'ay' => str_pad((string) $ay, 2, '0', STR_PAD_LEFT),
                 'hafta' => (string) $hafta,
                 'donem_etiketi' => '',
-                'rapor_var' => false,
-                'rapor_id' => null,
-                'rapor_url' => null,
                 'ozet' => [
-                    'toplam_kod' => 0,
+                    'mudurluk_sayisi' => 0,
+                    'rapor_olan' => 0,
+                    'rapor_olmayan' => 0,
+                    'hedef' => 0,
+                    'yapilan' => 0,
+                    'acikta' => 0,
+                    'tamamlanma_orani' => null,
                     'sifir_kod_sayisi' => 0,
+                    'toplam_kod' => 0,
                     'acikta_kalem_sayisi' => 0,
-                    'acikta_toplam' => 0.0,
                 ],
+                'olgunluk' => [
+                    'veri_kalitesi' => 0,
+                    'zamaninda_kapanis' => 0,
+                    'risk_yonetimi' => 0,
+                    'aksiyon_kapanis' => 0,
+                ],
+                'aksiyonlar' => [],
+                'risk_haritasi' => [],
                 'sifir_girilen_kodlar' => [],
                 'acikta_kalan_isler' => [],
+                'mudurlukler' => [],
             ];
         }
 
-        return $this->reportCache = AnalizEkibiYoneticiRapor::buildForUser(
+        return $this->reportCache = AnalizEkibiYoneticiRapor::buildWeeklyOverview(
             $user,
-            $mudurlukId,
             $yil,
             $ay,
             $hafta,
