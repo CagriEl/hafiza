@@ -80,7 +80,7 @@ final class AnalizEkibiRaporVerileri
     }
 
     /**
-     * Müdürlük + dönem seçildiğinde özet göstergeler (faaliyet seçilmeden).
+     * Müdürlük + dönem seçildiğinde tüm faaliyetlerin özet + kalem analizi.
      *
      * @return array<string, mixed>
      */
@@ -91,6 +91,7 @@ final class AnalizEkibiRaporVerileri
         $kalan = (int) ($summary['kalan'] ?? 0);
         $hedef = (int) ($summary['hedef'] ?? 0);
         $toplam = $hedef > 0 ? $hedef : ($gerceklesen + $kalan);
+        $kalemler = ControlTeamAuditNoteResource::mudurlukPeriodKalemAnalizi($get);
 
         $data = self::emptyStructure();
         $data['ozet'] = [
@@ -99,8 +100,12 @@ final class AnalizEkibiRaporVerileri
             'tamamlanma_orani' => self::completionPercent($gerceklesen, $toplam),
             'revize_karar' => (int) ($summary['revize_karar'] ?? 0),
             'gecen_ay_fark' => ControlTeamAuditNoteResource::mudurlukGecenAyFark($get),
-            'kritik_kalem_notu' => (string) ($summary['kritik_kalem_notu'] ?? ''),
+            'kritik_kalem_notu' => (string) ($summary['kritik_kalem_notu'] ?? self::computeKritikKalemNotu($kalemler)),
         ];
+        $data['kalem_analizi'] = $kalemler;
+        $data['olgunluk'] = self::computeOlgunluk($kalemler, null);
+        $data['risk_haritasi'] = self::computeRiskHaritasi($kalemler, null);
+        $data['aksiyonlar'] = self::suggestAksiyonlar($kalemler, null);
 
         return $data;
     }
@@ -155,16 +160,8 @@ final class AnalizEkibiRaporVerileri
      */
     public static function buildPrefillFromForm(Get $get): array
     {
-        $activityCatalogId = (int) ($get('activity_catalog_id') ?? 0);
-        if ($activityCatalogId <= 0) {
-            return self::buildMudurlukOzetPrefill($get);
-        }
-
-        return self::buildPrefill([
-            'summary' => ControlTeamAuditNoteResource::activityProgressSummary($get),
-            'faaliyet_row' => ControlTeamAuditNoteResource::activityMatchedFaaliyetRow($get),
-            'gecen_ay_fark' => ControlTeamAuditNoteResource::activityGecenAyFark($get),
-        ]);
+        // Analiz raporu müdürlük düzeyinde tutulur; faaliyet kodu seçilmez.
+        return self::buildMudurlukOzetPrefill($get);
     }
 
     /**
@@ -182,7 +179,7 @@ final class AnalizEkibiRaporVerileri
         return [
             'donem' => $donem,
             'mudurluk' => trim((string) ($note->directorate?->name ?? '—')),
-            'faaliyet_kodu' => trim((string) ($note->activityCatalog?->faaliyet_kodu ?? '—')),
+            'faaliyet_kodu' => 'Müdürlük geneli',
             'analiz_tarihi' => $note->audit_date?->format('d.m.Y') ?? '—',
             'analiz_eden' => trim((string) ($note->user?->name ?? '—')),
             'rapor_haftasi' => '—',

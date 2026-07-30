@@ -29,6 +29,7 @@ class CreateControlTeamAuditNote extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['user_id'] = auth()->id();
+        $data['activity_catalog_id'] = null;
         $data['rapor_verileri'] = AnalizEkibiRaporVerileri::normalize($data['rapor_verileri'] ?? null);
         if (Schema::hasColumn('control_team_audit_notes', 'aylik_faaliyet_id')) {
             $aylikId = $this->resolveAylikFaaliyetId($data);

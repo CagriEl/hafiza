@@ -18,7 +18,7 @@ final class AnalizEkibiRaporForm
     {
         return [
             Section::make('Analiz Raporu — Özet Göstergeler')
-                ->description('Müdürlük veya faaliyet seçildiğinde aylık rapordan otomatik doldurulur; gerekirse düzenleyebilirsiniz.')
+                ->description('Müdürlük seçildiğinde aylık rapordan otomatik doldurulur; gerekirse düzenleyebilirsiniz.')
                 ->schema([
                     Forms\Components\Grid::make(3)->schema([
                         Forms\Components\TextInput::make('rapor_verileri.ozet.yapilan_is')
@@ -50,7 +50,7 @@ final class AnalizEkibiRaporForm
                 ]),
 
             Section::make('Kalem Kalem Analiz')
-                ->description('Faaliyet seçildiğinde kapsam kalemleri otomatik gelir.')
+                ->description('Müdürlüğün dönem raporundaki kapsam kalemleri otomatik gelir.')
                 ->schema([
                     Repeater::make('rapor_verileri.kalem_analizi')
                         ->label('')

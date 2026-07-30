@@ -46,7 +46,7 @@ class ControlTeamAuditNoteResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('directorate_user_id')
-                    ->label('Koordiansyon Notu Eklenecek Birim')
+                    ->label('Müdürlük')
                     ->options(function (): array {
                         $u = auth()->user();
                         if (! $u instanceof User) {
@@ -77,12 +77,12 @@ class ControlTeamAuditNoteResource extends Resource
                             $latest = static::latestReportPeriodForDirectorate((int) $state);
                             $set('yil', $latest['yil']);
                             $set('ay', $latest['ay']);
-                            $set('activity_catalog_id', null);
                         }
+                        $set('activity_catalog_id', null);
                         AnalizEkibiRaporForm::applyPrefill($set, $get);
                     }),
                 Section::make('Rapor dönemi')
-                    ->description('Önce içinde bulunulan ay varsayılır; faaliyet listesi yalnızca bu dönemdeki aylık rapor satırlarından gelir.')
+                    ->description('Seçilen müdürlüğün bu dönemdeki aylık raporundan özet ve kalem analizi otomatik gelir.')
                     ->schema([
                         Forms\Components\Select::make('yil')
                             ->label('Yıl')
@@ -110,64 +110,33 @@ class ControlTeamAuditNoteResource extends Resource
                             }),
                     ])
                     ->columns(2),
-                Forms\Components\Select::make('activity_catalog_id')
-                    ->label('İlgili Faaliyet')
-                    ->options(fn (Get $get, ?ControlTeamAuditNote $record): array => static::activitySelectOptions($get, $record))
-                    ->searchable()
-                    ->live()
-                    ->helperText(function (Get $get, ?ControlTeamAuditNote $record): ?string {
-                        if ((int) ($get('directorate_user_id') ?? 0) <= 0) {
-                            return null;
-                        }
-
-                        return static::activitySelectOptions($get, $record) === []
-                            ? 'Bu müdürlük ve dönem için aylık raporda faaliyet satırı yok; önce ilgili aylık raporu girin veya dönemi değiştirin.'
-                            : null;
-                    })
-                    ->getOptionLabelUsing(fn ($value) => ActivityCatalogFormatter::labelForCatalogId((int) $value))
-                    ->required()
-                    ->afterStateUpdated(function (Set $set, Get $get, mixed $state): void {
-                        AnalizEkibiRaporForm::applyPrefill($set, $get);
-                    }),
-                Section::make('Müdürlük / faaliyet performans özeti')
-                    ->description('Seçilen müdürlük ve dönemin aylık rapor verilerinden otomatik gelir. Faaliyet seçildiğinde ilgili satır verileri kullanılır.')
+                Forms\Components\Hidden::make('activity_catalog_id')
+                    ->dehydrated()
+                    ->default(null),
+                Section::make('Müdürlük performans özeti')
+                    ->description('Seçilen müdürlük ve dönemin aylık rapor verilerinden otomatik gelir (tüm faaliyetler).')
                     ->schema([
                         Forms\Components\Placeholder::make('mudurluk_ozet_baslik')
                             ->label('Kapsam')
-                            ->content(function (Get $get): string {
-                                $activityId = (int) ($get('activity_catalog_id') ?? 0);
-
-                                return $activityId > 0
-                                    ? 'Seçili faaliyet'
-                                    : 'Müdürlük geneli (tüm faaliyetler)';
-                            }),
+                            ->content('Müdürlük geneli (tüm faaliyetler)'),
                         Forms\Components\Placeholder::make('ozet_yapilan')
                             ->label('Yapılan İş')
                             ->content(function (Get $get): string {
-                                $activityId = (int) ($get('activity_catalog_id') ?? 0);
-                                $summary = $activityId > 0
-                                    ? static::activityProgressSummary($get)
-                                    : static::mudurlukPeriodSummary($get);
+                                $summary = static::mudurlukPeriodSummary($get);
 
                                 return (string) (int) ($summary['gerceklesen'] ?? 0);
                             }),
                         Forms\Components\Placeholder::make('ozet_acikta')
                             ->label('Açıkta Bekleyen')
                             ->content(function (Get $get): string {
-                                $activityId = (int) ($get('activity_catalog_id') ?? 0);
-                                $summary = $activityId > 0
-                                    ? static::activityProgressSummary($get)
-                                    : static::mudurlukPeriodSummary($get);
+                                $summary = static::mudurlukPeriodSummary($get);
 
                                 return (string) (int) ($summary['kalan'] ?? 0);
                             }),
                         Forms\Components\Placeholder::make('ozet_toplam')
                             ->label('Toplam İş')
                             ->content(function (Get $get): string {
-                                $activityId = (int) ($get('activity_catalog_id') ?? 0);
-                                $summary = $activityId > 0
-                                    ? static::activityProgressSummary($get)
-                                    : static::mudurlukPeriodSummary($get);
+                                $summary = static::mudurlukPeriodSummary($get);
                                 $hedef = (int) ($summary['hedef'] ?? 0);
                                 $gerceklesen = (int) ($summary['gerceklesen'] ?? 0);
                                 $kalan = (int) ($summary['kalan'] ?? 0);
@@ -178,10 +147,7 @@ class ControlTeamAuditNoteResource extends Resource
                         Forms\Components\Placeholder::make('ozet_tamamlanma')
                             ->label('Tamamlanma Oranı (%)')
                             ->content(function (Get $get): string {
-                                $activityId = (int) ($get('activity_catalog_id') ?? 0);
-                                $summary = $activityId > 0
-                                    ? static::activityProgressSummary($get)
-                                    : static::mudurlukPeriodSummary($get);
+                                $summary = static::mudurlukPeriodSummary($get);
                                 $gerceklesen = (int) ($summary['gerceklesen'] ?? 0);
                                 $hedef = (int) ($summary['hedef'] ?? 0);
                                 $kalan = (int) ($summary['kalan'] ?? 0);
@@ -226,10 +192,6 @@ class ControlTeamAuditNoteResource extends Resource
 
                         return (string) $record->yil.' / '.$record->ay;
                     }),
-                Tables\Columns\TextColumn::make('activity_catalog_id')
-                    ->label('İlgili Faaliyet')
-                    ->wrap()
-                    ->formatStateUsing(fn ($state) => ActivityCatalogFormatter::labelForCatalogId((int) $state) ?? '—'),
                 Tables\Columns\TextColumn::make('audit_date')
                     ->label('Tarih')
                     ->date('d.m.Y'),
@@ -262,9 +224,6 @@ class ControlTeamAuditNoteResource extends Resource
 
                             return (string) $record->yil.' / '.$record->ay;
                         }),
-                    TextEntry::make('activity_catalog_id')
-                        ->label('İlgili Faaliyet')
-                        ->getStateUsing(fn (ControlTeamAuditNote $record): string => ActivityCatalogFormatter::labelForCatalogId((int) $record->activity_catalog_id) ?? '—'),
                     TextEntry::make('audit_date')
                         ->label('Analiz Tarihi')
                         ->date('d.m.Y'),
@@ -755,6 +714,47 @@ class ControlTeamAuditNoteResource extends Resource
             'revize_karar' => $revizeKarar,
             'kritik_kalem_notu' => \App\Support\AnalizEkibiRaporVerileri::computeKritikKalemNotu($allKalemler),
         ];
+    }
+
+    /**
+     * Müdürlük + dönem için tüm kapsam kalemlerinin analizi.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function mudurlukPeriodKalemAnalizi(Get $get): array
+    {
+        $directorateUserId = (int) ($get('directorate_user_id') ?? 0);
+        $yil = $get('yil');
+        $ay = $get('ay');
+
+        if ($directorateUserId <= 0 || blank($yil) || blank($ay)) {
+            return [];
+        }
+
+        $rapor = static::resolveAylikFaaliyetForDirectoratePeriod(
+            $directorateUserId,
+            (int) $yil,
+            (string) $ay
+        );
+        if (! $rapor) {
+            return [];
+        }
+
+        $allKalemler = [];
+        foreach (static::faaliyetlerRowsWithHydratedCatalogIds($rapor, $directorateUserId) as $satir) {
+            if (! is_array($satir)) {
+                continue;
+            }
+            $kod = trim((string) ($satir['faaliyet_kodu'] ?? ''));
+            foreach (\App\Support\AnalizEkibiRaporVerileri::buildKalemAnalizi($satir) as $kalem) {
+                if ($kod !== '' && ! str_starts_with((string) ($kalem['kalem'] ?? ''), $kod)) {
+                    $kalem['kalem'] = $kod.' — '.$kalem['kalem'];
+                }
+                $allKalemler[] = $kalem;
+            }
+        }
+
+        return $allKalemler;
     }
 
     public static function activityGecenAyFark(Get $get): ?int

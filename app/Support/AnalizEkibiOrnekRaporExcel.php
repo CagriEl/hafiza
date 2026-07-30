@@ -130,7 +130,7 @@ final class AnalizEkibiOrnekRaporExcel
 
         $writer->addRow(Row::fromValues(['RAPOR BİLGİLERİ'], $sectionStyle));
         $writer->addRow(Row::fromValues(
-            ['Dönem', $meta['donem'], 'Müdürlük', $meta['mudurluk'], 'Faaliyet Kodu', $meta['faaliyet_kodu']],
+            ['Dönem', $meta['donem'], 'Müdürlük', $meta['mudurluk'], 'Kapsam', 'Müdürlük geneli'],
             $headerStyle
         ));
         $writer->addRow(Row::fromValues(
