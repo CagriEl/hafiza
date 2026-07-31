@@ -61,20 +61,21 @@ class RaporHaftaTanimlari extends Page implements HasForms
     {
         $weekFields = [];
         for ($hafta = 1; $hafta <= ReportPeriodWeeks::WEEK_COUNT; $hafta++) {
-            $weekFields[] = Section::make($hafta.'. Hafta')
+            $weekRequired = $hafta < ReportPeriodWeeks::WEEK_COUNT;
+            $weekFields[] = Section::make($hafta.'. Hafta'.($weekRequired ? '' : ' (opsiyonel)'))
                 ->schema([
                     Grid::make(2)->schema([
                         DatePicker::make("haftalar.{$hafta}.baslangic")
                             ->label('Başlangıç')
                             ->native(false)
                             ->displayFormat('d.m.Y')
-                            ->required()
+                            ->required($weekRequired)
                             ->live(),
                         DatePicker::make("haftalar.{$hafta}.bitis")
                             ->label('Bitiş')
                             ->native(false)
                             ->displayFormat('d.m.Y')
-                            ->required()
+                            ->required($weekRequired)
                             ->afterOrEqual("haftalar.{$hafta}.baslangic"),
                     ]),
                 ])
@@ -85,7 +86,7 @@ class RaporHaftaTanimlari extends Page implements HasForms
         return $form
             ->schema([
                 Section::make('Dönem')
-                    ->description('Yıl ve ay seçin. 1.–5. hafta tarih aralıklarını tanımlayın; isterseniz otomatik öneriyi yükleyip düzenleyebilirsiniz.')
+                    ->description('Yıl ve ay seçin. 1.–4. hafta tarih aralıkları zorunludur; 5. hafta isteğe bağlıdır. İsterseniz otomatik öneriyi yükleyip düzenleyebilirsiniz.')
                     ->schema([
                         Grid::make(2)->schema([
                             Select::make('yil')
@@ -165,10 +166,33 @@ class RaporHaftaTanimlari extends Page implements HasForms
         for ($hafta = 1; $hafta <= ReportPeriodWeeks::WEEK_COUNT; $hafta++) {
             $baslangic = $haftalar[$hafta]['baslangic'] ?? null;
             $bitis = $haftalar[$hafta]['bitis'] ?? null;
+            $weekRequired = $hafta < ReportPeriodWeeks::WEEK_COUNT;
+            $hasStart = filled($baslangic);
+            $hasEnd = filled($bitis);
 
-            if (! filled($baslangic) || ! filled($bitis)) {
+            if (! $hasStart && ! $hasEnd) {
+                if ($weekRequired) {
+                    Notification::make()
+                        ->title($hafta.'. hafta için tarih aralığı zorunludur')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                // 5. hafta boş bırakıldıysa mevcut tanımı kaldır.
+                RaporHaftaTanimi::query()
+                    ->where('yil', $yil)
+                    ->where('ay', $ayPadded)
+                    ->where('hafta', $hafta)
+                    ->delete();
+
+                continue;
+            }
+
+            if ($hasStart xor $hasEnd) {
                 Notification::make()
-                    ->title($hafta.'. hafta için tarih aralığı zorunludur')
+                    ->title($hafta.'. hafta için başlangıç ve bitiş birlikte girilmelidir')
                     ->danger()
                     ->send();
 
