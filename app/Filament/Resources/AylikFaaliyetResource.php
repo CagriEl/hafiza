@@ -1201,7 +1201,7 @@ class AylikFaaliyetResource extends Resource
                 Section::make('Ay Sonu Uyarısı')
                     ->schema([
                         Forms\Components\Placeholder::make('ay_sonu_kapanis_uyarisi')
-                            ->content('Ayın son günündesiniz. Mevcut faaliyet satırlarında ay sonu alanları (gerçekleşen/açıkta bekleyen) doldurulmadan kayıt tamamlanamaz.')
+                            ->content('Ayın son günündesiniz. Ay sonu gerçekleşen / açıkta bekleyen alanlarını doldurabilirsiniz; boş bırakılan alanlar 0 yazılmadan kaydedilir.')
                             ->extraAttributes(['class' => 'text-amber-700'])
                             ->columnSpanFull(),
                     ])
@@ -1392,7 +1392,7 @@ class AylikFaaliyetResource extends Resource
                                         return $base;
                                     })
                                     ->helperText(function (Get $get, $livewire): string {
-                                        return 'Bu rapor yalnızca seçili haftaya aittir. Yapılan işi girip kaydedin; kayıt sonrası tamamlanan iş alanı açılır.';
+                                        return 'Bu rapor yalnızca seçili haftaya aittir. İş varsa miktarı girin; yoksa alanı boş bırakın (0 yazmayın). Kayıt sonrası tamamlanan iş alanı açılır.';
                                     })
                                     ->dehydrated()
                                     ->schema([
@@ -1432,7 +1432,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForKapsamRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
-                                                ->rules(['integer', 'min:0'])
+                                                ->rules(['nullable', 'integer', 'min:0'])
                                                 ->extraInputAttributes([
                                                     'min' => 0,
                                                     'step' => 1,
@@ -1448,7 +1448,7 @@ class AylikFaaliyetResource extends Resource
                                                     $set('acikta_kalan', floor($pending) === $pending ? (int) $pending : $pending);
                                                 })
                                                 ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'ongorulen', 'ongorulen_ui'))
-                                                ->required(fn (Get $get): bool => trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '')
+                                                ->helperText('Boş bırakılabilir; iş yoksa 0 yazmayın.')
                                                 ->readOnly(fn (Get $get, $livewire): bool => ! static::kapsamOngorulenEditable($get, $livewire))
                                                 ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamOngorulenEditable($get, $livewire))
                                                 ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
@@ -1470,7 +1470,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForKapsamRow($get))
                                                 ->numeric()
                                                 ->minValue(0)
-                                                ->rules(['integer', 'min:0'])
+                                                ->rules(['nullable', 'integer', 'min:0'])
                                                 ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
                                                 ->afterStateUpdated(function (Set $set, Get $get, $state): void {
                                                     static::syncHiddenFieldFromUi($set, $state, 'gerceklesen');
@@ -1480,11 +1480,7 @@ class AylikFaaliyetResource extends Resource
                                                     $set('acikta_kalan', floor($pending) === $pending ? (int) $pending : $pending);
                                                 })
                                                 ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'gerceklesen', 'gerceklesen_ui'))
-                                                ->required(fn (Get $get, $livewire): bool => (static::kapsamShowsWeeklyEntryFields($get, $livewire)
-                                                        && static::kapsamGerceklesenEditable($get, $livewire))
-                                                    || (static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
-                                                        && static::shouldRequireAySonuCompletion($livewire)
-                                                        && ! AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get)))
+                                                ->helperText('Boş bırakılabilir; tamamlanan yoksa 0 yazmayın.')
                                                 ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
                                                     && static::kapsamShowsTamamlananIsField($get, $livewire))
                                                 ->dehydrated(false)
@@ -1853,14 +1849,11 @@ class AylikFaaliyetResource extends Resource
                                         ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                         ->numeric()
                                         ->minValue(0)
-                                        ->rules(['integer', 'min:0'])
+                                        ->rules(['nullable', 'integer', 'min:0'])
                                         ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
                                         ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
-                                        ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
-                                            && static::shouldRequireAySonuCompletion($livewire)
-                                            && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get)
-                                            && ! (bool) ($get('ay_sonu_performans_kilitli') ?? false))
                                         ->placeholder('Örn: 395')
+                                        ->helperText('Boş bırakılabilir; tamamlanan yoksa 0 yazmayın.')
                                         ->live(onBlur: true)
                                         ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                             && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get))
@@ -1886,14 +1879,12 @@ class AylikFaaliyetResource extends Resource
                                         ->suffix(fn (Get $get): ?string => static::resolveOlcuBirimiForRow($get))
                                         ->numeric()
                                         ->minValue(0)
+                                        ->rules(['nullable', 'numeric', 'min:0'])
                                         ->extraInputAttributes(['min' => 0])
                                         ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeScalar($state))
                                         ->live(onBlur: true)
-                                        ->required(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
-                                            && static::shouldRequireAySonuCompletion($livewire)
-                                            && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get)
-                                            && ! (bool) ($get('ay_sonu_performans_kilitli') ?? false))
                                         ->placeholder('Örn: 18')
+                                        ->helperText('Boş bırakılabilir.')
                                         ->visible(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
                                             && ! static::faaliyetRowUsesKapsamAySonuForPerformans($get))
                                         ->dehydrated(fn (Get $get, $livewire): bool => static::faaliyetRowShowsAySonuPerformansFields($get, $livewire)
