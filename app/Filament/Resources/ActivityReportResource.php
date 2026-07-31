@@ -24,7 +24,8 @@ class ActivityReportResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
 
-    protected static ?string $navigationGroup = 'Raporlama';
+    /** Üst menüde (grup dışında) kalsın; analiz ekibi / müdürlükler kolay görsün. */
+    protected static ?string $navigationGroup = null;
 
     protected static ?int $navigationSort = 1;
 
@@ -121,11 +122,24 @@ class ActivityReportResource extends Resource
     public static function canViewAny(): bool
     {
         $user = auth()->user();
-        if ($user instanceof User && $user->isMaliHizmetlerAccount() && ! $user->isReportingSuperAdmin()) {
+        if (! $user instanceof User) {
             return false;
         }
 
-        return auth()->check();
+        if ($user->isMaliHizmetlerAccount() && ! $user->isReportingSuperAdmin()) {
+            return false;
+        }
+
+        // Analiz ekibi, müdürlük, başkan yardımcısı ve süper admin görür.
+        return $user->isReportingSuperAdmin()
+            || $user->isControlTeam()
+            || $user->isViceMayorAccount()
+            || $user->isMudurlukReportingAccount();
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canViewAny();
     }
 
     public static function canView(Model $record): bool

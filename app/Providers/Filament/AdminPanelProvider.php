@@ -58,8 +58,8 @@ class AdminPanelProvider extends PanelProvider
                 FaaliyetIstatistikGrafik::class,
             ])
             ->navigationGroups([
-                NavigationGroup::make()->label('Raporlama'),
-                NavigationGroup::make()->label('Yönetim'),
+                NavigationGroup::make()->label('Raporlama')->collapsed(false),
+                NavigationGroup::make()->label('Yönetim')->collapsed(false),
                 NavigationGroup::make()->label('Tanımlamalar'),
                 NavigationGroup::make()->label('Kurumsal Hafıza'),
                 NavigationGroup::make()->label('İletişim'),
