@@ -559,9 +559,6 @@ class AylikFaaliyetResource extends Resource
 
     public static function kapsamShowsAciktaKapatmaAlani(Get $get, mixed $livewire): bool
     {
-        if (! static::isLastReportWeekForForm($get, $livewire)) {
-            return false;
-        }
         if (! static::kapsamHasPendingWork($get)) {
             return false;
         }
@@ -586,8 +583,7 @@ class AylikFaaliyetResource extends Resource
 
     public static function kapsamShowsAciktaKapatmaOzet(Get $get, mixed $livewire): bool
     {
-        return static::isLastReportWeekForForm($get, $livewire)
-            && static::kapsamAciktaKapatildiDbKayitli($get, $livewire);
+        return static::kapsamAciktaKapatildiDbKayitli($get, $livewire);
     }
 
     /**
@@ -735,6 +731,13 @@ class AylikFaaliyetResource extends Resource
 
         if (! static::kapsamYapilanIsDbKayitli($get, $livewire)) {
             return false;
+        }
+
+        // Açıkta kalan varken tamamlanan tekrar düzenlenebilir (kilitlenmiş 0 / eksik girişler kapatılsın).
+        if (static::kapsamHasPendingWork($get)
+            && ! AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get)
+            && ! (bool) ($get('acikta_kapatildi') ?? false)) {
+            return true;
         }
 
         if (static::kapsamTamamlananDbKayitli($get, $livewire)) {
@@ -1508,12 +1511,16 @@ class AylikFaaliyetResource extends Resource
                                                     return new HtmlString(
                                                         '<button type="button" class="text-primary-600 font-semibold underline decoration-dotted underline-offset-2 cursor-pointer"'
                                                         .' x-data x-on:click="'
+                                                        .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-kapat-panel]\')?.scrollIntoView({behavior:\'smooth\',block:\'nearest\'});'
+                                                        .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-kapat-panel] .fi-section-header\')?.click();'
+                                                        .' if (!$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-kapat-panel]\')) {'
                                                         .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-revize-panel]\')?.scrollIntoView({behavior:\'smooth\',block:\'nearest\'});'
                                                         .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-revize-panel] .fi-section-header\')?.click();'
+                                                        .'}'
                                                         .'">'
                                                         .e($label)
                                                         .'</button>'
-                                                        .'<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Tıklayarak açık işi düzenleyin veya revize notu ekleyin</div>'
+                                                        .'<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Tıklayarak kalan işi tamamlayın veya not ile kapatın</div>'
                                                     );
                                                 })
                                                 ->helperText('Yapılan iş − tamamlanan iş (eşit değilse açıkta kalan).')
@@ -1559,16 +1566,42 @@ class AylikFaaliyetResource extends Resource
                                             ->collapsed(fn (Get $get): bool => ! filled($get('acikta_revize_notu')) && ! filled($get('acikta_revize_tarihi')))
                                             ->extraAttributes(['data-acikta-revize-panel' => 'true'])
                                             ->columnSpanFull(),
-                                        Section::make('Dönem Sonu — Açıkta İş Kapatma')
-                                            ->description('Son rapor haftasında açıkta kalan işi gerekçe notu yazarak kapatabilirsiniz. Tamamlanmayan kısım dönem sonunda kapanmış sayılır.')
+                                        Section::make('Açıkta İş Kapatma')
+                                            ->description('Kalan işi tamamlandı sayabilir veya gerekçe notu ile kapatabilirsiniz. Kaydı unutmayın.')
                                             ->schema([
-                                                Forms\Components\Toggle::make('acikta_is_kapatiliyor')
-                                                    ->label('Açıkta kalan işi not ile kapat')
+                                                Forms\Components\Toggle::make('kalan_acik_tamamla')
+                                                    ->label(function (Get $get): string {
+                                                        $pending = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get));
+                                                        $amount = floor($pending) === $pending ? (string) (int) $pending : (string) $pending;
+
+                                                        return 'Kalan açık işi tamamlandı say ('.$amount.')';
+                                                    })
+                                                    ->helperText('Açıkta kalan miktar tamamlanan işe eklenir.')
                                                     ->live()
-                                                    ->dehydrated(true),
+                                                    ->dehydrated(true)
+                                                    ->afterStateUpdated(function (Set $set, Get $get, mixed $state): void {
+                                                        if (! $state) {
+                                                            return;
+                                                        }
+                                                        $set('acikta_is_kapatiliyor', false);
+                                                        $plan = static::toFloatNumber($get('ongorulen') ?? $get('deger') ?? 0);
+                                                        $set('gerceklesen', floor($plan) === $plan ? (int) $plan : $plan);
+                                                        $set('gerceklesen_ui', floor($plan) === $plan ? (int) $plan : $plan);
+                                                        $set('acikta_kalan', 0);
+                                                    }),
+                                                Forms\Components\Toggle::make('acikta_is_kapatiliyor')
+                                                    ->label('Açıkta kalan işi not ile kapat (gerçekleşmeden)')
+                                                    ->helperText('İş yapılamadıysa not yazarak açık kaydı kapatır; tamamlanan artmaz.')
+                                                    ->live()
+                                                    ->dehydrated(true)
+                                                    ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                                        if ($state) {
+                                                            $set('kalan_acik_tamamla', false);
+                                                        }
+                                                    }),
                                                 Forms\Components\Textarea::make('acikta_kapatma_notu_ui')
                                                     ->label('Kapanış Notu')
-                                                    ->placeholder('Açıkta kalan işin neden tamamlanamadığını ve dönem sonu kapanış gerekçesini yazınız...')
+                                                    ->placeholder('Açıkta kalan işin neden tamamlanamadığını yazınız...')
                                                     ->rows(3)
                                                     ->columnSpanFull()
                                                     ->required(fn (Get $get): bool => (bool) ($get('acikta_is_kapatiliyor') ?? false))
@@ -1580,9 +1613,11 @@ class AylikFaaliyetResource extends Resource
                                             ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
                                                 && static::kapsamShowsAciktaKapatmaAlani($get, $livewire))
                                             ->collapsible()
+                                            ->collapsed(false)
+                                            ->extraAttributes(['data-acikta-kapat-panel' => 'true'])
                                             ->columnSpanFull(),
                                         Forms\Components\Placeholder::make('acikta_kapatma_ozet')
-                                            ->label('Dönem Sonu Kapanış')
+                                            ->label('Açık İş Kapanışı')
                                             ->content(function (Get $get): HtmlString {
                                                 $note = trim((string) ($get('acikta_kapatma_notu') ?? $get('acikta_revize_notu') ?? ''));
 
@@ -2548,8 +2583,24 @@ class AylikFaaliyetResource extends Resource
             ongorulen VARCHAR(64) PATH '$.ongorulen',
             deger VARCHAR(64) PATH '$.deger'
         )) jt";
+        $kapsamPending = "EXISTS (
+            SELECT 1 FROM JSON_TABLE(
+                {$faaliyetlerColumn},
+                '\$[*].kapsam_verileri[*]' COLUMNS (
+                    ong VARCHAR(64) PATH '\$.ongorulen',
+                    deger VARCHAR(64) PATH '\$.deger',
+                    ger VARCHAR(64) PATH '\$.gerceklesen',
+                    kap VARCHAR(16) PATH '\$.acikta_kapatildi'
+                )
+            ) k
+            WHERE COALESCE(k.kap, 'false') NOT IN ('true', '1', 'TRUE')
+              AND GREATEST(
+                    COALESCE(CAST(NULLIF(COALESCE(k.ong, k.deger), '') AS DECIMAL(18,2)), 0)
+                    - COALESCE(CAST(NULLIF(k.ger, '') AS DECIMAL(18,2)), 0)
+                  , 0) > 0
+        )";
         $existsCompleted = "EXISTS (SELECT 1 FROM {$jsonTable} WHERE {$doneExpr} > 0 AND {$pendingExpr} <= 0)";
-        $existsPending = "EXISTS (SELECT 1 FROM {$jsonTable} WHERE {$pendingExpr} > 0)";
+        $existsPending = "(EXISTS (SELECT 1 FROM {$jsonTable} WHERE {$pendingExpr} > 0) OR ({$kapsamPending}))";
 
         return match ($value) {
             'tamamlanan_var' => $query->whereRaw($existsCompleted),

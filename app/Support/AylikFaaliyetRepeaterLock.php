@@ -147,7 +147,7 @@ final class AylikFaaliyetRepeaterLock
                         $original['kapsam_verileri'][$idx][$revizeKey] = $incomingKv[$idx][$revizeKey];
                     }
                 }
-                foreach (['acikta_kapatildi', 'acikta_kapatma_notu'] as $kapatmaKey) {
+                foreach (['acikta_kapatildi', 'acikta_kapatma_notu', 'acikta_is_kapatiliyor', 'kalan_acik_tamamla'] as $kapatmaKey) {
                     if (array_key_exists($kapatmaKey, $incomingKv[$idx])) {
                         $original['kapsam_verileri'][$idx][$kapatmaKey] = $incomingKv[$idx][$kapatmaKey];
                     }

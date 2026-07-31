@@ -50,6 +50,7 @@ trait BulkCompletesPendingFaaliyetWork
                 $payload = [
                     'yil' => $record->yil,
                     'ay' => $record->ay,
+                    'hafta' => $record->hafta,
                     'faaliyetler' => is_array($record->faaliyetler) ? $record->faaliyetler : [],
                 ];
 

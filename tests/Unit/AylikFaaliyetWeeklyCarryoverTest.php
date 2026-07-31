@@ -254,10 +254,10 @@ class AylikFaaliyetWeeklyCarryoverTest extends TestCase
         $this->assertSame('Bütçe yetersizliği nedeniyle dönem sonunda kapatıldı.', $kapsam['acikta_kapatma_notu']);
         $this->assertCount(1, $kapsam['haftalik_kayitlar']);
         $this->assertSame('kapatma', $kapsam['haftalik_kayitlar'][0]['tip']);
-        $this->assertStringContainsString('Dönem sonu kapanış:', $kapsam['haftalik_kayitlar'][0]['aciklama']);
+        $this->assertStringContainsString('Açık iş kapanışı:', $kapsam['haftalik_kayitlar'][0]['aciklama']);
     }
 
-    public function test_apply_acikta_kapatma_skipped_before_last_week(): void
+    public function test_apply_acikta_kapatma_works_before_last_week(): void
     {
         $data = [
             'yil' => 2026,
@@ -271,7 +271,7 @@ class AylikFaaliyetWeeklyCarryoverTest extends TestCase
                             'ongorulen' => 50,
                             'gerceklesen' => 30,
                             'acikta_is_kapatiliyor' => true,
-                            'acikta_kapatma_notu' => 'Erken kapanış denemesi',
+                            'acikta_kapatma_notu' => 'Erken kapanış',
                         ],
                     ],
                 ],
@@ -281,8 +281,40 @@ class AylikFaaliyetWeeklyCarryoverTest extends TestCase
         $result = AylikFaaliyetWeeklyCarryover::applyAciktaKapatma($data);
         $kapsam = $result['faaliyetler'][0]['kapsam_verileri'][0];
 
+        $this->assertTrue((bool) ($kapsam['acikta_kapatildi'] ?? false));
+        $this->assertSame(0.0, (float) $kapsam['acikta_kalan']);
+    }
+
+    public function test_kalan_acik_tamamla_marks_pending_as_done(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-10', 'Europe/Istanbul'));
+
+        $data = [
+            'yil' => 2026,
+            'ay' => '07',
+            'faaliyetler' => [
+                [
+                    'hafta' => 2,
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'Larvasit',
+                            'ongorulen' => 1,
+                            'gerceklesen' => null,
+                            'kalan_acik_tamamla' => true,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = AylikFaaliyetWeeklyCarryover::applyAciktaKapatma($data);
+        $kapsam = $result['faaliyetler'][0]['kapsam_verileri'][0];
+
+        $this->assertSame(1.0, (float) $kapsam['gerceklesen']);
+        $this->assertSame(0.0, (float) $kapsam['acikta_kalan']);
         $this->assertFalse((bool) ($kapsam['acikta_kapatildi'] ?? false));
-        $this->assertSame(20.0, AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($kapsam));
+        $this->assertSame('kalan_tamamlama', $kapsam['haftalik_kayitlar'][0]['tip']);
+        $this->assertArrayNotHasKey('kalan_acik_tamamla', $kapsam);
     }
 
     public function test_apply_bulk_pending_completion_marks_all_open_items_done(): void
@@ -362,5 +394,36 @@ class AylikFaaliyetWeeklyCarryoverTest extends TestCase
         );
 
         $this->assertSame(0, $week);
+    }
+
+    public function test_backfill_empty_gerceklesen_fills_null_and_zero_but_skips_partial(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-15', 'Europe/Istanbul'));
+
+        $data = [
+            'yil' => 2026,
+            'ay' => '07',
+            'hafta' => 3,
+            'faaliyetler' => [
+                [
+                    'faaliyet_kodu' => 'TEM-05',
+                    'hafta' => 3,
+                    'kapsam_verileri' => [
+                        ['kalem' => 'Boş', 'ongorulen' => 10, 'gerceklesen' => null],
+                        ['kalem' => 'Sıfır', 'ongorulen' => 4, 'gerceklesen' => 0],
+                        ['kalem' => 'Kısmi', 'ongorulen' => 100, 'gerceklesen' => 95],
+                    ],
+                ],
+            ],
+        ];
+
+        [$result, $changes] = AylikFaaliyetWeeklyCarryover::backfillEmptyGerceklesen($data);
+
+        $this->assertCount(2, $changes);
+        $kv = $result['faaliyetler'][0]['kapsam_verileri'];
+        $this->assertSame(10.0, (float) $kv[0]['gerceklesen']);
+        $this->assertSame(4.0, (float) $kv[1]['gerceklesen']);
+        $this->assertSame(95.0, (float) $kv[2]['gerceklesen']);
+        $this->assertSame('kalan_tamamlama', $kv[0]['haftalik_kayitlar'][0]['tip']);
     }
 }
