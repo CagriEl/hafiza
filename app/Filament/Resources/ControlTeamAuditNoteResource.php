@@ -35,10 +35,9 @@ class ControlTeamAuditNoteResource extends Resource
 
     protected static ?string $modelLabel = 'Analiz Notu';
 
-    /** Raporlar ile birlikte üst menüde görünsün. */
     protected static ?string $navigationGroup = null;
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $navigationIcon = 'heroicon-o-document-magnifying-glass';
 
