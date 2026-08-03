@@ -93,8 +93,8 @@ final class AylikFaaliyetPdfHtml
 
                 $kapsamIcerigi = trim((string) ($is['kapsam_icerigi'] ?? ''));
                 $olcuBirimi = trim((string) ($is['olcu_birimi'] ?? ''));
-                $gerceklesen = $is['gerceklesen'] ?? '-';
-                $bekleyen = $is['bekleyen_is'] ?? '-';
+                $gerceklesen = AylikFaaliyetResource::formatPdfQuantity($is['gerceklesen'] ?? null);
+                $bekleyen = AylikFaaliyetResource::formatPdfQuantity($is['bekleyen_is'] ?? null);
 
                 $kapsamKalemleri = '';
                 $satirlar = $is['kapsam_verileri'] ?? [];
@@ -108,11 +108,21 @@ final class AylikFaaliyetPdfHtml
                         if ($kalem === '') {
                             continue;
                         }
-                        $ong = $satir['ongorulen'] ?? $satir['deger'] ?? null;
-                        $ger = $satir['gerceklesen'] ?? null;
+                        $ong = AylikFaaliyetResource::formatPdfQuantity($satir['ongorulen'] ?? $satir['deger'] ?? null);
+                        $ger = AylikFaaliyetResource::formatPdfQuantity($satir['gerceklesen'] ?? null);
                         $acik = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($satir);
-                        $acikText = $acik > 0.0 ? (string) (floor($acik) === $acik ? (int) $acik : $acik) : '0';
-                        $pairs[] = e($kalem).': yapılacak '.e(filled($ong) ? (string) $ong : '-').' / yapılan '.e(filled($ger) ? (string) $ger : '-').' / bekleyen '.e($acikText);
+                        $acikText = AylikFaaliyetResource::formatPdfQuantity($acik);
+                        $parts = [];
+                        if ($ong !== '') {
+                            $parts[] = 'yapılacak '.$ong;
+                        }
+                        if ($ger !== '') {
+                            $parts[] = 'yapılan '.$ger;
+                        }
+                        if ($acikText !== '') {
+                            $parts[] = 'bekleyen '.$acikText;
+                        }
+                        $pairs[] = e($kalem).($parts !== [] ? ': '.e(implode(' / ', $parts)) : '');
                     }
                     if ($pairs !== []) {
                         $kapsamKalemleri = '<br><b>Kapsam Kalemleri:</b> '.implode(' | ', $pairs);
@@ -125,10 +135,21 @@ final class AylikFaaliyetPdfHtml
                     $is['hafta'] ?? null
                 );
 
+                $aySonuParts = [];
+                if ($gerceklesen !== '') {
+                    $aySonuParts[] = 'gerçekleşen '.$gerceklesen;
+                }
+                if ($bekleyen !== '') {
+                    $aySonuParts[] = 'bekleyen '.$bekleyen;
+                }
+                $aySonuLine = $aySonuParts !== []
+                    ? '<br><b>Ay sonu:</b> '.e(implode(' / ', $aySonuParts))
+                    : '';
+
                 $isDetaylari .= "<div style='margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;'>
                                     <b>[".e((string) $durum).']</b> '.e($baslik).'
                                     '.($haftaLabel ? '<br><b>Hafta:</b> '.e($haftaLabel) : '').'
-                                    <br><b>Ay sonu gerçekleşen / Ay sonu bekleyen:</b> '.e((string) $gerceklesen).' / '.e((string) $bekleyen).'
+                                    '.$aySonuLine.'
                                     '.($olcuBirimi !== '' ? '<br><b>Ölçü birimi:</b> '.e($olcuBirimi) : '').'
                                     '.($kapsamIcerigi !== '' ? '<br><b>Kapsam:</b> '.e($kapsamIcerigi) : '').'
                                     '.(filled($extraordinaryText) ? '<br><b>Olağanüstü durum:</b> '.e((string) $extraordinaryText) : '').'

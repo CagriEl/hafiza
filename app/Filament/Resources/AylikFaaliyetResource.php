@@ -3671,9 +3671,9 @@ class AylikFaaliyetResource extends Resource
                     if ($kalem === '') {
                         continue;
                     }
-                    $kPlan = number_format((float) ($kapsam['ongorulen'] ?? 0), 0, ',', '.');
-                    $kDone = number_format((float) ($kapsam['gerceklesen'] ?? 0), 0, ',', '.');
-                    $kPending = number_format((float) ($kapsam['acikta_kalan'] ?? 0), 0, ',', '.');
+                    $kPlan = static::formatPdfQuantity($kapsam['ongorulen'] ?? null);
+                    $kDone = static::formatPdfQuantity($kapsam['gerceklesen'] ?? null);
+                    $kPending = static::formatPdfQuantity($kapsam['acikta_kalan'] ?? null);
                     $weeklyNotes = '';
                     $kayitlar = $kapsam['haftalik_kayitlar'] ?? [];
                     if (is_array($kayitlar)) {
@@ -3686,10 +3686,11 @@ class AylikFaaliyetResource extends Resource
                             $weekLabel = ($yil > 0 && $ay >= 1 && $ay <= 12 && $haftaNo >= 1)
                                 ? (ReportPeriodWeeks::weekLabelForRecord($yil, $ay, $haftaNo) ?? ('H'.$haftaNo))
                                 : ('H'.$haftaNo);
+                            $miktarText = static::formatPdfQuantity($kayit['miktar'] ?? null);
                             $weeklyNotes .= '<div style="font-size:6px;color:#6b7280;margin-top:1px;">'
                                 .e($weekLabel)
                                 .' · Kayıt: '.$tarih
-                                .' · '.e((string) ($kayit['miktar'] ?? ''))
+                                .($miktarText !== '' ? ' · '.e($miktarText) : '')
                                 .' — '.e((string) ($kayit['aciklama'] ?? ''))
                                 .'</div>';
                         }
@@ -3726,14 +3727,20 @@ class AylikFaaliyetResource extends Resource
                     break;
                 }
             }
+            $doneText = static::formatPdfQuantity($item['done'] ?? null);
+            $pendingText = static::formatPdfQuantity($item['pending'] ?? null);
+            $planText = static::formatPdfQuantity($item['plan'] ?? null);
+            $completionText = ((float) ($item['plan'] ?? 0) > 0.0)
+                ? '%'.((int) ($item['completion'] ?? 0))
+                : '';
             $rowsHtml .= '<tr>'
                 .'<td>'.e((string) $item['code']).'</td>'
                 .'<td>'.e((string) ($item['week_label'] ?? '—')).'</td>'
                 .'<td>'.e((string) $item['title']).$kapsamDetailHtml.'</td>'
-                .'<td style="color:'.$doneColor.';">'.e(number_format((float) $item['done'], 0, ',', '.')).'</td>'
-                .'<td style="color:'.$pendingColor.';">'.e(number_format((float) $item['pending'], 0, ',', '.')).'</td>'
-                .'<td style="color:'.$planColor.';">'.e(number_format((float) $item['plan'], 0, ',', '.')).'</td>'
-                .'<td>%'.e((string) ((int) $item['completion'])).'</td>'
+                .'<td style="color:'.$doneColor.';">'.e($doneText).'</td>'
+                .'<td style="color:'.$pendingColor.';">'.e($pendingText).'</td>'
+                .'<td style="color:'.$planColor.';">'.e($planText).'</td>'
+                .'<td>'.e($completionText).'</td>'
                 .'<td>'.e((string) $item['status_label']).'</td>'
                 .'<td>'.e($sonTarih !== '' ? $sonTarih : '—').'</td>'
                 .'</tr>';
@@ -3742,6 +3749,13 @@ class AylikFaaliyetResource extends Resource
         if ($rowsHtml === '') {
             $rowsHtml = '<tr><td colspan="9">Kayıtlı faaliyet bulunamadı.</td></tr>';
         }
+
+        $summaryDone = static::formatPdfQuantity($summary['total_done'] ?? null);
+        $summaryPending = static::formatPdfQuantity($summary['total_pending'] ?? null);
+        $summaryPlan = static::formatPdfQuantity($summary['total_plan'] ?? null);
+        $summaryCompletion = ((float) ($summary['total_plan'] ?? 0) > 0.0)
+            ? '%'.((int) ($summary['completion'] ?? 0))
+            : '';
 
         return '<!DOCTYPE html>
 <html>
@@ -3764,10 +3778,10 @@ class AylikFaaliyetResource extends Resource
     <div class="title">Faaliyet Raporu — '.e($mudurluk).'</div>
     <div class="meta">Dönem: '.e($period).' | Kayıt tarihi: '.e($savedAt)
         .($reportWeeks !== null && $reportWeeks !== '' ? ' | Haftalar: '.e($reportWeeks) : '').'</div>
-    <div class="summary">Yapılan: <b>'.e(number_format((float) $summary['total_done'], 0, ',', '.')).'</b>
-        · Açıkta: <b>'.e(number_format((float) $summary['total_pending'], 0, ',', '.')).'</b>
-        · Toplam: <b>'.e(number_format((float) $summary['total_plan'], 0, ',', '.')).'</b>
-        · Tamamlanma: <b>%'.e((string) ((int) $summary['completion'])).'</b></div>
+    <div class="summary">Yapılan: <b>'.e($summaryDone).'</b>
+        · Açıkta: <b>'.e($summaryPending).'</b>
+        · Toplam: <b>'.e($summaryPlan).'</b>'
+        .($summaryCompletion !== '' ? ' · Tamamlanma: <b>'.e($summaryCompletion).'</b>' : '').'</div>
 
     <table>
         <thead>
@@ -4091,6 +4105,38 @@ class AylikFaaliyetResource extends Resource
         }
 
         return trim($value) !== '';
+    }
+
+    /**
+     * PDF miktar gösterimi: boş / null / 0 değerleri yazılmaz.
+     */
+    public static function formatPdfQuantity(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        if (is_bool($value)) {
+            return '';
+        }
+
+        if (is_string($value)) {
+            $normalized = trim(str_replace(["\xc2\xa0", ' '], '', $value));
+            if ($normalized === '' || ! is_numeric($normalized)) {
+                return '';
+            }
+            $value = (float) $normalized;
+        }
+
+        if (! is_int($value) && ! is_float($value)) {
+            return '';
+        }
+
+        if ((float) $value == 0.0) {
+            return '';
+        }
+
+        return number_format((float) $value, 0, ',', '.');
     }
 
     private static function toFloatNumber(mixed $value): float
