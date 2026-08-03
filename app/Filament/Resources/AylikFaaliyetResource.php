@@ -3443,7 +3443,7 @@ class AylikFaaliyetResource extends Resource
         $items = [];
 
         foreach ($state as $row) {
-            if (! is_array($row) || ! static::kapsamRowHasEnteredQuantity($row)) {
+            if (! is_array($row)) {
                 continue;
             }
 
@@ -3454,8 +3454,8 @@ class AylikFaaliyetResource extends Resource
 
             $ger = $row['gerceklesen'] ?? null;
             $acik = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($row);
-            $gerText = static::formatPdfQuantity($ger);
-            $acikText = static::formatPdfQuantity($acik);
+            $gerText = filled($ger) ? (string) $ger : '—';
+            $acikText = $acik > 0.0 ? (string) (floor($acik) === $acik ? (int) $acik : $acik) : '0';
             $revizeTarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($row['acikta_revize_tarihi'] ?? null);
             $revizeNotu = trim((string) ($row['acikta_revize_notu'] ?? ''));
             $revizeHtml = '';
@@ -3487,10 +3487,17 @@ class AylikFaaliyetResource extends Resource
 
     private static function visualPerformanceSummaryHtml(?AylikFaaliyet $record): string
     {
+        // İş listesine eklenmemiş / miktar girilmemiş satırlar (katalog doldurması) raporda yer almaz.
+        // Girilmiş 0 değerleri görünür.
         $summary = static::summarizeReportForPresentation($record, false, true);
-        $totalDone = static::formatPdfQuantity($summary['total_done'] ?? null);
-        $totalPending = static::formatPdfQuantity($summary['total_pending'] ?? null);
-        $totalPlan = static::formatPdfQuantity($summary['total_plan'] ?? null);
+        $anyDone = collect($summary['items'])->contains(fn (array $i): bool => ! (bool) ($i['missing_done'] ?? true));
+        $anyPlan = collect($summary['items'])->contains(fn (array $i): bool => ! (bool) ($i['missing_plan'] ?? true));
+        $anyPending = collect($summary['items'])->contains(fn (array $i): bool => ! (bool) ($i['missing_pending'] ?? true)
+            || ! (bool) ($i['missing_plan'] ?? true)
+            || ! (bool) ($i['missing_done'] ?? true));
+        $totalDone = $anyDone ? number_format((float) $summary['total_done'], 0, ',', '.') : '';
+        $totalPending = $anyPending ? number_format((float) $summary['total_pending'], 0, ',', '.') : '';
+        $totalPlan = $anyPlan ? number_format((float) $summary['total_plan'], 0, ',', '.') : '';
         $completion = (int) $summary['completion'];
         $completedRows = (int) $summary['completed_rows'];
         $pendingRows = (int) $summary['pending_rows'];
@@ -3498,12 +3505,12 @@ class AylikFaaliyetResource extends Resource
         $totalDoneColor = $totalsMissing ? '#b91c1c' : '#065f46';
         $totalPendingColor = $totalsMissing ? '#b91c1c' : '#1e3a8a';
         $totalPlanColor = $totalsMissing ? '#b91c1c' : '#9a3412';
+        $completionLabel = $anyPlan ? '%'.$completion : '';
 
         $chartMax = max((float) $summary['total_done'], (float) $summary['total_pending'], (float) $summary['total_plan'], 1.0);
         $doneRatio = (int) round(((float) $summary['total_done'] / $chartMax) * 100);
         $pendingRatio = (int) round(((float) $summary['total_pending'] / $chartMax) * 100);
         $planRatio = (int) round(((float) $summary['total_plan'] / $chartMax) * 100);
-        $completionLabel = ((float) ($summary['total_plan'] ?? 0) > 0.0) ? '%'.$completion : '';
         $chartHtml = '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#fff;margin-top:10px;">'
             .'<div style="font-size:12px;font-weight:700;color:#111827;margin-bottom:8px;">Aylık İş Dağılımı (Chart)</div>'
             .'<table style="width:100%;border-collapse:collapse;">'
@@ -3522,12 +3529,18 @@ class AylikFaaliyetResource extends Resource
         $cardsHtml = '';
         foreach ($summary['items'] as $item) {
             $width = (int) $item['completion'];
-            $done = static::formatPdfQuantity($item['done'] ?? null);
-            $pending = static::formatPdfQuantity($item['pending'] ?? null);
-            $plan = static::formatPdfQuantity($item['plan'] ?? null);
-            $doneColor = (bool) ($item['missing_done'] ?? false) ? '#b91c1c' : '#111827';
-            $pendingColor = (bool) ($item['missing_pending'] ?? false) ? '#b91c1c' : '#111827';
-            $planColor = (bool) ($item['missing_plan'] ?? false) ? '#b91c1c' : '#111827';
+            $doneProvided = ! (bool) ($item['missing_done'] ?? true);
+            $planProvided = ! (bool) ($item['missing_plan'] ?? true);
+            $pendingProvided = ! (bool) ($item['missing_pending'] ?? true);
+            $done = static::formatPdfQuantityWhenProvided($item['done'] ?? 0, $doneProvided);
+            $plan = static::formatPdfQuantityWhenProvided($item['plan'] ?? 0, $planProvided);
+            $pending = static::formatPdfQuantityWhenProvided(
+                $item['pending'] ?? 0,
+                $pendingProvided || $planProvided || $doneProvided
+            );
+            $doneColor = $doneProvided ? '#111827' : '#b91c1c';
+            $pendingColor = ($pendingProvided || $planProvided || $doneProvided) ? '#111827' : '#b91c1c';
+            $planColor = $planProvided ? '#111827' : '#b91c1c';
             $unit = trim((string) ($item['unit'] ?? ''));
             $unitSuffix = $unit !== '' ? ' '.$unit : '';
             $infoLevel = trim((string) ($item['info_level'] ?? ''));
@@ -3551,7 +3564,13 @@ class AylikFaaliyetResource extends Resource
                         continue;
                     }
                     $kDone = static::formatPdfQuantity($krow['gerceklesen'] ?? null);
-                    $kPending = static::formatPdfQuantity($krow['acikta_kalan'] ?? null);
+                    $kPending = static::formatPdfQuantityWhenProvided(
+                        $krow['acikta_kalan'] ?? 0,
+                        static::hasProvidedNumericValue($krow['acikta_kalan'] ?? null)
+                            || static::hasProvidedNumericValue($krow['ongorulen'] ?? null)
+                            || static::hasProvidedNumericValue($krow['deger'] ?? null)
+                            || static::hasProvidedNumericValue($krow['gerceklesen'] ?? null)
+                    );
                     $revizeTarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($krow['acikta_revize_tarihi'] ?? null);
                     $revizeNotu = trim((string) ($krow['acikta_revize_notu'] ?? ''));
                     $revizeCell = '—';
@@ -3576,7 +3595,7 @@ class AylikFaaliyetResource extends Resource
                 }
             }
 
-            $itemCompletion = ((float) ($item['plan'] ?? 0) > 0.0) ? '%'.((int) ($item['completion'] ?? 0)) : '';
+            $itemCompletion = $planProvided ? '%'.((int) ($item['completion'] ?? 0)) : '';
             $cardsHtml .= '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff;margin-bottom:8px;box-sizing:border-box;">'
                 .'<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">'
                 .'<div style="min-width:0;"><div style="font-weight:700;color:#111827;word-break:break-word;">'.e((string) $item['code']).'</div><div style="font-size:12px;color:#4b5563;word-break:break-word;">'.e((string) $item['title']).'</div>'
@@ -3610,7 +3629,7 @@ class AylikFaaliyetResource extends Resource
             ->filter(fn (array $item): bool => ((float) ($item['pending'] ?? 0.0) > 0.0))
             ->take(5)
             ->map(function (array $item): string {
-                $pending = static::formatPdfQuantity($item['pending'] ?? null);
+                $pending = number_format((float) ($item['pending'] ?? 0), 0, ',', '.');
                 $status = trim((string) ($item['status_label'] ?? 'Kısmi'));
 
                 return '<li style="margin:0 0 6px 16px;color:#7f1d1d;">'
@@ -3624,8 +3643,8 @@ class AylikFaaliyetResource extends Resource
             ? '<div style="font-size:12px;color:#166534;">Kritik risk görünmüyor, açıkta bekleyen satır yok.</div>'
             : '<ul style="padding:0;margin:6px 0 0;">'.$riskItems.'</ul>';
 
-        if ($cardsHtml === '' && $totalDone === '' && $totalPending === '' && $totalPlan === '') {
-            return '<div style="font-size:13px;color:#6b7280;padding:12px;">Bu dönemde miktar girilmiş faaliyet bulunmuyor.</div>';
+        if ($cardsHtml === '') {
+            return '<div style="font-size:13px;color:#6b7280;padding:12px;">Bu dönemde iş listesine miktar girilmiş faaliyet bulunmuyor.</div>';
         }
 
         return '<div>'
@@ -3675,9 +3694,16 @@ class AylikFaaliyetResource extends Resource
                     if ($kalem === '') {
                         continue;
                     }
-                    $kPlan = static::formatPdfQuantity($kapsam['ongorulen'] ?? null);
+                    $kPlan = static::formatPdfQuantity($kapsam['ongorulen'] ?? $kapsam['deger'] ?? null);
                     $kDone = static::formatPdfQuantity($kapsam['gerceklesen'] ?? null);
-                    $kPending = static::formatPdfQuantity($kapsam['acikta_kalan'] ?? null);
+                    $pendingProvided = static::hasProvidedNumericValue($kapsam['acikta_kalan'] ?? null)
+                        || static::hasProvidedNumericValue($kapsam['ongorulen'] ?? null)
+                        || static::hasProvidedNumericValue($kapsam['deger'] ?? null)
+                        || static::hasProvidedNumericValue($kapsam['gerceklesen'] ?? null);
+                    $kPending = static::formatPdfQuantityWhenProvided(
+                        $kapsam['acikta_kalan'] ?? AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($kapsam),
+                        $pendingProvided
+                    );
                     $weeklyNotes = '';
                     $kayitlar = $kapsam['haftalik_kayitlar'] ?? [];
                     if (is_array($kayitlar)) {
@@ -3731,10 +3757,17 @@ class AylikFaaliyetResource extends Resource
                     break;
                 }
             }
-            $doneText = static::formatPdfQuantity($item['done'] ?? null);
-            $pendingText = static::formatPdfQuantity($item['pending'] ?? null);
-            $planText = static::formatPdfQuantity($item['plan'] ?? null);
-            $completionText = ((float) ($item['plan'] ?? 0) > 0.0)
+            $doneProvided = ! (bool) ($item['missing_done'] ?? true);
+            $planProvided = ! (bool) ($item['missing_plan'] ?? true);
+            $pendingProvided = ! (bool) ($item['missing_pending'] ?? true);
+            $doneText = static::formatPdfQuantityWhenProvided($item['done'] ?? 0, $doneProvided);
+            $planText = static::formatPdfQuantityWhenProvided($item['plan'] ?? 0, $planProvided);
+            // Açıkta: plan/yapılan/açıkta alanlarından biri girildiyse 0 dahil göster.
+            $pendingText = static::formatPdfQuantityWhenProvided(
+                $item['pending'] ?? 0,
+                $pendingProvided || $planProvided || $doneProvided
+            );
+            $completionText = $planProvided
                 ? '%'.((int) ($item['completion'] ?? 0))
                 : '';
             $rowsHtml .= '<tr>'
@@ -3754,10 +3787,15 @@ class AylikFaaliyetResource extends Resource
             $rowsHtml = '<tr><td colspan="9">Kayıtlı faaliyet bulunamadı.</td></tr>';
         }
 
-        $summaryDone = static::formatPdfQuantity($summary['total_done'] ?? null);
-        $summaryPending = static::formatPdfQuantity($summary['total_pending'] ?? null);
-        $summaryPlan = static::formatPdfQuantity($summary['total_plan'] ?? null);
-        $summaryCompletion = ((float) ($summary['total_plan'] ?? 0) > 0.0)
+        $anyDone = collect($summary['items'])->contains(fn (array $i): bool => ! (bool) ($i['missing_done'] ?? true));
+        $anyPlan = collect($summary['items'])->contains(fn (array $i): bool => ! (bool) ($i['missing_plan'] ?? true));
+        $anyPending = collect($summary['items'])->contains(fn (array $i): bool => ! (bool) ($i['missing_pending'] ?? true)
+            || ! (bool) ($i['missing_plan'] ?? true)
+            || ! (bool) ($i['missing_done'] ?? true));
+        $summaryDone = $anyDone ? number_format((float) ($summary['total_done'] ?? 0), 0, ',', '.') : '';
+        $summaryPending = $anyPending ? number_format((float) ($summary['total_pending'] ?? 0), 0, ',', '.') : '';
+        $summaryPlan = $anyPlan ? number_format((float) ($summary['total_plan'] ?? 0), 0, ',', '.') : '';
+        $summaryCompletion = $anyPlan
             ? '%'.((int) ($summary['completion'] ?? 0))
             : '';
 
@@ -4124,15 +4162,15 @@ class AylikFaaliyetResource extends Resource
     }
 
     /**
-     * PDF / özet: hiç miktar girilmemiş veya hepsi 0 olan satırlar raporlanmaz.
+     * Satırda en az bir miktar alanı girilmiş mi? (0 dahil; boş/null hariç)
      *
-     * @param  array{done?: mixed, pending?: mixed, plan?: mixed}  $progress
+     * @param  array{missing_done?: bool, missing_pending?: bool, missing_plan?: bool}  $progress
      */
     public static function progressHasEnteredQuantity(array $progress): bool
     {
-        return static::toFloatNumber($progress['done'] ?? 0) > 0.0
-            || static::toFloatNumber($progress['pending'] ?? 0) > 0.0
-            || static::toFloatNumber($progress['plan'] ?? 0) > 0.0;
+        return ! ((bool) ($progress['missing_done'] ?? true)
+            && (bool) ($progress['missing_pending'] ?? true)
+            && (bool) ($progress['missing_plan'] ?? true));
     }
 
     /**
@@ -4140,7 +4178,22 @@ class AylikFaaliyetResource extends Resource
      */
     public static function faaliyetRowHasEnteredQuantity(array $row): bool
     {
-        return static::progressHasEnteredQuantity(static::resolveProgressFromFaaliyetRow($row));
+        $kapsamRows = $row['kapsam_verileri'] ?? null;
+        if (is_array($kapsamRows) && $kapsamRows !== []) {
+            foreach ($kapsamRows as $kapsamRow) {
+                if (is_array($kapsamRow) && static::kapsamRowHasEnteredQuantity($kapsamRow)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return static::hasProvidedNumericValue($row['hedef'] ?? null)
+            || static::hasProvidedNumericValue($row['ongorulen'] ?? null)
+            || static::hasProvidedNumericValue($row['deger'] ?? null)
+            || static::hasProvidedNumericValue($row['gerceklesen'] ?? null)
+            || static::hasProvidedNumericValue($row['bekleyen_is'] ?? null);
     }
 
     /**
@@ -4148,38 +4201,35 @@ class AylikFaaliyetResource extends Resource
      */
     public static function kapsamRowHasEnteredQuantity(array $kapsam): bool
     {
-        return static::toFloatNumber($kapsam['ongorulen'] ?? $kapsam['deger'] ?? 0) > 0.0
-            || static::toFloatNumber($kapsam['gerceklesen'] ?? 0) > 0.0
-            || static::toFloatNumber($kapsam['acikta_kalan'] ?? 0) > 0.0
-            || AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($kapsam) > 0.0;
+        return static::hasProvidedNumericValue($kapsam['ongorulen'] ?? null)
+            || static::hasProvidedNumericValue($kapsam['deger'] ?? null)
+            || static::hasProvidedNumericValue($kapsam['gerceklesen'] ?? null)
+            || static::hasProvidedNumericValue($kapsam['acikta_kalan'] ?? null);
     }
 
     /**
-     * PDF miktar gösterimi: boş / null / 0 değerleri yazılmaz.
+     * PDF miktar gösterimi: girilmiş değerler (0 dahil) yazılır; boş/null yazılmaz.
      */
     public static function formatPdfQuantity(mixed $value): string
     {
-        if ($value === null || $value === '') {
-            return '';
-        }
-
-        if (is_bool($value)) {
+        if (! static::hasProvidedNumericValue($value)) {
             return '';
         }
 
         if (is_string($value)) {
             $normalized = trim(str_replace(["\xc2\xa0", ' '], '', $value));
-            if ($normalized === '' || ! is_numeric($normalized)) {
-                return '';
-            }
-            $value = (float) $normalized;
+            $value = is_numeric($normalized) ? (float) $normalized : 0.0;
         }
 
-        if (! is_int($value) && ! is_float($value)) {
-            return '';
-        }
+        return number_format((float) $value, 0, ',', '.');
+    }
 
-        if ((float) $value == 0.0) {
+    /**
+     * Özet satırındaki hesaplanmış miktar: alan girilmediyse boş, girildiyse 0 dahil göster.
+     */
+    public static function formatPdfQuantityWhenProvided(mixed $value, bool $wasProvided): string
+    {
+        if (! $wasProvided) {
             return '';
         }
 

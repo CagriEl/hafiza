@@ -115,7 +115,10 @@ final class AylikFaaliyetPdfHtml
                         $ong = AylikFaaliyetResource::formatPdfQuantity($satir['ongorulen'] ?? $satir['deger'] ?? null);
                         $ger = AylikFaaliyetResource::formatPdfQuantity($satir['gerceklesen'] ?? null);
                         $acik = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($satir);
-                        $acikText = AylikFaaliyetResource::formatPdfQuantity($acik);
+                        $acikText = AylikFaaliyetResource::formatPdfQuantityWhenProvided(
+                            $acik,
+                            AylikFaaliyetResource::kapsamRowHasEnteredQuantity($satir)
+                        );
                         $parts = [];
                         if ($ong !== '') {
                             $parts[] = 'yapılacak '.$ong;
