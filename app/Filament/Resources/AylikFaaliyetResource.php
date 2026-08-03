@@ -3443,7 +3443,7 @@ class AylikFaaliyetResource extends Resource
         $items = [];
 
         foreach ($state as $row) {
-            if (! is_array($row)) {
+            if (! is_array($row) || ! static::kapsamRowHasEnteredQuantity($row)) {
                 continue;
             }
 
@@ -3454,8 +3454,8 @@ class AylikFaaliyetResource extends Resource
 
             $ger = $row['gerceklesen'] ?? null;
             $acik = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($row);
-            $gerText = filled($ger) ? (string) $ger : '—';
-            $acikText = $acik > 0.0 ? (string) (floor($acik) === $acik ? (int) $acik : $acik) : '0';
+            $gerText = static::formatPdfQuantity($ger);
+            $acikText = static::formatPdfQuantity($acik);
             $revizeTarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($row['acikta_revize_tarihi'] ?? null);
             $revizeNotu = trim((string) ($row['acikta_revize_notu'] ?? ''));
             $revizeHtml = '';
@@ -3487,10 +3487,10 @@ class AylikFaaliyetResource extends Resource
 
     private static function visualPerformanceSummaryHtml(?AylikFaaliyet $record): string
     {
-        $summary = static::summarizeReportForPresentation($record);
-        $totalDone = number_format((float) $summary['total_done'], 0, ',', '.');
-        $totalPending = number_format((float) $summary['total_pending'], 0, ',', '.');
-        $totalPlan = number_format((float) $summary['total_plan'], 0, ',', '.');
+        $summary = static::summarizeReportForPresentation($record, false, true);
+        $totalDone = static::formatPdfQuantity($summary['total_done'] ?? null);
+        $totalPending = static::formatPdfQuantity($summary['total_pending'] ?? null);
+        $totalPlan = static::formatPdfQuantity($summary['total_plan'] ?? null);
         $completion = (int) $summary['completion'];
         $completedRows = (int) $summary['completed_rows'];
         $pendingRows = (int) $summary['pending_rows'];
@@ -3503,6 +3503,7 @@ class AylikFaaliyetResource extends Resource
         $doneRatio = (int) round(((float) $summary['total_done'] / $chartMax) * 100);
         $pendingRatio = (int) round(((float) $summary['total_pending'] / $chartMax) * 100);
         $planRatio = (int) round(((float) $summary['total_plan'] / $chartMax) * 100);
+        $completionLabel = ((float) ($summary['total_plan'] ?? 0) > 0.0) ? '%'.$completion : '';
         $chartHtml = '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:10px;background:#fff;margin-top:10px;">'
             .'<div style="font-size:12px;font-weight:700;color:#111827;margin-bottom:8px;">Aylık İş Dağılımı (Chart)</div>'
             .'<table style="width:100%;border-collapse:collapse;">'
@@ -3521,9 +3522,9 @@ class AylikFaaliyetResource extends Resource
         $cardsHtml = '';
         foreach ($summary['items'] as $item) {
             $width = (int) $item['completion'];
-            $done = number_format((float) $item['done'], 0, ',', '.');
-            $pending = number_format((float) $item['pending'], 0, ',', '.');
-            $plan = number_format((float) $item['plan'], 0, ',', '.');
+            $done = static::formatPdfQuantity($item['done'] ?? null);
+            $pending = static::formatPdfQuantity($item['pending'] ?? null);
+            $plan = static::formatPdfQuantity($item['plan'] ?? null);
             $doneColor = (bool) ($item['missing_done'] ?? false) ? '#b91c1c' : '#111827';
             $pendingColor = (bool) ($item['missing_pending'] ?? false) ? '#b91c1c' : '#111827';
             $planColor = (bool) ($item['missing_plan'] ?? false) ? '#b91c1c' : '#111827';
@@ -3542,15 +3543,15 @@ class AylikFaaliyetResource extends Resource
             if ($kapsamRows !== []) {
                 $rowsHtml = '';
                 foreach ($kapsamRows as $krow) {
-                    if (! is_array($krow)) {
+                    if (! is_array($krow) || ! static::kapsamRowHasEnteredQuantity($krow)) {
                         continue;
                     }
                     $kalem = trim((string) ($krow['kalem'] ?? ''));
                     if ($kalem === '') {
                         continue;
                     }
-                    $kDone = number_format((float) ($krow['gerceklesen'] ?? 0), 0, ',', '.');
-                    $kPending = number_format((float) ($krow['acikta_kalan'] ?? 0), 0, ',', '.');
+                    $kDone = static::formatPdfQuantity($krow['gerceklesen'] ?? null);
+                    $kPending = static::formatPdfQuantity($krow['acikta_kalan'] ?? null);
                     $revizeTarih = AylikFaaliyetWeeklyCarryover::formatDisplayDate($krow['acikta_revize_tarihi'] ?? null);
                     $revizeNotu = trim((string) ($krow['acikta_revize_notu'] ?? ''));
                     $revizeCell = '—';
@@ -3575,6 +3576,7 @@ class AylikFaaliyetResource extends Resource
                 }
             }
 
+            $itemCompletion = ((float) ($item['plan'] ?? 0) > 0.0) ? '%'.((int) ($item['completion'] ?? 0)) : '';
             $cardsHtml .= '<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;background:#fff;margin-bottom:8px;box-sizing:border-box;">'
                 .'<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;">'
                 .'<div style="min-width:0;"><div style="font-weight:700;color:#111827;word-break:break-word;">'.e((string) $item['code']).'</div><div style="font-size:12px;color:#4b5563;word-break:break-word;">'.e((string) $item['title']).'</div>'
@@ -3585,9 +3587,9 @@ class AylikFaaliyetResource extends Resource
                 .'<span style="font-size:12px;padding:3px 10px;border-radius:9999px;background:'.e((string) $item['badge_bg']).';color:'.e((string) $item['badge_text']).';">'.e((string) $item['status_label']).'</span>'
                 .'</div>'
                 .'<div style="display:block;margin-top:8px;font-size:12px;color:#374151;line-height:1.6;">'
-                .'<div>Yapılan: <b style="color:'.$doneColor.';">'.e($done.$unitSuffix).'</b></div>'
-                .'<div>Açıkta Bekleyen: <b style="color:'.$pendingColor.';">'.e($pending.$unitSuffix).'</b></div>'
-                .'<div>Toplam İş: <b style="color:'.$planColor.';">'.e($plan.$unitSuffix).'</b></div>'
+                .'<div>Yapılan: <b style="color:'.$doneColor.';">'.e($done !== '' ? $done.$unitSuffix : '').'</b></div>'
+                .'<div>Açıkta Bekleyen: <b style="color:'.$pendingColor.';">'.e($pending !== '' ? $pending.$unitSuffix : '').'</b></div>'
+                .'<div>Toplam İş: <b style="color:'.$planColor.';">'.e($plan !== '' ? $plan.$unitSuffix : '').'</b></div>'
                 .'<div>Sapma: <b>'.e($sapmaNedeni !== '' ? $sapmaNedeni : '—').'</b></div>'
                 .'<div>Revize: <b>'.e($gerekliRevize ? 'Evet' : 'Hayır').'</b></div>'
                 .'<div>Revize sebebi: <b>'.e($revizeSebebi !== '' ? $revizeSebebi : '—').'</b></div>'
@@ -3598,18 +3600,17 @@ class AylikFaaliyetResource extends Resource
                 .'<div style="margin-top:10px;background:#e5e7eb;height:9px;border-radius:9999px;overflow:hidden;">'
                 .'<div style="height:100%;width:'.$width.'%;background:'.e((string) $item['bar_color']).';"></div>'
                 .'</div>'
-                .'<div style="margin-top:6px;font-size:11px;color:#6b7280;">Tamamlanma oranı: <b>%'.e((string) $width).'</b></div>'
+                .'<div style="margin-top:6px;font-size:11px;color:#6b7280;">'
+                .($itemCompletion !== '' ? 'Tamamlanma oranı: <b>'.e($itemCompletion).'</b>' : '')
+                .'</div>'
                 .'</div>';
         }
 
         $riskItems = collect($summary['items'])
-            ->filter(fn (array $item): bool => ((float) ($item['pending'] ?? 0.0) > 0.0)
-                || ((bool) ($item['missing_done'] ?? false))
-                || ((bool) ($item['missing_pending'] ?? false))
-                || ((bool) ($item['missing_plan'] ?? false)))
+            ->filter(fn (array $item): bool => ((float) ($item['pending'] ?? 0.0) > 0.0))
             ->take(5)
             ->map(function (array $item): string {
-                $pending = number_format((float) ($item['pending'] ?? 0), 0, ',', '.');
+                $pending = static::formatPdfQuantity($item['pending'] ?? null);
                 $status = trim((string) ($item['status_label'] ?? 'Kısmi'));
 
                 return '<li style="margin:0 0 6px 16px;color:#7f1d1d;">'
@@ -3623,15 +3624,18 @@ class AylikFaaliyetResource extends Resource
             ? '<div style="font-size:12px;color:#166534;">Kritik risk görünmüyor, açıkta bekleyen satır yok.</div>'
             : '<ul style="padding:0;margin:6px 0 0;">'.$riskItems.'</ul>';
 
+        if ($cardsHtml === '' && $totalDone === '' && $totalPending === '' && $totalPlan === '') {
+            return '<div style="font-size:13px;color:#6b7280;padding:12px;">Bu dönemde miktar girilmiş faaliyet bulunmuyor.</div>';
+        }
+
         return '<div>'
             .'<table style="width:100%;border-collapse:separate;border-spacing:8px;table-layout:fixed;">'
             .'<tr>'
-            .'<td style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#065f46;">Yapılan İş</div><div style="font-size:22px;font-weight:700;color:'.$totalDoneColor.';">'.$totalDone.'</div></td>'
-            .'<td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#1e3a8a;">Açıkta Bekleyen İş</div><div style="font-size:22px;font-weight:700;color:'.$totalPendingColor.';">'.$totalPending.'</div></td>'
-            .'<td style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#9a3412;">Toplam İş</div><div style="font-size:22px;font-weight:700;color:'.$totalPlanColor.';">'.$totalPlan.'</div></td>'
-            .'<td style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#5b21b6;">Genel Tamamlanma</div><div style="font-size:22px;font-weight:700;color:#5b21b6;">%'.$completion.'</div></td>'
+            .'<td style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#065f46;">Yapılan İş</div><div style="font-size:22px;font-weight:700;color:'.$totalDoneColor.';">'.e($totalDone).'</div></td>'
+            .'<td style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#1e3a8a;">Açıkta Bekleyen İş</div><div style="font-size:22px;font-weight:700;color:'.$totalPendingColor.';">'.e($totalPending).'</div></td>'
+            .'<td style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#9a3412;">Toplam İş</div><div style="font-size:22px;font-weight:700;color:'.$totalPlanColor.';">'.e($totalPlan).'</div></td>'
+            .'<td style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:10px;vertical-align:top;"><div style="font-size:12px;color:#5b21b6;">Genel Tamamlanma</div><div style="font-size:22px;font-weight:700;color:#5b21b6;">'.e($completionLabel).'</div></td>'
             .'</tr></table>'
-            .'<div style="font-size:11px;color:#b91c1c;">Eksik alanlar otomatik olarak 0 gösterilir ve kırmızı ile işaretlenir.</div>'
             .$chartHtml
             .'<div style="font-size:12px;color:#4b5563;margin-top:8px;">Satır özeti: <b>'.e((string) $completedRows).'</b> tamamlandı, <b>'.e((string) $pendingRows).'</b> satır açıkta bekliyor.</div>'
             .'<div style="border:1px solid #fecaca;background:#fff1f2;border-radius:10px;padding:10px;margin-top:8px;">'
