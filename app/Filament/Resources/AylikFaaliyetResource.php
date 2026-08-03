@@ -3644,7 +3644,7 @@ class AylikFaaliyetResource extends Resource
 
     public static function reportPdfHtml(?AylikFaaliyet $record): string
     {
-        $summary = static::summarizeReportForPresentation($record, true);
+        $summary = static::summarizeReportForPresentation($record, true, true);
         $mudurluk = trim((string) ($record?->user?->name ?? 'Belirtilmemiş'));
         $yil = (int) ($record?->yil ?? 0);
         $ay = (int) preg_replace('/\D/', '', (string) ($record?->ay ?? ''));
@@ -3834,7 +3834,11 @@ class AylikFaaliyetResource extends Resource
      *   }>
      * }
      */
-    private static function summarizeReportForPresentation(?AylikFaaliyet $record, bool $includePeriodSiblings = false): array
+    private static function summarizeReportForPresentation(
+        ?AylikFaaliyet $record,
+        bool $includePeriodSiblings = false,
+        bool $omitEmptyQuantities = false
+    ): array
     {
         $rows = static::rowsForReportPresentation($record, $includePeriodSiblings);
         $items = [];
@@ -3856,6 +3860,9 @@ class AylikFaaliyetResource extends Resource
             $done = $progress['done'];
             $pending = $progress['pending'];
             $plan = $progress['plan'];
+            if ($omitEmptyQuantities && ! static::progressHasEnteredQuantity($progress)) {
+                continue;
+            }
             $missingDone = (bool) ($progress['missing_done'] ?? true);
             $missingPending = (bool) ($progress['missing_pending'] ?? true);
             $missingPlan = (bool) ($progress['missing_plan'] ?? true);
@@ -3911,7 +3918,12 @@ class AylikFaaliyetResource extends Resource
                 'gerekli_revize' => (bool) ($row['gerekli_revize'] ?? false),
                 'revize_sebebi' => trim((string) ($row['revize_sebebi'] ?? '')),
                 'karar_ihtiyaci' => trim((string) ($row['karar_ihtiyaci'] ?? '')),
-                'kapsam_rows' => static::kapsamRowsForSummary($row),
+                'kapsam_rows' => $omitEmptyQuantities
+                    ? array_values(array_filter(
+                        static::kapsamRowsForSummary($row),
+                        fn (array $kapsam): bool => static::kapsamRowHasEnteredQuantity($kapsam)
+                    ))
+                    : static::kapsamRowsForSummary($row),
                 'done' => $done,
                 'pending' => $pending,
                 'plan' => $plan,
@@ -4105,6 +4117,37 @@ class AylikFaaliyetResource extends Resource
         }
 
         return trim($value) !== '';
+    }
+
+    /**
+     * PDF / özet: hiç miktar girilmemiş veya hepsi 0 olan satırlar raporlanmaz.
+     *
+     * @param  array{done?: mixed, pending?: mixed, plan?: mixed}  $progress
+     */
+    public static function progressHasEnteredQuantity(array $progress): bool
+    {
+        return static::toFloatNumber($progress['done'] ?? 0) > 0.0
+            || static::toFloatNumber($progress['pending'] ?? 0) > 0.0
+            || static::toFloatNumber($progress['plan'] ?? 0) > 0.0;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    public static function faaliyetRowHasEnteredQuantity(array $row): bool
+    {
+        return static::progressHasEnteredQuantity(static::resolveProgressFromFaaliyetRow($row));
+    }
+
+    /**
+     * @param  array<string, mixed>  $kapsam
+     */
+    public static function kapsamRowHasEnteredQuantity(array $kapsam): bool
+    {
+        return static::toFloatNumber($kapsam['ongorulen'] ?? $kapsam['deger'] ?? 0) > 0.0
+            || static::toFloatNumber($kapsam['gerceklesen'] ?? 0) > 0.0
+            || static::toFloatNumber($kapsam['acikta_kalan'] ?? 0) > 0.0
+            || AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($kapsam) > 0.0;
     }
 
     /**

@@ -78,6 +78,10 @@ final class AylikFaaliyetPdfHtml
             }
 
             foreach ($isler as $is) {
+                if (! is_array($is) || ! AylikFaaliyetResource::faaliyetRowHasEnteredQuantity($is)) {
+                    continue;
+                }
+
                 $durum = match ($is['durum'] ?? '') {
                     'tamam' => 'Tamamlandı',
                     'devam' => 'Devam Ediyor',
@@ -101,7 +105,7 @@ final class AylikFaaliyetPdfHtml
                 if (is_array($satirlar) && $satirlar !== []) {
                     $pairs = [];
                     foreach ($satirlar as $satir) {
-                        if (! is_array($satir)) {
+                        if (! is_array($satir) || ! AylikFaaliyetResource::kapsamRowHasEnteredQuantity($satir)) {
                             continue;
                         }
                         $kalem = trim((string) ($satir['kalem'] ?? ''));
@@ -158,6 +162,10 @@ final class AylikFaaliyetPdfHtml
                                  </div>';
             }
 
+            if ($isDetaylari === '') {
+                continue;
+            }
+
             $yil = (int) ($record->yil ?? 0);
             $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? ''));
             $donem = $yil > 0 && $ay >= 1 && $ay <= 12
@@ -169,7 +177,7 @@ final class AylikFaaliyetPdfHtml
             $html .= '<tr>
                         <td>'.e($record->user->name ?? 'Belirtilmemiş').'</td>
                         <td>'.$donem.'<br><small>Kayıt: '.$kayitTarihi.'</small><br><small>Haftalar: '.$raporHaftalari.'</small></td>
-                        <td>'.($isDetaylari ?: 'Kayıtlı faaliyet yok.').'</td>
+                        <td>'.$isDetaylari.'</td>
                       </tr>';
         }
 
