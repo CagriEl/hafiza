@@ -232,6 +232,7 @@
                     <span class="chip">Dönem: {{ $report['donem_etiketi'] }}</span>
                     <span class="chip">Müdürlük: {{ $ozet['mudurluk_sayisi'] }}</span>
                     <span class="chip">Rapor giren: {{ $ozet['rapor_olan'] }} / {{ $ozet['mudurluk_sayisi'] }}</span>
+                    <a class="chip" href="{{ \App\Filament\Pages\AnalizEkibiKoordinasyonTakibi::getUrl() }}" style="text-decoration:none;color:#1d4ed8;font-weight:600;">Koordinasyon Takibi →</a>
                 </div>
             </div>
 
