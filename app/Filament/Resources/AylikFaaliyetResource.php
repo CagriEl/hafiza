@@ -1414,6 +1414,8 @@ class AylikFaaliyetResource extends Resource
                                             ->dehydrated(true),
                                         Forms\Components\Hidden::make('acikta_kapatildi')->dehydrated(true),
                                         Forms\Components\Hidden::make('acikta_kapatma_notu')->dehydrated(true),
+                                        Forms\Components\Hidden::make('acikta_revize_tarihi')->dehydrated(true),
+                                        Forms\Components\Hidden::make('acikta_revize_notu')->dehydrated(true),
                                         Forms\Components\Hidden::make('bu_hafta_tamamlanan')
                                             ->dehydrateStateUsing(fn ($state) => NonNegativeInput::normalizeIntegerScalar($state))
                                             ->dehydrated(true),
@@ -1513,10 +1515,6 @@ class AylikFaaliyetResource extends Resource
                                                         .' x-data x-on:click="'
                                                         .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-kapat-panel]\')?.scrollIntoView({behavior:\'smooth\',block:\'nearest\'});'
                                                         .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-kapat-panel] .fi-section-header\')?.click();'
-                                                        .' if (!$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-kapat-panel]\')) {'
-                                                        .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-revize-panel]\')?.scrollIntoView({behavior:\'smooth\',block:\'nearest\'});'
-                                                        .'$el.closest(\'.fi-fo-repeater-item\')?.querySelector(\'[data-acikta-revize-panel] .fi-section-header\')?.click();'
-                                                        .'}'
                                                         .'">'
                                                         .e($label)
                                                         .'</button>'
@@ -1530,42 +1528,6 @@ class AylikFaaliyetResource extends Resource
                                                         || static::kapsamShowsWeeklyFollowUpFields($get, $livewire)
                                                         || static::kapsamHasPendingWork($get))),
                                         ]),
-                                        Section::make(fn (Get $get): string => 'Açıkta İş — Revize Notu: '.trim((string) ($get('kalem') ?? 'Kalem')))
-                                            ->description('Bu kalemdeki açıkta kalan iş için hedef tarih ve açıklama giriniz.')
-                                            ->schema([
-                                                Forms\Components\DatePicker::make('acikta_revize_tarihi')
-                                                    ->label('Hedef / Revize Tarihi')
-                                                    ->native(false)
-                                                    ->displayFormat('d.m.Y')
-                                                    ->default(fn (): string => ReportPeriodWeeks::systemRecordDate()->toDateString())
-                                                    ->disabled(fn (Get $get, $livewire): bool => static::kapsamRevizeAlaniDisabled($get, $livewire))
-                                                    ->dehydrateStateUsing(function (mixed $state): ?string {
-                                                        if (! filled($state)) {
-                                                            return null;
-                                                        }
-                                                        try {
-                                                            return Carbon::parse($state)->startOfDay()->toDateString();
-                                                        } catch (\Throwable) {
-                                                            return is_string($state) ? $state : null;
-                                                        }
-                                                    })
-                                                    ->dehydrated(true)
-                                                    ->helperText('Açıkta kalan işin planlanan tamamlanma veya revize tarihi.'),
-                                                Forms\Components\Textarea::make('acikta_revize_notu')
-                                                    ->label('Revize Notu')
-                                                    ->placeholder('Açıkta kalan işin nedeni, planlanan tamamlanma veya revize gerekçesini yazınız...')
-                                                    ->rows(2)
-                                                    ->columnSpanFull()
-                                                    ->disabled(fn (Get $get, $livewire): bool => static::kapsamRevizeAlaniDisabled($get, $livewire))
-                                                    ->dehydrated(true),
-                                            ])
-                                            ->columns(2)
-                                            ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
-                                                && static::kapsamHasPendingWork($get))
-                                            ->collapsible()
-                                            ->collapsed(fn (Get $get): bool => ! filled($get('acikta_revize_notu')) && ! filled($get('acikta_revize_tarihi')))
-                                            ->extraAttributes(['data-acikta-revize-panel' => 'true'])
-                                            ->columnSpanFull(),
                                         Section::make('Açıkta İş Kapatma')
                                             ->description('Her kalemde açık işi kısmi kapatabilirsiniz. Örn: 10 işten 7 tamamlandı, 3 kaldı → bu hafta 2’sini kapatıp 1’ini sonraki haftaya bırakın.')
                                             ->schema([
