@@ -1518,7 +1518,7 @@ class AylikFaaliyetResource extends Resource
                                                         .'">'
                                                         .e($label)
                                                         .'</button>'
-                                                        .'<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Tıklayarak kalan işi tamamlayın veya not ile kapatın</div>'
+                                                        .'<div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Tıklayarak not ile kapat revizesi yapın</div>'
                                                     );
                                                 })
                                                 ->helperText('Yapılan iş − tamamlanan iş (eşit değilse açıkta kalan).')
@@ -1528,12 +1528,13 @@ class AylikFaaliyetResource extends Resource
                                                         || static::kapsamShowsWeeklyFollowUpFields($get, $livewire)
                                                         || static::kapsamHasPendingWork($get))),
                                         ]),
-                                        Section::make('Açıkta İş Kapatma')
-                                            ->description('Her kalemde açık işi kısmi kapatabilirsiniz. Örn: 10 işten 7 tamamlandı, 3 kaldı → bu hafta 2’sini kapatıp 1’ini sonraki haftaya bırakın.')
+                                        Section::make('Açıkta İş Kapat Revizesi')
+                                            ->description('Her kalemde açık işi not ile kapatabilirsiniz. Örn: 10 işten 7 tamamlandı, 3 kaldı → bu hafta 2’sini not ile kapatıp 1’ini sonraki haftaya bırakın.')
                                             ->schema([
                                                 Forms\Components\Hidden::make('acikta_kapanis_miktar')->dehydrated(true),
                                                 Forms\Components\Hidden::make('acikta_not_kapat_miktar')->dehydrated(true),
                                                 Forms\Components\Hidden::make('not_ile_kapatilan')->dehydrated(true),
+                                                Forms\Components\Hidden::make('kalan_acik_tamamla')->default(false)->dehydrated(true),
                                                 Forms\Components\TextInput::make('acikta_kapanis_miktar_ui')
                                                     ->label('Kapanışta tamamlanan miktar')
                                                     ->helperText('Girilen sayı tamamlanan işe eklenir. Kalan sıfırlanırsa bekleyen iş raporda kapanır.')
@@ -1555,35 +1556,9 @@ class AylikFaaliyetResource extends Resource
                                                     })
                                                     ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'acikta_kapanis_miktar', 'acikta_kapanis_miktar_ui'))
                                                     ->dehydrated(false),
-                                                Forms\Components\Toggle::make('kalan_acik_tamamla')
-                                                    ->label(function (Get $get): string {
-                                                        $pending = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get));
-                                                        $amount = floor($pending) === $pending ? (string) (int) $pending : (string) $pending;
-
-                                                        return 'Kalan açık işi tamamlandı say ('.$amount.')';
-                                                    })
-                                                    ->helperText('Açıkta kalan miktar tamamlanan işe eklenir.')
-                                                    ->live()
-                                                    ->dehydrated(true)
-                                                    ->afterStateUpdated(function (Set $set, Get $get, mixed $state): void {
-                                                        if (! $state) {
-                                                            return;
-                                                        }
-                                                        $set('acikta_is_kapatiliyor', false);
-                                                        $set('acikta_kapanis_miktar', null);
-                                                        $set('acikta_kapanis_miktar_ui', null);
-                                                        $set('acikta_not_kapat_miktar', null);
-                                                        $set('acikta_not_kapat_miktar_ui', null);
-                                                        $pending = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get));
-                                                        $done = static::toFloatNumber($get('gerceklesen') ?? 0);
-                                                        $yeni = $done + $pending;
-                                                        $set('gerceklesen', floor($yeni) === $yeni ? (int) $yeni : $yeni);
-                                                        $set('gerceklesen_ui', floor($yeni) === $yeni ? (int) $yeni : $yeni);
-                                                        $set('acikta_kalan', 0);
-                                                    }),
                                                 Forms\Components\Toggle::make('acikta_is_kapatiliyor')
-                                                    ->label('Açıkta kalan işleri not ile kapat')
-                                                    ->helperText('Yapılamayan işi not ile kapatır; tamamlanan artmaz. İsterseniz yalnızca bir kısmını kapatıp kalanı sonraki haftaya bırakın.')
+                                                    ->label('Açıkta kalan işi not ile kapat (revize)')
+                                                    ->helperText('Zorunlu not ile açık işi kapatır; tamamlanan artmaz. İsterseniz yalnızca bir kısmını kapatıp kalanı sonraki haftaya bırakın.')
                                                     ->live()
                                                     ->dehydrated(true)
                                                     ->afterStateUpdated(function (Set $set, mixed $state): void {
@@ -1603,19 +1578,22 @@ class AylikFaaliyetResource extends Resource
                                                     ->minValue(0)
                                                     ->rules(['nullable', 'integer', 'min:0'])
                                                     ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
-                                                    ->required(fn (Get $get): bool => false)
                                                     ->visible(fn (Get $get): bool => (bool) ($get('acikta_is_kapatiliyor') ?? false))
                                                     ->live(onBlur: true)
                                                     ->afterStateUpdated(fn (Set $set, $state): mixed => static::syncHiddenFieldFromUi($set, $state, 'acikta_not_kapat_miktar'))
                                                     ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'acikta_not_kapat_miktar', 'acikta_not_kapat_miktar_ui'))
                                                     ->dehydrated(false),
                                                 Forms\Components\Textarea::make('acikta_kapatma_notu_ui')
-                                                    ->label('Kapanış Notu')
-                                                    ->placeholder('Açıkta kalan işin neden tamamlanamadığını yazınız...')
+                                                    ->label('Kapat Revize Notu')
+                                                    ->placeholder('Açıkta kalan işin neden kapatıldığını / revize gerekçesini yazınız...')
                                                     ->rows(3)
                                                     ->columnSpanFull()
                                                     ->required(fn (Get $get): bool => (bool) ($get('acikta_is_kapatiliyor') ?? false))
+                                                    ->validationMessages([
+                                                        'required' => 'Açıkta işi kapatmak için kapat revize notu zorunludur.',
+                                                    ])
                                                     ->visible(fn (Get $get): bool => (bool) ($get('acikta_is_kapatiliyor') ?? false))
+                                                    ->live(onBlur: true)
                                                     ->afterStateUpdated(fn (Set $set, $state): mixed => static::syncHiddenFieldFromUi($set, $state, 'acikta_kapatma_notu'))
                                                     ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'acikta_kapatma_notu', 'acikta_kapatma_notu_ui'))
                                                     ->dehydrated(false),
@@ -1627,12 +1605,12 @@ class AylikFaaliyetResource extends Resource
                                             ->extraAttributes(['data-acikta-kapat-panel' => 'true'])
                                             ->columnSpanFull(),
                                         Forms\Components\Placeholder::make('acikta_kapatma_ozet')
-                                            ->label('Açık İş Kapanışı')
+                                            ->label('Açık İş Kapat Revizesi')
                                             ->content(function (Get $get): HtmlString {
                                                 $note = trim((string) ($get('acikta_kapatma_notu') ?? $get('acikta_revize_notu') ?? ''));
 
                                                 return new HtmlString(
-                                                    '<span class="text-success-600 dark:text-success-400 font-medium">Açıkta kalan iş kapatıldı.</span>'
+                                                    '<span class="text-success-600 dark:text-success-400 font-medium">Açıkta kalan iş not ile kapatıldı (revize).</span>'
                                                     .($note !== '' ? '<div class="text-sm mt-1">'.e($note).'</div>' : '')
                                                 );
                                             })
