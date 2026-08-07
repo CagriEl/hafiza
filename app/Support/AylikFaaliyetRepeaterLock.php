@@ -102,7 +102,25 @@ final class AylikFaaliyetRepeaterLock
     {
         $performansKilitli = (bool) ($original['ay_sonu_performans_kilitli'] ?? false);
 
-        if (! $performansKilitli) {
+        $incomingKv = $incoming['kapsam_verileri'] ?? null;
+        $originalKv = $original['kapsam_verileri'] ?? null;
+        $hasOpenPending = false;
+        if (is_array($originalKv)) {
+            foreach ($originalKv as $line) {
+                if (is_array($line) && AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($line) > 0.0) {
+                    $hasOpenPending = true;
+                    break;
+                }
+            }
+        }
+        if (! $hasOpenPending && is_numeric($original['bekleyen_is'] ?? null) && (float) $original['bekleyen_is'] > 0.0) {
+            $hasOpenPending = true;
+        }
+
+        // Açık iş varken kapatma / tamamlanan güncellemesine izin ver (eski kilitli kayıtlar dahil).
+        $allowKapsamProgress = (! $performansKilitli) || $hasOpenPending;
+
+        if ($allowKapsamProgress) {
             foreach (self::LOCKED_ROW_EDITABLE_KEYS as $key) {
                 if (array_key_exists($key, $incoming)) {
                     $original[$key] = $incoming[$key];
@@ -110,14 +128,12 @@ final class AylikFaaliyetRepeaterLock
             }
         }
 
-        $incomingKv = $incoming['kapsam_verileri'] ?? null;
-        $originalKv = $original['kapsam_verileri'] ?? null;
-        if (! $performansKilitli && is_array($incomingKv) && is_array($originalKv)) {
+        if ($allowKapsamProgress && is_array($incomingKv) && is_array($originalKv)) {
             foreach (array_keys($originalKv) as $idx) {
                 if (! isset($incomingKv[$idx], $originalKv[$idx]) || ! is_array($incomingKv[$idx]) || ! is_array($originalKv[$idx])) {
                     continue;
                 }
-                if (array_key_exists('ongorulen', $incomingKv[$idx])
+                if (! $performansKilitli && array_key_exists('ongorulen', $incomingKv[$idx])
                     && ! self::isNumericFormScalar($original['kapsam_verileri'][$idx]['ongorulen'] ?? $original['kapsam_verileri'][$idx]['deger'] ?? null)) {
                     $original['kapsam_verileri'][$idx]['ongorulen'] = $incomingKv[$idx]['ongorulen'];
                 }
@@ -147,15 +163,13 @@ final class AylikFaaliyetRepeaterLock
                         $original['kapsam_verileri'][$idx][$revizeKey] = $incomingKv[$idx][$revizeKey];
                     }
                 }
-                foreach (['acikta_kapatildi', 'acikta_kapatma_notu', 'acikta_is_kapatiliyor', 'kalan_acik_tamamla'] as $kapatmaKey) {
+                foreach (['acikta_kapatildi', 'acikta_kapatma_notu', 'acikta_is_kapatiliyor', 'kalan_acik_tamamla', 'acikta_kapanis_miktar'] as $kapatmaKey) {
                     if (array_key_exists($kapatmaKey, $incomingKv[$idx])) {
                         $original['kapsam_verileri'][$idx][$kapatmaKey] = $incomingKv[$idx][$kapatmaKey];
                     }
                 }
-                if ($incomingKapatildi) {
-                    if (array_key_exists('acikta_kalan', $incomingKv[$idx])) {
-                        $original['kapsam_verileri'][$idx]['acikta_kalan'] = $incomingKv[$idx]['acikta_kalan'];
-                    }
+                if ((bool) ($original['kapsam_verileri'][$idx]['acikta_kapatildi'] ?? false)) {
+                    $original['kapsam_verileri'][$idx]['acikta_kalan'] = 0;
                 } else {
                     $original['kapsam_verileri'][$idx]['acikta_kalan'] = self::kapsamSatirAciktaKalan(
                         $original['kapsam_verileri'][$idx]
@@ -178,6 +192,50 @@ final class AylikFaaliyetRepeaterLock
         }
 
         return $original;
+    }
+
+    /**
+     * Kısmi tamamlanan sonrası yanlışlıkla kilitlenen satırlarda açık iş varken kilidi gevşet.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function relaxPerformansKilitWhilePending(array $data): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row) || ! (bool) ($row['ay_sonu_performans_kilitli'] ?? false)) {
+                continue;
+            }
+
+            $hasPending = false;
+            $bekleyen = $row['bekleyen_is'] ?? null;
+            if (is_numeric($bekleyen) && (float) $bekleyen > 0.0) {
+                $hasPending = true;
+            }
+
+            $kv = $row['kapsam_verileri'] ?? null;
+            if (! $hasPending && is_array($kv)) {
+                foreach ($kv as $line) {
+                    if (! is_array($line)) {
+                        continue;
+                    }
+                    if (AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($line) > 0.0) {
+                        $hasPending = true;
+                        break;
+                    }
+                }
+            }
+
+            if ($hasPending) {
+                $data['faaliyetler'][$i]['ay_sonu_performans_kilitli'] = false;
+            }
+        }
+
+        return $data;
     }
 
     /**
@@ -221,6 +279,11 @@ final class AylikFaaliyetRepeaterLock
                 continue;
             }
 
+            // Açıkta kalan iş varken kilitleme: kapatma / miktar girişi mümkün kalsın.
+            if (is_numeric($b) && (float) $b > 0.0) {
+                continue;
+            }
+
             $kapsamOk = true;
             $kv = $row['kapsam_verileri'] ?? null;
             if (is_array($kv) && $kv !== []) {
@@ -229,6 +292,10 @@ final class AylikFaaliyetRepeaterLock
                         continue;
                     }
                     if (! self::kapsamSatirindaAySonuGerceklesenGirilmis($line)) {
+                        $kapsamOk = false;
+                        break;
+                    }
+                    if (AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($line) > 0.0) {
                         $kapsamOk = false;
                         break;
                     }
@@ -266,6 +333,11 @@ final class AylikFaaliyetRepeaterLock
                 continue;
             }
 
+            $bekleyen = $row['bekleyen_is'] ?? null;
+            if (is_numeric($bekleyen) && (float) $bekleyen > 0.0) {
+                continue;
+            }
+
             $kapsamOk = true;
             $kv = $row['kapsam_verileri'] ?? null;
             if (is_array($kv) && $kv !== []) {
@@ -274,6 +346,10 @@ final class AylikFaaliyetRepeaterLock
                         continue;
                     }
                     if (! self::kapsamSatirindaAySonuGerceklesenGirilmis($line)) {
+                        $kapsamOk = false;
+                        break;
+                    }
+                    if (AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($line) > 0.0) {
                         $kapsamOk = false;
                         break;
                     }
@@ -308,6 +384,8 @@ final class AylikFaaliyetRepeaterLock
                     foreach (array_keys($kv) as $j) {
                         if (is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
                             unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['acikta_is_kapatiliyor']);
+                            unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['acikta_kapanis_miktar']);
+                            unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['kalan_acik_tamamla']);
                         }
                     }
                 }
@@ -623,6 +701,10 @@ final class AylikFaaliyetRepeaterLock
      */
     public static function kapsamSatirAciktaKalan(array $line): mixed
     {
+        if ((bool) ($line['acikta_kapatildi'] ?? false)) {
+            return 0;
+        }
+
         $ong = $line['ongorulen'] ?? $line['deger'] ?? null;
         $ger = $line['gerceklesen'] ?? null;
         if (self::isNumericFormScalar($ong) && self::isNumericFormScalar($ger)) {

@@ -39,6 +39,7 @@ class EditActivityReport extends EditRecord
         $data = AylikFaaliyetRepeaterLock::stampOrigIndexes($data);
         $data = AylikFaaliyetRepeaterLock::migrateLegacyKapsamVerileriKeys($data);
         $data = AylikFaaliyetRepeaterLock::hydrateAySonuPerformansKilitFromLegacy($data);
+        $data = AylikFaaliyetRepeaterLock::relaxPerformansKilitWhilePending($data);
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
         $data = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($data);
 

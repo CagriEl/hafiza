@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Support\AylikFaaliyetRepeaterLock;
 use App\Support\AylikFaaliyetWeeklyCarryover;
 use App\Support\ReportPeriodWeeks;
 use Carbon\Carbon;
@@ -425,5 +426,107 @@ class AylikFaaliyetWeeklyCarryoverTest extends TestCase
         $this->assertSame(4.0, (float) $kv[1]['gerceklesen']);
         $this->assertSame(95.0, (float) $kv[2]['gerceklesen']);
         $this->assertSame('kalan_tamamlama', $kv[0]['haftalik_kayitlar'][0]['tip']);
+    }
+
+    public function test_kapsam_pending_amount_is_zero_when_acikta_kapatildi(): void
+    {
+        $pending = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount([
+            'ongorulen' => 50,
+            'gerceklesen' => 20,
+            'acikta_kapatildi' => true,
+            'acikta_kalan' => 30,
+        ]);
+
+        $this->assertSame(0.0, $pending);
+    }
+
+    public function test_note_close_stays_closed_after_weekly_entries_and_sync(): void
+    {
+        $data = [
+            'yil' => 2026,
+            'ay' => '06',
+            'faaliyetler' => [
+                [
+                    'hafta' => 3,
+                    'ay_sonu_performans_kilitli' => true,
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'İş 1',
+                            'ongorulen' => 50,
+                            'gerceklesen' => 30,
+                            'acikta_is_kapatiliyor' => true,
+                            'acikta_kapatma_notu' => 'Yapılamadı',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = AylikFaaliyetWeeklyCarryover::applyAciktaKapatma($data);
+        $result = AylikFaaliyetWeeklyCarryover::applyWeeklyEntries($result);
+        $result = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($result);
+        $kapsam = $result['faaliyetler'][0]['kapsam_verileri'][0];
+
+        $this->assertTrue((bool) $kapsam['acikta_kapatildi']);
+        $this->assertSame(0.0, (float) $kapsam['acikta_kalan']);
+        $this->assertSame(0.0, (float) $result['faaliyetler'][0]['bekleyen_is']);
+        $this->assertSame(0.0, AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($kapsam));
+    }
+
+    public function test_kapanis_miktar_closes_pending_when_amount_covers_remaining(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-12', 'Europe/Istanbul'));
+
+        $data = [
+            'yil' => 2026,
+            'ay' => '07',
+            'faaliyetler' => [
+                [
+                    'hafta' => 2,
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'İş 1',
+                            'ongorulen' => 10,
+                            'gerceklesen' => 7,
+                            'acikta_kapanis_miktar' => 3,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = AylikFaaliyetWeeklyCarryover::applyAciktaKapatma($data);
+        $result = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($result);
+        $kapsam = $result['faaliyetler'][0]['kapsam_verileri'][0];
+
+        $this->assertSame(10.0, (float) $kapsam['gerceklesen']);
+        $this->assertSame(0.0, (float) $kapsam['acikta_kalan']);
+        $this->assertSame(0.0, (float) $result['faaliyetler'][0]['bekleyen_is']);
+        $this->assertSame('kapanis_miktar', $kapsam['haftalik_kayitlar'][0]['tip']);
+        $this->assertArrayNotHasKey('acikta_kapanis_miktar', $kapsam);
+    }
+
+    public function test_relax_performans_kilit_while_pending(): void
+    {
+        $data = [
+            'faaliyetler' => [
+                [
+                    'ay_sonu_performans_kilitli' => true,
+                    'gerceklesen' => 30,
+                    'bekleyen_is' => 20,
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'İş',
+                            'ongorulen' => 50,
+                            'gerceklesen' => 30,
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = AylikFaaliyetRepeaterLock::relaxPerformansKilitWhilePending($data);
+
+        $this->assertFalse((bool) $result['faaliyetler'][0]['ay_sonu_performans_kilitli']);
     }
 }

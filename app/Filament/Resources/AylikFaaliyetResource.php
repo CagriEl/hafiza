@@ -565,9 +565,6 @@ class AylikFaaliyetResource extends Resource
         if (! $livewire instanceof EditRecord) {
             return false;
         }
-        if (AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get)) {
-            return false;
-        }
         if (trim((string) (AylikFaaliyetRepeaterLock::resolveFaaliyetRowOrigIndex($get) ?? '')) === '') {
             return false;
         }
@@ -733,9 +730,8 @@ class AylikFaaliyetResource extends Resource
             return false;
         }
 
-        // Açıkta kalan varken tamamlanan tekrar düzenlenebilir (kilitlenmiş 0 / eksik girişler kapatılsın).
+        // Açıkta kalan varken tamamlanan tekrar düzenlenebilir (kilitli satırda da kapanış mümkün olsun).
         if (static::kapsamHasPendingWork($get)
-            && ! AylikFaaliyetRepeaterLock::resolveFaaliyetRowAySonuPerformansKilitli($get)
             && ! (bool) ($get('acikta_kapatildi') ?? false)) {
             return true;
         }
@@ -800,6 +796,7 @@ class AylikFaaliyetResource extends Resource
             $data = AylikFaaliyetRepeaterLock::stripAySonuFieldsFromUnpersistedMudurlukRows($record, $user, $data);
         }
 
+        $data = AylikFaaliyetRepeaterLock::relaxPerformansKilitWhilePending($data);
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
         $data = AylikFaaliyetWeeklyCarryover::applyAciktaKapatma($data);
         $data = AylikFaaliyetWeeklyCarryover::applyWeeklyEntries($data);
@@ -1567,8 +1564,30 @@ class AylikFaaliyetResource extends Resource
                                             ->extraAttributes(['data-acikta-revize-panel' => 'true'])
                                             ->columnSpanFull(),
                                         Section::make('Açıkta İş Kapatma')
-                                            ->description('Kalan işi tamamlandı sayabilir veya gerekçe notu ile kapatabilirsiniz. Kaydı unutmayın.')
+                                            ->description('Kalan işi miktar girerek veya tamamlandı sayarak kapatın; yapılamadıysa gerekçe notu ile kapatın. Kaydı unutmayın.')
                                             ->schema([
+                                                Forms\Components\Hidden::make('acikta_kapanis_miktar')->dehydrated(true),
+                                                Forms\Components\TextInput::make('acikta_kapanis_miktar_ui')
+                                                    ->label('Kapanışta tamamlanan miktar')
+                                                    ->helperText('Girilen sayı tamamlanan işe eklenir. Kalan sıfırlanırsa bekleyen iş raporda kapanır.')
+                                                    ->numeric()
+                                                    ->minValue(0)
+                                                    ->rules(['nullable', 'integer', 'min:0'])
+                                                    ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                                                    ->live(onBlur: true)
+                                                    ->afterStateUpdated(function (Set $set, Get $get, mixed $state): void {
+                                                        static::syncHiddenFieldFromUi($set, $state, 'acikta_kapanis_miktar');
+                                                        $amount = static::toFloatNumber($state ?? 0);
+                                                        if ($amount <= 0.0) {
+                                                            return;
+                                                        }
+                                                        $pending = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get));
+                                                        if ($amount >= $pending && $pending > 0.0) {
+                                                            $set('acikta_is_kapatiliyor', false);
+                                                        }
+                                                    })
+                                                    ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'acikta_kapanis_miktar', 'acikta_kapanis_miktar_ui'))
+                                                    ->dehydrated(false),
                                                 Forms\Components\Toggle::make('kalan_acik_tamamla')
                                                     ->label(function (Get $get): string {
                                                         $pending = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get));
@@ -1584,6 +1603,8 @@ class AylikFaaliyetResource extends Resource
                                                             return;
                                                         }
                                                         $set('acikta_is_kapatiliyor', false);
+                                                        $set('acikta_kapanis_miktar', null);
+                                                        $set('acikta_kapanis_miktar_ui', null);
                                                         $plan = static::toFloatNumber($get('ongorulen') ?? $get('deger') ?? 0);
                                                         $set('gerceklesen', floor($plan) === $plan ? (int) $plan : $plan);
                                                         $set('gerceklesen_ui', floor($plan) === $plan ? (int) $plan : $plan);
