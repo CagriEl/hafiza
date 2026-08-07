@@ -11,11 +11,44 @@ use Carbon\Carbon;
 final class AylikFaaliyetWeeklyCarryover
 {
     /**
+     * Not ile kapatılan (gerçekleşmeyen) açık iş toplamı.
+     *
+     * @param  array<string, mixed>  $kapsamRow
+     */
+    public static function notIleKapatilanToplam(array $kapsamRow): float
+    {
+        if (array_key_exists('not_ile_kapatilan', $kapsamRow) && is_numeric($kapsamRow['not_ile_kapatilan'])) {
+            return max(0.0, (float) $kapsamRow['not_ile_kapatilan']);
+        }
+
+        $sum = 0.0;
+        $kayitlar = $kapsamRow['haftalik_kayitlar'] ?? null;
+        if (! is_array($kayitlar)) {
+            return 0.0;
+        }
+
+        foreach ($kayitlar as $kayit) {
+            if (! is_array($kayit)) {
+                continue;
+            }
+            if (($kayit['tip'] ?? null) !== 'kapatma') {
+                continue;
+            }
+            if (! is_numeric($kayit['kapatilan_acikta'] ?? null)) {
+                continue;
+            }
+            $sum += (float) $kayit['kapatilan_acikta'];
+        }
+
+        return max(0.0, $sum);
+    }
+
+    /**
      * @param  array<string, mixed>  $kapsamRow
      */
     public static function kapsamPendingAmount(array $kapsamRow): float
     {
-        // Not ile kapatılan açık iş raporda / listede bekleyen sayılmaz.
+        // Tüm açık iş not ile kapatıldıysa bekleyen yoktur.
         if ((bool) ($kapsamRow['acikta_kapatildi'] ?? false)) {
             return 0.0;
         }
@@ -24,8 +57,9 @@ final class AylikFaaliyetWeeklyCarryover
         if (is_numeric($ong)) {
             $plan = (float) $ong;
             $done = is_numeric($kapsamRow['gerceklesen'] ?? null) ? (float) $kapsamRow['gerceklesen'] : 0.0;
+            $notClosed = self::notIleKapatilanToplam($kapsamRow);
 
-            return max(0.0, $plan - $done);
+            return max(0.0, $plan - $done - $notClosed);
         }
 
         if (array_key_exists('acikta_kalan', $kapsamRow) && is_numeric($kapsamRow['acikta_kalan'])) {
@@ -303,6 +337,14 @@ final class AylikFaaliyetWeeklyCarryover
                     continue;
                 }
 
+                // Kısmi kapatma: örn. 3 açıktan 2'si bu hafta, 1'i sonraki haftaya.
+                $requested = self::toFloat($kapsamRow['acikta_not_kapat_miktar'] ?? null);
+                $closeAmount = $requested > 0.0 ? min($requested, $pending) : $pending;
+                if ($closeAmount <= 0.0) {
+                    continue;
+                }
+
+                $oncekiNotKapatilan = self::notIleKapatilanToplam($kapsamRow);
                 $kayitlar = is_array($kapsamRow['haftalik_kayitlar'] ?? null)
                     ? array_values($kapsamRow['haftalik_kayitlar'])
                     : [];
@@ -313,23 +355,27 @@ final class AylikFaaliyetWeeklyCarryover
                     'aciklama' => 'Açık iş kapanışı: '.$note,
                     'yapilma_tarihi' => $today,
                     'tip' => 'kapatma',
-                    'kapatilan_acikta' => $pending,
+                    'kapatilan_acikta' => $closeAmount,
                 ];
 
                 $kapsamRow['haftalik_kayitlar'] = $kayitlar;
-                $kapsamRow['acikta_kalan'] = 0;
+                $kapsamRow['not_ile_kapatilan'] = $oncekiNotKapatilan + $closeAmount;
+                $remaining = max(0.0, $pending - $closeAmount);
+                $kapsamRow['acikta_kalan'] = $remaining;
                 $kapsamRow['acikta_revize_notu'] = $note;
                 if (! filled($kapsamRow['acikta_revize_tarihi'] ?? null)) {
                     $kapsamRow['acikta_revize_tarihi'] = $today;
                 }
-                $kapsamRow['acikta_kapatildi'] = true;
                 $kapsamRow['acikta_kapatma_notu'] = $note;
+                // Yalnızca kalanın tamamı kapandıysa kalem tamamen kapatılmış sayılır.
+                $kapsamRow['acikta_kapatildi'] = $remaining <= 0.0;
                 unset(
                     $kapsamRow['acikta_is_kapatiliyor'],
                     $kapsamRow['bu_hafta_tamamlanan'],
                     $kapsamRow['bu_hafta_aciklama'],
                     $kapsamRow['kalan_acik_tamamla'],
-                    $kapsamRow['acikta_kapanis_miktar']
+                    $kapsamRow['acikta_kapanis_miktar'],
+                    $kapsamRow['acikta_not_kapat_miktar']
                 );
             }
             unset($kapsamRow);

@@ -515,6 +515,9 @@ class AylikFaaliyetResource extends Resource
             'deger' => $get('deger'),
             'gerceklesen' => $get('gerceklesen'),
             'acikta_kalan' => $get('acikta_kalan'),
+            'acikta_kapatildi' => $get('acikta_kapatildi'),
+            'not_ile_kapatilan' => $get('not_ile_kapatilan'),
+            'haftalik_kayitlar' => $get('haftalik_kayitlar'),
         ];
     }
 
@@ -1564,9 +1567,11 @@ class AylikFaaliyetResource extends Resource
                                             ->extraAttributes(['data-acikta-revize-panel' => 'true'])
                                             ->columnSpanFull(),
                                         Section::make('Açıkta İş Kapatma')
-                                            ->description('Kalan işi miktar girerek veya tamamlandı sayarak kapatın; yapılamadıysa gerekçe notu ile kapatın. Kaydı unutmayın.')
+                                            ->description('Her kalemde açık işi kısmi kapatabilirsiniz. Örn: 10 işten 7 tamamlandı, 3 kaldı → bu hafta 2’sini kapatıp 1’ini sonraki haftaya bırakın.')
                                             ->schema([
                                                 Forms\Components\Hidden::make('acikta_kapanis_miktar')->dehydrated(true),
+                                                Forms\Components\Hidden::make('acikta_not_kapat_miktar')->dehydrated(true),
+                                                Forms\Components\Hidden::make('not_ile_kapatilan')->dehydrated(true),
                                                 Forms\Components\TextInput::make('acikta_kapanis_miktar_ui')
                                                     ->label('Kapanışta tamamlanan miktar')
                                                     ->helperText('Girilen sayı tamamlanan işe eklenir. Kalan sıfırlanırsa bekleyen iş raporda kapanır.')
@@ -1605,14 +1610,18 @@ class AylikFaaliyetResource extends Resource
                                                         $set('acikta_is_kapatiliyor', false);
                                                         $set('acikta_kapanis_miktar', null);
                                                         $set('acikta_kapanis_miktar_ui', null);
-                                                        $plan = static::toFloatNumber($get('ongorulen') ?? $get('deger') ?? 0);
-                                                        $set('gerceklesen', floor($plan) === $plan ? (int) $plan : $plan);
-                                                        $set('gerceklesen_ui', floor($plan) === $plan ? (int) $plan : $plan);
+                                                        $set('acikta_not_kapat_miktar', null);
+                                                        $set('acikta_not_kapat_miktar_ui', null);
+                                                        $pending = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get));
+                                                        $done = static::toFloatNumber($get('gerceklesen') ?? 0);
+                                                        $yeni = $done + $pending;
+                                                        $set('gerceklesen', floor($yeni) === $yeni ? (int) $yeni : $yeni);
+                                                        $set('gerceklesen_ui', floor($yeni) === $yeni ? (int) $yeni : $yeni);
                                                         $set('acikta_kalan', 0);
                                                     }),
                                                 Forms\Components\Toggle::make('acikta_is_kapatiliyor')
-                                                    ->label('Açıkta kalan işi not ile kapat (gerçekleşmeden)')
-                                                    ->helperText('İş yapılamadıysa not yazarak açık kaydı kapatır; tamamlanan artmaz.')
+                                                    ->label('Açıkta kalan işleri not ile kapat')
+                                                    ->helperText('Yapılamayan işi not ile kapatır; tamamlanan artmaz. İsterseniz yalnızca bir kısmını kapatıp kalanı sonraki haftaya bırakın.')
                                                     ->live()
                                                     ->dehydrated(true)
                                                     ->afterStateUpdated(function (Set $set, mixed $state): void {
@@ -1620,6 +1629,24 @@ class AylikFaaliyetResource extends Resource
                                                             $set('kalan_acik_tamamla', false);
                                                         }
                                                     }),
+                                                Forms\Components\TextInput::make('acikta_not_kapat_miktar_ui')
+                                                    ->label(function (Get $get): string {
+                                                        $pending = AylikFaaliyetWeeklyCarryover::kapsamPendingAmount(static::kapsamRowStateFromGet($get));
+                                                        $amount = floor($pending) === $pending ? (string) (int) $pending : (string) $pending;
+
+                                                        return 'Not ile kapatılacak miktar (açık: '.$amount.')';
+                                                    })
+                                                    ->helperText('Boş bırakırsanız kalanın tamamı kapanır. Örn: açık 3 ise 2 yazıp 1’ini sonraki haftaya bırakabilirsiniz.')
+                                                    ->numeric()
+                                                    ->minValue(0)
+                                                    ->rules(['nullable', 'integer', 'min:0'])
+                                                    ->extraInputAttributes(['min' => 0, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                                                    ->required(fn (Get $get): bool => false)
+                                                    ->visible(fn (Get $get): bool => (bool) ($get('acikta_is_kapatiliyor') ?? false))
+                                                    ->live(onBlur: true)
+                                                    ->afterStateUpdated(fn (Set $set, $state): mixed => static::syncHiddenFieldFromUi($set, $state, 'acikta_not_kapat_miktar'))
+                                                    ->afterStateHydrated(fn (Set $set, Get $get, $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'acikta_not_kapat_miktar', 'acikta_not_kapat_miktar_ui'))
+                                                    ->dehydrated(false),
                                                 Forms\Components\Textarea::make('acikta_kapatma_notu_ui')
                                                     ->label('Kapanış Notu')
                                                     ->placeholder('Açıkta kalan işin neden tamamlanamadığını yazınız...')

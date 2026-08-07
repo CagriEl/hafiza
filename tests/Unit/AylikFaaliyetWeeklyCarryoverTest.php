@@ -529,4 +529,78 @@ class AylikFaaliyetWeeklyCarryoverTest extends TestCase
 
         $this->assertFalse((bool) $result['faaliyetler'][0]['ay_sonu_performans_kilitli']);
     }
+
+    public function test_partial_note_close_leaves_remaining_pending(): void
+    {
+        $data = [
+            'yil' => 2026,
+            'ay' => '07',
+            'faaliyetler' => [
+                [
+                    'hafta' => 2,
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'İş 1',
+                            'ongorulen' => 10,
+                            'gerceklesen' => 7,
+                            'acikta_is_kapatiliyor' => true,
+                            'acikta_not_kapat_miktar' => 2,
+                            'acikta_kapatma_notu' => 'İki iş ertelenemez kapatıldı',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = AylikFaaliyetWeeklyCarryover::applyAciktaKapatma($data);
+        $result = AylikFaaliyetRepeaterLock::syncRowAySonuTotalsFromKapsamVerileri($result);
+        $kapsam = $result['faaliyetler'][0]['kapsam_verileri'][0];
+
+        $this->assertFalse((bool) ($kapsam['acikta_kapatildi'] ?? false));
+        $this->assertSame(2.0, (float) $kapsam['not_ile_kapatilan']);
+        $this->assertSame(1.0, (float) $kapsam['acikta_kalan']);
+        $this->assertSame(1.0, AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($kapsam));
+        $this->assertSame(1.0, (float) $result['faaliyetler'][0]['bekleyen_is']);
+        $this->assertSame(2.0, (float) $kapsam['haftalik_kayitlar'][0]['kapatilan_acikta']);
+    }
+
+    public function test_second_partial_note_close_can_finish_remaining(): void
+    {
+        $data = [
+            'yil' => 2026,
+            'ay' => '07',
+            'faaliyetler' => [
+                [
+                    'hafta' => 3,
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'İş 1',
+                            'ongorulen' => 10,
+                            'gerceklesen' => 7,
+                            'not_ile_kapatilan' => 2,
+                            'acikta_kalan' => 1,
+                            'haftalik_kayitlar' => [
+                                [
+                                    'tip' => 'kapatma',
+                                    'kapatilan_acikta' => 2,
+                                    'aciklama' => 'onceki',
+                                ],
+                            ],
+                            'acikta_is_kapatiliyor' => true,
+                            'acikta_not_kapat_miktar' => 1,
+                            'acikta_kapatma_notu' => 'Son kalan',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = AylikFaaliyetWeeklyCarryover::applyAciktaKapatma($data);
+        $kapsam = $result['faaliyetler'][0]['kapsam_verileri'][0];
+
+        $this->assertTrue((bool) $kapsam['acikta_kapatildi']);
+        $this->assertSame(3.0, (float) $kapsam['not_ile_kapatilan']);
+        $this->assertSame(0.0, (float) $kapsam['acikta_kalan']);
+        $this->assertSame(0.0, AylikFaaliyetWeeklyCarryover::kapsamPendingAmount($kapsam));
+    }
 }

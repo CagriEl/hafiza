@@ -163,7 +163,7 @@ final class AylikFaaliyetRepeaterLock
                         $original['kapsam_verileri'][$idx][$revizeKey] = $incomingKv[$idx][$revizeKey];
                     }
                 }
-                foreach (['acikta_kapatildi', 'acikta_kapatma_notu', 'acikta_is_kapatiliyor', 'kalan_acik_tamamla', 'acikta_kapanis_miktar'] as $kapatmaKey) {
+                foreach (['acikta_kapatildi', 'acikta_kapatma_notu', 'acikta_is_kapatiliyor', 'kalan_acik_tamamla', 'acikta_kapanis_miktar', 'acikta_not_kapat_miktar', 'not_ile_kapatilan'] as $kapatmaKey) {
                     if (array_key_exists($kapatmaKey, $incomingKv[$idx])) {
                         $original['kapsam_verileri'][$idx][$kapatmaKey] = $incomingKv[$idx][$kapatmaKey];
                     }
@@ -385,6 +385,7 @@ final class AylikFaaliyetRepeaterLock
                         if (is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
                             unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['acikta_is_kapatiliyor']);
                             unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['acikta_kapanis_miktar']);
+                            unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['acikta_not_kapat_miktar']);
                             unset($data['faaliyetler'][$i]['kapsam_verileri'][$j]['kalan_acik_tamamla']);
                         }
                     }
@@ -708,7 +709,9 @@ final class AylikFaaliyetRepeaterLock
         $ong = $line['ongorulen'] ?? $line['deger'] ?? null;
         $ger = $line['gerceklesen'] ?? null;
         if (self::isNumericFormScalar($ong) && self::isNumericFormScalar($ger)) {
-            return max(0, (float) $ong - (float) $ger);
+            $notClosed = AylikFaaliyetWeeklyCarryover::notIleKapatilanToplam($line);
+
+            return max(0, (float) $ong - (float) $ger - $notClosed);
         }
 
         return null;
