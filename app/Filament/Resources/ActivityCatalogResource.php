@@ -100,18 +100,19 @@ class ActivityCatalogResource extends Resource
                         ->label('Seçilenleri raporlara yansıt')
                         ->icon('heroicon-o-arrow-path')
                         ->color('warning')
-                        ->modalHeading('Seçilen katalog kayıtlarını raporlara yansıt')
-                        ->modalDescription('Önce önizlemeyi kontrol edin, onay kutusunu işaretleyip uygulayın.')
+                        ->modalHeading('Seçilen katalog kayıtlarını raporlara kalıcı yansıt')
+                        ->modalDescription('Önizlemeyi kontrol edin. Onaylarsanız seçilen faaliyetlerin TÜM ilgili raporları kalıcı güncellenir; her raporu tek tek açmanız gerekmez.')
+                        ->modalSubmitActionLabel('Kalıcı uygula')
                         ->form(function (Collection $records): array {
                             $ids = $records->map(fn (ActivityCatalog $r) => (int) $r->id)->all();
                             $preview = ActivityCatalogReportSync::previewForCatalogIds($ids);
 
                             return [
                                 Forms\Components\Placeholder::make('preview')
-                                    ->label('Önizleme')
+                                    ->label('Önizleme (uygulamadan önce)')
                                     ->content(new HtmlString(ActivityCatalogReportSync::previewToHtml($preview))),
                                 Forms\Components\Checkbox::make('confirm')
-                                    ->label('Değişiklikleri raporlara uygulamayı onaylıyorum')
+                                    ->label('Tüm ilgili raporlara kalıcı uygulamayı onaylıyorum')
                                     ->accepted()
                                     ->required(),
                             ];
@@ -120,14 +121,15 @@ class ActivityCatalogResource extends Resource
                             $ids = $records->map(fn (ActivityCatalog $r) => (int) $r->id)->all();
                             $stats = ActivityCatalogReportSync::applyForCatalogIds($ids);
                             Notification::make()
-                                ->title('Raporlar güncellendi')
+                                ->title('Raporlara kalıcı uygulandı')
                                 ->body(sprintf(
-                                    '%d raporda %d satır uygulandı (%d alan).',
+                                    '%d raporda %d satır kalıcı güncellendi (%d alan). Bundan sonra her raporu tek tek değiştirmeniz gerekmez.',
                                     $stats['reports'],
                                     $stats['rows'],
                                     $stats['change_fields']
                                 ))
                                 ->success()
+                                ->persistent()
                                 ->send();
                         })
                         ->deselectRecordsAfterCompletion(),
@@ -142,17 +144,18 @@ class ActivityCatalogResource extends Resource
             ->label('Raporlara yansıt')
             ->icon('heroicon-o-arrow-path')
             ->color('warning')
-            ->modalHeading(fn (ActivityCatalog $record): string => 'Raporlara yansıt: '.$record->faaliyet_kodu)
-            ->modalDescription('Önce değişiklikleri görün, ardından onaylayıp uygulayın. Mevcut sayısal veriler korunur.')
+            ->modalHeading(fn (ActivityCatalog $record): string => 'Raporlara kalıcı yansıt: '.$record->faaliyet_kodu)
+            ->modalDescription('Önizlemeyi kontrol edin, ardından onaylayın. Bu faaliyet koduna ait TÜM raporlar kalıcı güncellenir; her raporu tek tek açmanız gerekmez.')
+            ->modalSubmitActionLabel('Kalıcı uygula')
             ->form(function (ActivityCatalog $record): array {
                 $preview = ActivityCatalogReportSync::previewForCatalog($record);
 
                 return [
                     Forms\Components\Placeholder::make('preview')
-                        ->label('Önizleme')
+                        ->label('Önizleme (uygulamadan önce)')
                         ->content(new HtmlString(ActivityCatalogReportSync::previewToHtml($preview))),
                     Forms\Components\Checkbox::make('confirm')
-                        ->label('Değişiklikleri raporlara uygulamayı onaylıyorum')
+                        ->label('Tüm ilgili raporlara kalıcı uygulamayı onaylıyorum')
                         ->accepted()
                         ->required()
                         ->visible(fn (): bool => (int) ($preview['summary']['reports'] ?? 0) > 0),
@@ -161,11 +164,17 @@ class ActivityCatalogResource extends Resource
             ->action(function (ActivityCatalog $record): void {
                 $stats = ActivityCatalogReportSync::applyForCatalog($record);
                 Notification::make()
-                    ->title($stats['reports'] > 0 ? 'Raporlar güncellendi' : 'Uygulanacak değişiklik yok')
+                    ->title($stats['reports'] > 0 ? 'Raporlara kalıcı uygulandı' : 'Uygulanacak değişiklik yok')
                     ->body($stats['reports'] > 0
-                        ? sprintf('%d raporda %d satır uygulandı (%d alan).', $stats['reports'], $stats['rows'], $stats['change_fields'])
+                        ? sprintf(
+                            '%d raporda %d satır kalıcı güncellendi (%d alan). Bundan sonra her raporu tek tek değiştirmeniz gerekmez.',
+                            $stats['reports'],
+                            $stats['rows'],
+                            $stats['change_fields']
+                        )
                         : 'Bu kayıt için raporlarda fark bulunamadı.')
                     ->color($stats['reports'] > 0 ? 'success' : 'gray')
+                    ->persistent()
                     ->send();
             });
     }

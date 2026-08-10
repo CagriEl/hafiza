@@ -60,7 +60,7 @@ class ActivityCatalogRaporSync extends Page implements HasForms
         return $form
             ->schema([
                 Section::make('Kapsam')
-                    ->description('Önce önizleyin, değişiklikleri görün; ardından uygulayın. Mevcut sayısal rapor verileri korunur.')
+                    ->description('Önizleyin, sonra bir kez uygulayın. Seçilen faaliyet(ler)e ait TÜM raporlar kalıcı güncellenir; her raporu tek tek açıp değiştirmeniz gerekmez. Sayısal veriler korunur.')
                     ->schema([
                         Select::make('mudurluk')
                             ->label('Müdürlük')
@@ -138,14 +138,15 @@ class ActivityCatalogRaporSync extends Page implements HasForms
         $this->preview = $this->buildPreview();
 
         Notification::make()
-            ->title('Raporlar güncellendi')
+            ->title('Raporlara kalıcı uygulandı')
             ->body(sprintf(
-                '%d raporda %d satır uygulandı (%d alan).',
+                '%d raporda %d satır kalıcı güncellendi (%d alan). Bundan sonra her raporu tek tek değiştirmeniz gerekmez.',
                 $stats['reports'],
                 $stats['rows'],
                 $stats['change_fields']
             ))
             ->success()
+            ->persistent()
             ->send();
     }
 

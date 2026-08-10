@@ -10,9 +10,9 @@
                 wire:click="runApply"
                 color="warning"
                 icon="heroicon-o-check"
-                wire:confirm="Önizlenen katalog değişiklikleri ilgili raporlara yazılacak. Mevcut sayısal veriler korunur. Devam edilsin mi?"
+                wire:confirm="Önizlenen katalog değişiklikleri ilgili TÜM raporlara kalıcı yazılacak. Her raporu tek tek açmanız gerekmez. Mevcut sayısal veriler korunur. Devam edilsin mi?"
             >
-                Uygula
+                Kalıcı uygula
             </x-filament::button>
         </div>
 
