@@ -543,316 +543,6 @@
             ]
         },
         {
-            "mudurluk": "İklim Değişikliği ve Sıfır Atık Müdürlüğü",
-            "activities": [
-                {
-                    "faaliyet_kodu": "IKL-01",
-                    "faaliyet_ailesi": "Atıksu Arıtma ve Su Kalitesi",
-                    "kategori": "Operasyonel Hizmet",
-                    "kapsam": "AAT işletimi, analiz, deşarj ve bakım",
-                    "olcu_birimi": "numune \/ adet",
-                    "kpi_sla": "uygun deşarj oranı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IKL-02",
-                    "faaliyet_ailesi": "Sıfır Atık ve Ayrı Toplama",
-                    "kategori": "Operasyonel Hizmet",
-                    "kapsam": "Ayrı toplama, AGM, EÇBS beyan, performans",
-                    "olcu_birimi": "kg \/ ton \/ işlem",
-                    "kpi_sla": "toplanan atık miktarı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IKL-03",
-                    "faaliyet_ailesi": "Özel Atık Akışları",
-                    "kategori": "Operasyonel Hizmet",
-                    "kapsam": "AEEE, atık ilaç, bitkisel yağ, pil, ÖTL vb.",
-                    "olcu_birimi": "teslim \/ kg",
-                    "kpi_sla": "lisanslı teslim sayısı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IKL-04",
-                    "faaliyet_ailesi": "Hafriyat, Moloz ve Kaçak Döküm",
-                    "kategori": "Denetim \/ Uyum",
-                    "kapsam": "İzin, saha denetimi, sevk ve kontrol",
-                    "olcu_birimi": "izin \/ denetim",
-                    "kpi_sla": "kaçak döküm kapanış oranı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IKL-05",
-                    "faaliyet_ailesi": "GHG, SECAP ve Enerji Projeleri",
-                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
-                    "kapsam": "Sera gazı envanteri, enerji-su verimliliği, yenilenebilir enerji",
-                    "olcu_birimi": "rapor \/ proje",
-                    "kpi_sla": "tamamlanan aksiyon oranı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IKL-06",
-                    "faaliyet_ailesi": "Eğitim, Farkındalık ve Hibe",
-                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
-                    "kapsam": "Eğitim, kampanya, proje başvuruları",
-                    "olcu_birimi": "etkinlik \/ proje",
-                    "kpi_sla": "katılımcı sayısı \/ proje sayısı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                }
-            ]
-        },
-        {
-            "mudurluk": "İmar ve Şehircilik Müdürlüğü",
-            "activities": [
-                {
-                    "faaliyet_kodu": "IMM-01",
-                    "faaliyet_ailesi": "Ruhsat ve Proje Tasdik",
-                    "kategori": "Başvuru \/ İşlem",
-                    "kapsam": "Yapı ruhsatı, tadilat, proje inceleme, Ön kontrol-cevaplama kabul sayısı, Ön kontrol-cevaplama ret sayısı",
-                    "olcu_birimi": "başvuru \/ dosya",
-                    "kpi_sla": "sonuçlanan dosya süresi",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IMM-02",
-                    "faaliyet_ailesi": "İskan ve Kat Mülkiyeti",
-                    "kategori": "Başvuru \/ İşlem",
-                    "kapsam": "İskan, kat irtifakı\/mülkiyeti proje onayları, Vizeleme, Bina kontrolü",
-                    "olcu_birimi": "işlem sayısı",
-                    "kpi_sla": "tamamlama süresi",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IMM-03",
-                    "faaliyet_ailesi": "İmar Durumu ve Başvuru İşlemleri",
-                    "kategori": "Başvuru \/ İşlem",
-                    "kapsam": "İmar durumu, yazılı teknik görüşler, Basit tadilat",
-                    "olcu_birimi": "başvuru sayısı",
-                    "kpi_sla": "SLA içinde sonuçlanan oran",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IMM-04",
-                    "faaliyet_ailesi": "Yapı Denetim ve Yaptırım",
-                    "kategori": "Denetim \/ Uyum",
-                    "kapsam": "Yapı tatil, aykırılık, metruk yapı, yıkım takip",
-                    "olcu_birimi": "tutanak \/ işlem",
-                    "kpi_sla": "uygunsuzluk kapanış oranı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IMM-05",
-                    "faaliyet_ailesi": "Planlama ve Kentsel Dönüşüm",
-                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
-                    "kapsam": "Plan değişikliği, komisyon, riskli yapı süreçleri, Plan yapımı, Plan revizyonu, Plan uygulama",
-                    "olcu_birimi": "dosya \/ teklif",
-                    "kpi_sla": "mile-stone gerçekleşme",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IMM-06",
-                    "faaliyet_ailesi": "Harita, Uygulama ve Numarataj",
-                    "kategori": "Başvuru \/ İşlem",
-                    "kapsam": "İfraz-tevhit, aplikasyon, numarataj, CBS güncelleme",
-                    "olcu_birimi": "işlem \/ parsel",
-                    "kpi_sla": "güncel veri oranı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IMM-07",
-                    "faaliyet_ailesi": "Mahkeme Kararları, Yıkım ve Kaçak Yapı Riskleri",
-                    "kategori": "Denetim \/ Uyum",
-                    "kapsam": "Mahkeme kararlarının uygulanması, kaçak yapı, yıkım kararları ve icrai işlem riskleri",
-                    "olcu_birimi": "karar \/ tutanak",
-                    "kpi_sla": "uygulama ve kapanış durumu",
-                    "raporlama_sikligi": "Haftalık \/ olay anında",
-                    "baskanlik_bilgilendirme_seviyesi": "Acil Müdahale Gerektirir"
-                }
-            ]
-        },
-        {
-            "mudurluk": "İnsan Kaynakları ve Eğitim Müdürlüğü",
-            "activities": [
-                {
-                    "faaliyet_kodu": "IKM-01",
-                    "faaliyet_ailesi": "Özlük, Atama ve Sicil",
-                    "kategori": "Destek \/ İç İşleyiş",
-                    "kapsam": "Atama, intibak, sicil, görevlendirme",
-                    "olcu_birimi": "işlem sayısı",
-                    "kpi_sla": "tamamlanan işlem süresi",
-                    "raporlama_sikligi": "Haftalık \/ Aylık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IKM-02",
-                    "faaliyet_ailesi": "İzin, Disiplin ve Devamsızlık",
-                    "kategori": "Destek \/ İç İşleyiş",
-                    "kapsam": "İzin, disiplin, rapor, mesai takipleri",
-                    "olcu_birimi": "işlem sayısı",
-                    "kpi_sla": "SLA içinde kapanış",
-                    "raporlama_sikligi": "Haftalık \/ Aylık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IKM-03",
-                    "faaliyet_ailesi": "Bordro ve KBS\/SGK Veri Hazırlığı",
-                    "kategori": "Destek \/ İç İşleyiş",
-                    "kapsam": "Bordro girdileri, kesenek ve SGK işlemleri",
-                    "olcu_birimi": "personel \/ belge",
-                    "kpi_sla": "zamanında veri aktarımı",
-                    "raporlama_sikligi": "Aylık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IKM-04",
-                    "faaliyet_ailesi": "Eğitim ve Gelişim",
-                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
-                    "kapsam": "Hizmet içi eğitim, oryantasyon, staj",
-                    "olcu_birimi": "eğitim \/ katılımcı",
-                    "kpi_sla": "kişi başı eğitim saati",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IKM-05",
-                    "faaliyet_ailesi": "Performans ve Yetkinlik",
-                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
-                    "kapsam": "Değerlendirme, gelişim ve kariyer süreçleri",
-                    "olcu_birimi": "değerlendirme \/ rapor",
-                    "kpi_sla": "tamamlanan değerlendirme oranı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IKM-06",
-                    "faaliyet_ailesi": "İSG ve İSGB Koordinasyonu",
-                    "kategori": "Denetim \/ Uyum",
-                    "kapsam": "Risk, muayene, KKD, kurul, ramak kala ve DÖF",
-                    "olcu_birimi": "olay \/ eğitim \/ kontrol",
-                    "kpi_sla": "açık DÖF, eğitim uygunluğu",
-                    "raporlama_sikligi": "Haftalık \/ Aylık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "IKM-07",
-                    "faaliyet_ailesi": "Disiplin ve Yargısal Süreç Takibi",
-                    "kategori": "Denetim \/ Uyum",
-                    "kapsam": "Disiplin, savunma, iş mahkemesi ve personel kaynaklı hukuki risklerin izlenmesi",
-                    "olcu_birimi": "dosya sayısı",
-                    "kpi_sla": "süreçteki kritik dosya sayısı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": "Kritik"
-                },
-                {
-                    "faaliyet_kodu": "IKM-08",
-                    "faaliyet_ailesi": "Personel Gider Oranı ve Norm Kadro İzleme",
-                    "kategori": "Denetim \/ Uyum",
-                    "kapsam": "Personel gider oranı, norm kadro uyumu ve kritik personel eksiklikleri",
-                    "olcu_birimi": "oran \/ kadro",
-                    "kpi_sla": "yasal sınır ve sapma analizi",
-                    "raporlama_sikligi": "Aylık \/ kritik sapma halinde",
-                    "baskanlik_bilgilendirme_seviyesi": "Kritik"
-                }
-            ]
-        },
-        {
-            "mudurluk": "İtfaiye Müdürlüğü",
-            "activities": [
-                {
-                    "faaliyet_kodu": "ITM-01",
-                    "faaliyet_ailesi": "Yangın Müdahaleleri",
-                    "kategori": "Olağanüstü \/ Kriz \/ Acil",
-                    "kapsam": "Ev yangınları, Araç yangınları, Trafo yangınları, Çöp yangınları, Anız\/arazi yangınları, Tesis yangınları (fabrika\/işyeri)",
-                    "olcu_birimi": "vaka sayısı",
-                    "kpi_sla": "ortalama çıkış-varış süresi",
-                    "raporlama_sikligi": "Haftalık \/ olay anında",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "ITM-02",
-                    "faaliyet_ailesi": "Teknik Kurtarma ve Su Baskını",
-                    "kategori": "Olağanüstü \/ Kriz \/ Acil",
-                    "kapsam": "Kaza, mahsur kalma, su baskını, hayvan kurtarma",
-                    "olcu_birimi": "vaka sayısı",
-                    "kpi_sla": "müdahale süresi",
-                    "raporlama_sikligi": "Haftalık \/ olay anında",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "ITM-03",
-                    "faaliyet_ailesi": "Önleme ve Denetim",
-                    "kategori": "Denetim \/ Uyum",
-                    "kapsam": "Yangın güvenliği denetimi, uygunluk raporu",
-                    "olcu_birimi": "denetim sayısı",
-                    "kpi_sla": "uygunsuzluk kapanış oranı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "ITM-04",
-                    "faaliyet_ailesi": "Eğitim ve Tatbikat",
-                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
-                    "kapsam": "Kurum, okul, işletme eğitimi ve tatbikat",
-                    "olcu_birimi": "etkinlik \/ katılımcı",
-                    "kpi_sla": "katılımcı sayısı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "ITM-05",
-                    "faaliyet_ailesi": "112 Koordinasyon ve Zaman Damgası",
-                    "kategori": "Olağanüstü \/ Kriz \/ Acil",
-                    "kapsam": "Çağrı, Sevk, Danışma bilgi",
-                    "olcu_birimi": "çağrı \/ sevk",
-                    "kpi_sla": "zaman damgası doğruluk oranı",
-                    "raporlama_sikligi": "Haftalık \/ olay anında",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "ITM-06",
-                    "faaliyet_ailesi": "Araç ve Ekipman Hazırlığı",
-                    "kategori": "Destek \/ İç İşleyiş",
-                    "kapsam": "Bakım, kalibrasyon, stok ve hazır olma",
-                    "olcu_birimi": "araç \/ cihaz",
-                    "kpi_sla": "hazır araç oranı",
-                    "raporlama_sikligi": "Haftalık \/ Aylık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "ITM-07",
-                    "faaliyet_ailesi": "Ücretli İtfaiye Hizmetleri Tahakkuk ve Takibi",
-                    "kategori": "Başvuru \/ İşlem",
-                    "kapsam": "Yangın eğitimi, tatbikat, itfaiye araç bedeli, su verme, Yangın Güvenlik Raporu Belgesi Hizmet Ücreti ve benzeri ücretli hizmetlerin tahakkuk\/tahsilat takibi",
-                    "olcu_birimi": "işlem \/ tahakkuk",
-                    "kpi_sla": "tahsilat oranı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "ITM-08",
-                    "faaliyet_ailesi": "Destek Görevleri Veri Girişi",
-                    "kategori": "Operasyonel Hizmet",
-                    "kapsam": "Araç Destek Talepleri, Bayrak asma ve Kontrolü, Merdiven açma talepleri, Su verme, Yol sulama",
-                    "olcu_birimi": "görev sayısı",
-                    "kpi_sla": "zamanında tamamlanan görev oranı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                }
-            ]
-        },
-        {
             "mudurluk": "Kültür, Sanat ve Sosyal İşler Müdürlüğü",
             "activities": [
                 {
@@ -1054,6 +744,36 @@
                     "kpi_sla": "zamanında rapor üretimi",
                     "raporlama_sikligi": "Yıllık",
                     "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "MHM-07",
+                    "faaliyet_ailesi": "Nakit Akış Yönetimi",
+                    "kategori": "Denetim \/ Uyum",
+                    "kapsam": "Haftalık nakit akışı, ödeme planı, gelir-gider dengesi ve kaynak ihtiyacı",
+                    "olcu_birimi": "TL \/ rapor",
+                    "kpi_sla": "nakit açığı\/fazlası",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": "Kritik"
+                },
+                {
+                    "faaliyet_kodu": "MHM-08",
+                    "faaliyet_ailesi": "50.000 TL ve Üzeri Ödeme Yükümlülükleri",
+                    "kategori": "Denetim \/ Uyum",
+                    "kapsam": "50.000 TL ve üzeri ödeme, vade, hakediş ve zorunlu yükümlülüklerin izlenmesi",
+                    "olcu_birimi": "ödeme \/ TL",
+                    "kpi_sla": "vadesi gelen yükümlülük tutarı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": "Kritik"
+                },
+                {
+                    "faaliyet_kodu": "MHM-09",
+                    "faaliyet_ailesi": "Faiz, Gecikme Zammı ve Tazminat Riski",
+                    "kategori": "Denetim \/ Uyum",
+                    "kapsam": "Faiz, gecikme zammı, tazminat ve kamu zararı riski doğurabilecek mali işlemlerin takibi",
+                    "olcu_birimi": "risk \/ TL",
+                    "kpi_sla": "risk tutarı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": "Acil Müdahale Gerektirir"
                 }
             ]
         },
@@ -1129,61 +849,6 @@
                     "kpi_sla": "sonuçlanan işlem oranı",
                     "raporlama_sikligi": "Haftalık",
                     "baskanlik_bilgilendirme_seviyesi": "Takip Edilecek"
-                }
-            ]
-        },
-        {
-            "mudurluk": "Özel Kalem Müdürlüğü",
-            "activities": [
-                {
-                    "faaliyet_kodu": "OKM-01",
-                    "faaliyet_ailesi": "Protokol ve Başkanlık Takvimi",
-                    "kategori": "İletişim \/ Memnuniyet \/ Paydaş",
-                    "kapsam": "Randevu, kabul, ziyaret, tören ve protokol koordinasyonu",
-                    "olcu_birimi": "adet \/ hafta",
-                    "kpi_sla": "zamanında gerçekleşme oranı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "OKM-02",
-                    "faaliyet_ailesi": "Vatandaş Deneyimi ve Geri Bildirim",
-                    "kategori": "İletişim \/ Memnuniyet \/ Paydaş",
-                    "kapsam": "Çağrı-çözüm, başvuru izleme, memnuniyet analizi",
-                    "olcu_birimi": "başvuru \/ memnuniyet %",
-                    "kpi_sla": "kapanış oranı, memnuniyet",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "OKM-03",
-                    "faaliyet_ailesi": "Paydaş ve İstişare Süreçleri",
-                    "kategori": "İletişim \/ Memnuniyet \/ Paydaş",
-                    "kapsam": "Paydaş haritalama, görüşme, toplantı ve çıktı takibi",
-                    "olcu_birimi": "toplantı \/ çıktı",
-                    "kpi_sla": "eylem planına bağlanan çıktı",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "OKM-04",
-                    "faaliyet_ailesi": "Kurumsal İletişim ve BYHİK",
-                    "kategori": "İletişim \/ Memnuniyet \/ Paydaş",
-                    "kapsam": "Basın bülteni, sosyal medya, kriz iletişimi",
-                    "olcu_birimi": "içerik \/ erişim",
-                    "kpi_sla": "yayın planı gerçekleşme",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
-                },
-                {
-                    "faaliyet_kodu": "OKM-05",
-                    "faaliyet_ailesi": "Kritik Proje Fikri ve Koordinasyon",
-                    "kategori": "Proje \/ Yatırım \/ Sözleşme",
-                    "kapsam": "AB\/hibe veya tematik proje fikri, konsept notu, paydaş listesi",
-                    "olcu_birimi": "proje notu \/ adet",
-                    "kpi_sla": "tamamlanan konsept notu",
-                    "raporlama_sikligi": "Haftalık",
-                    "baskanlik_bilgilendirme_seviyesi": ""
                 }
             ]
         },
@@ -1592,6 +1257,371 @@
                     "kapsam": "Ruhsatsız faaliyet, 153 ve Mavi Masa Şikayetleri, Kamu düzeni gerektiren süreçler",
                     "olcu_birimi": "olay \/ tutanak",
                     "kpi_sla": "kapanış süresi",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": "Kritik"
+                }
+            ]
+        },
+        {
+            "mudurluk": "Özel Kalem Müdürlüğü",
+            "activities": [
+                {
+                    "faaliyet_kodu": "OKM-01",
+                    "faaliyet_ailesi": "Protokol ve Başkanlık Takvimi",
+                    "kategori": "İletişim \/ Memnuniyet \/ Paydaş",
+                    "kapsam": "Randevu, kabul, ziyaret, tören ve protokol koordinasyonu",
+                    "olcu_birimi": "adet \/ hafta",
+                    "kpi_sla": "zamanında gerçekleşme oranı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "OKM-02",
+                    "faaliyet_ailesi": "Vatandaş Deneyimi ve Geri Bildirim",
+                    "kategori": "İletişim \/ Memnuniyet \/ Paydaş",
+                    "kapsam": "Çağrı-çözüm, başvuru izleme, memnuniyet analizi",
+                    "olcu_birimi": "başvuru \/ memnuniyet %",
+                    "kpi_sla": "kapanış oranı, memnuniyet",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "OKM-03",
+                    "faaliyet_ailesi": "Paydaş ve İstişare Süreçleri",
+                    "kategori": "İletişim \/ Memnuniyet \/ Paydaş",
+                    "kapsam": "Paydaş haritalama, görüşme, toplantı ve çıktı takibi",
+                    "olcu_birimi": "toplantı \/ çıktı",
+                    "kpi_sla": "eylem planına bağlanan çıktı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "OKM-04",
+                    "faaliyet_ailesi": "Kurumsal İletişim ve BYHİK",
+                    "kategori": "İletişim \/ Memnuniyet \/ Paydaş",
+                    "kapsam": "Basın bülteni, sosyal medya, kriz iletişimi",
+                    "olcu_birimi": "içerik \/ erişim",
+                    "kpi_sla": "yayın planı gerçekleşme",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "OKM-05",
+                    "faaliyet_ailesi": "Kritik Proje Fikri ve Koordinasyon",
+                    "kategori": "Proje \/ Yatırım \/ Sözleşme",
+                    "kapsam": "AB\/hibe veya tematik proje fikri, konsept notu, paydaş listesi",
+                    "olcu_birimi": "proje notu \/ adet",
+                    "kpi_sla": "tamamlanan konsept notu",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                }
+            ]
+        },
+        {
+            "mudurluk": "İklim Değişikliği ve Sıfır Atık Müdürlüğü",
+            "activities": [
+                {
+                    "faaliyet_kodu": "IKL-01",
+                    "faaliyet_ailesi": "Atıksu Arıtma ve Su Kalitesi",
+                    "kategori": "Operasyonel Hizmet",
+                    "kapsam": "AAT işletimi, analiz, deşarj ve bakım",
+                    "olcu_birimi": "numune \/ adet",
+                    "kpi_sla": "uygun deşarj oranı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IKL-02",
+                    "faaliyet_ailesi": "Sıfır Atık ve Ayrı Toplama",
+                    "kategori": "Operasyonel Hizmet",
+                    "kapsam": "Ayrı toplama, AGM, EÇBS beyan, performans",
+                    "olcu_birimi": "kg \/ ton \/ işlem",
+                    "kpi_sla": "toplanan atık miktarı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IKL-03",
+                    "faaliyet_ailesi": "Özel Atık Akışları",
+                    "kategori": "Operasyonel Hizmet",
+                    "kapsam": "AEEE, atık ilaç, bitkisel yağ, pil, ÖTL vb.",
+                    "olcu_birimi": "teslim \/ kg",
+                    "kpi_sla": "lisanslı teslim sayısı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IKL-04",
+                    "faaliyet_ailesi": "Hafriyat, Moloz ve Kaçak Döküm",
+                    "kategori": "Denetim \/ Uyum",
+                    "kapsam": "İzin, saha denetimi, sevk ve kontrol",
+                    "olcu_birimi": "izin \/ denetim",
+                    "kpi_sla": "kaçak döküm kapanış oranı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IKL-05",
+                    "faaliyet_ailesi": "GHG, SECAP ve Enerji Projeleri",
+                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
+                    "kapsam": "Sera gazı envanteri, enerji-su verimliliği, yenilenebilir enerji",
+                    "olcu_birimi": "rapor \/ proje",
+                    "kpi_sla": "tamamlanan aksiyon oranı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IKL-06",
+                    "faaliyet_ailesi": "Eğitim, Farkındalık ve Hibe",
+                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
+                    "kapsam": "Eğitim, kampanya, proje başvuruları",
+                    "olcu_birimi": "etkinlik \/ proje",
+                    "kpi_sla": "katılımcı sayısı \/ proje sayısı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                }
+            ]
+        },
+        {
+            "mudurluk": "İmar ve Şehircilik Müdürlüğü",
+            "activities": [
+                {
+                    "faaliyet_kodu": "IMM-01",
+                    "faaliyet_ailesi": "Ruhsat ve Proje Tasdik",
+                    "kategori": "Başvuru \/ İşlem",
+                    "kapsam": "Yapı ruhsatı, tadilat, proje inceleme, Ön kontrol-cevaplama kabul sayısı, Ön kontrol-cevaplama ret sayısı",
+                    "olcu_birimi": "başvuru \/ dosya",
+                    "kpi_sla": "sonuçlanan dosya süresi",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IMM-02",
+                    "faaliyet_ailesi": "İskan ve Kat Mülkiyeti",
+                    "kategori": "Başvuru \/ İşlem",
+                    "kapsam": "İskan, kat irtifakı\/mülkiyeti proje onayları, Vizeleme, Bina kontrolü",
+                    "olcu_birimi": "işlem sayısı",
+                    "kpi_sla": "tamamlama süresi",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IMM-03",
+                    "faaliyet_ailesi": "İmar Durumu ve Başvuru İşlemleri",
+                    "kategori": "Başvuru \/ İşlem",
+                    "kapsam": "İmar durumu, yazılı teknik görüşler, Basit tadilat",
+                    "olcu_birimi": "başvuru sayısı",
+                    "kpi_sla": "SLA içinde sonuçlanan oran",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IMM-04",
+                    "faaliyet_ailesi": "Yapı Denetim ve Yaptırım",
+                    "kategori": "Denetim \/ Uyum",
+                    "kapsam": "Yapı tatil, aykırılık, metruk yapı, yıkım takip",
+                    "olcu_birimi": "tutanak \/ işlem",
+                    "kpi_sla": "uygunsuzluk kapanış oranı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IMM-05",
+                    "faaliyet_ailesi": "Planlama ve Kentsel Dönüşüm",
+                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
+                    "kapsam": "Plan değişikliği, komisyon, riskli yapı süreçleri, Plan yapımı, Plan revizyonu, Plan uygulama",
+                    "olcu_birimi": "dosya \/ teklif",
+                    "kpi_sla": "mile-stone gerçekleşme",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IMM-06",
+                    "faaliyet_ailesi": "Harita, Uygulama ve Numarataj",
+                    "kategori": "Başvuru \/ İşlem",
+                    "kapsam": "İfraz-tevhit, aplikasyon, numarataj, CBS güncelleme",
+                    "olcu_birimi": "işlem \/ parsel",
+                    "kpi_sla": "güncel veri oranı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IMM-07",
+                    "faaliyet_ailesi": "Mahkeme Kararları, Yıkım ve Kaçak Yapı Riskleri",
+                    "kategori": "Denetim \/ Uyum",
+                    "kapsam": "Mahkeme kararlarının uygulanması, kaçak yapı, yıkım kararları ve icrai işlem riskleri",
+                    "olcu_birimi": "karar \/ tutanak",
+                    "kpi_sla": "uygulama ve kapanış durumu",
+                    "raporlama_sikligi": "Haftalık \/ olay anında",
+                    "baskanlik_bilgilendirme_seviyesi": "Acil Müdahale Gerektirir"
+                }
+            ]
+        },
+        {
+            "mudurluk": "İnsan Kaynakları ve Eğitim Müdürlüğü",
+            "activities": [
+                {
+                    "faaliyet_kodu": "IKM-01",
+                    "faaliyet_ailesi": "Özlük, Atama ve Sicil",
+                    "kategori": "Destek \/ İç İşleyiş",
+                    "kapsam": "Atama, intibak, sicil, görevlendirme",
+                    "olcu_birimi": "işlem sayısı",
+                    "kpi_sla": "tamamlanan işlem süresi",
+                    "raporlama_sikligi": "Haftalık \/ Aylık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IKM-02",
+                    "faaliyet_ailesi": "İzin, Disiplin ve Devamsızlık",
+                    "kategori": "Destek \/ İç İşleyiş",
+                    "kapsam": "İzin, disiplin, rapor, mesai takipleri",
+                    "olcu_birimi": "işlem sayısı",
+                    "kpi_sla": "SLA içinde kapanış",
+                    "raporlama_sikligi": "Haftalık \/ Aylık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IKM-03",
+                    "faaliyet_ailesi": "Bordro ve KBS\/SGK Veri Hazırlığı",
+                    "kategori": "Destek \/ İç İşleyiş",
+                    "kapsam": "Bordro girdileri, kesenek ve SGK işlemleri",
+                    "olcu_birimi": "personel \/ belge",
+                    "kpi_sla": "zamanında veri aktarımı",
+                    "raporlama_sikligi": "Aylık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IKM-04",
+                    "faaliyet_ailesi": "Eğitim ve Gelişim",
+                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
+                    "kapsam": "Hizmet içi eğitim, oryantasyon, staj",
+                    "olcu_birimi": "eğitim \/ katılımcı",
+                    "kpi_sla": "kişi başı eğitim saati",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IKM-05",
+                    "faaliyet_ailesi": "Performans ve Yetkinlik",
+                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
+                    "kapsam": "Değerlendirme, gelişim ve kariyer süreçleri",
+                    "olcu_birimi": "değerlendirme \/ rapor",
+                    "kpi_sla": "tamamlanan değerlendirme oranı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IKM-06",
+                    "faaliyet_ailesi": "İSG ve İSGB Koordinasyonu",
+                    "kategori": "Denetim \/ Uyum",
+                    "kapsam": "Risk, muayene, KKD, kurul, ramak kala ve DÖF",
+                    "olcu_birimi": "olay \/ eğitim \/ kontrol",
+                    "kpi_sla": "açık DÖF, eğitim uygunluğu",
+                    "raporlama_sikligi": "Haftalık \/ Aylık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "IKM-07",
+                    "faaliyet_ailesi": "Disiplin ve Yargısal Süreç Takibi",
+                    "kategori": "Denetim \/ Uyum",
+                    "kapsam": "Disiplin, savunma, iş mahkemesi ve personel kaynaklı hukuki risklerin izlenmesi",
+                    "olcu_birimi": "dosya sayısı",
+                    "kpi_sla": "süreçteki kritik dosya sayısı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": "Kritik"
+                },
+                {
+                    "faaliyet_kodu": "IKM-08",
+                    "faaliyet_ailesi": "Personel Gider Oranı ve Norm Kadro İzleme",
+                    "kategori": "Denetim \/ Uyum",
+                    "kapsam": "Personel gider oranı, norm kadro uyumu ve kritik personel eksiklikleri",
+                    "olcu_birimi": "oran \/ kadro",
+                    "kpi_sla": "yasal sınır ve sapma analizi",
+                    "raporlama_sikligi": "Aylık \/ kritik sapma halinde",
+                    "baskanlik_bilgilendirme_seviyesi": "Kritik"
+                }
+            ]
+        },
+        {
+            "mudurluk": "İtfaiye Müdürlüğü",
+            "activities": [
+                {
+                    "faaliyet_kodu": "ITM-01",
+                    "faaliyet_ailesi": "Yangın Müdahaleleri",
+                    "kategori": "Olağanüstü \/ Kriz \/ Acil",
+                    "kapsam": "Ev yangınları, Araç yangınları, Trafo yangınları, Çöp yangınları, Anız\/arazi yangınları, Tesis yangınları (fabrika\/işyeri)",
+                    "olcu_birimi": "vaka sayısı",
+                    "kpi_sla": "ortalama çıkış-varış süresi",
+                    "raporlama_sikligi": "Haftalık \/ olay anında",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "ITM-02",
+                    "faaliyet_ailesi": "Teknik Kurtarma ve Su Baskını",
+                    "kategori": "Olağanüstü \/ Kriz \/ Acil",
+                    "kapsam": "Kaza, mahsur kalma, su baskını, hayvan kurtarma",
+                    "olcu_birimi": "vaka sayısı",
+                    "kpi_sla": "müdahale süresi",
+                    "raporlama_sikligi": "Haftalık \/ olay anında",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "ITM-03",
+                    "faaliyet_ailesi": "Önleme ve Denetim",
+                    "kategori": "Denetim \/ Uyum",
+                    "kapsam": "Yangın güvenliği denetimi, uygunluk raporu",
+                    "olcu_birimi": "denetim sayısı",
+                    "kpi_sla": "uygunsuzluk kapanış oranı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "ITM-04",
+                    "faaliyet_ailesi": "Eğitim ve Tatbikat",
+                    "kategori": "Strateji \/ İyileştirme \/ Eğitim",
+                    "kapsam": "Kurum, okul, işletme eğitimi ve tatbikat",
+                    "olcu_birimi": "etkinlik \/ katılımcı",
+                    "kpi_sla": "katılımcı sayısı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "ITM-05",
+                    "faaliyet_ailesi": "112 Koordinasyon ve Zaman Damgası",
+                    "kategori": "Olağanüstü \/ Kriz \/ Acil",
+                    "kapsam": "Çağrı, Sevk, Danışma bilgi",
+                    "olcu_birimi": "çağrı \/ sevk",
+                    "kpi_sla": "zaman damgası doğruluk oranı",
+                    "raporlama_sikligi": "Haftalık \/ olay anında",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "ITM-06",
+                    "faaliyet_ailesi": "Araç ve Ekipman Hazırlığı",
+                    "kategori": "Destek \/ İç İşleyiş",
+                    "kapsam": "Bakım, kalibrasyon, stok ve hazır olma",
+                    "olcu_birimi": "araç \/ cihaz",
+                    "kpi_sla": "hazır araç oranı",
+                    "raporlama_sikligi": "Haftalık \/ Aylık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "ITM-07",
+                    "faaliyet_ailesi": "Ücretli İtfaiye Hizmetleri Tahakkuk ve Takibi",
+                    "kategori": "Başvuru \/ İşlem",
+                    "kapsam": "Yangın eğitimi, tatbikat, itfaiye araç bedeli, su verme, Yangın Güvenlik Raporu Belgesi Hizmet Ücreti ve benzeri ücretli hizmetlerin tahakkuk\/tahsilat takibi",
+                    "olcu_birimi": "işlem \/ tahakkuk",
+                    "kpi_sla": "tahsilat oranı",
+                    "raporlama_sikligi": "Haftalık",
+                    "baskanlik_bilgilendirme_seviyesi": ""
+                },
+                {
+                    "faaliyet_kodu": "ITM-08",
+                    "faaliyet_ailesi": "Destek Görevleri Veri Girişi",
+                    "kategori": "Operasyonel Hizmet",
+                    "kapsam": "Araç Destek Talepleri, Bayrak asma ve Kontrolü, Merdiven açma talepleri, Su verme, Yol sulama",
+                    "olcu_birimi": "görev sayısı",
+                    "kpi_sla": "zamanında tamamlanan görev oranı",
                     "raporlama_sikligi": "Haftalık",
                     "baskanlik_bilgilendirme_seviyesi": ""
                 }

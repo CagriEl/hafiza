@@ -4,11 +4,15 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ActivityCatalogResource\Pages;
 use App\Models\ActivityCatalog;
+use App\Support\ActivityCatalogReportSync;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\HtmlString;
 
 class ActivityCatalogResource extends Resource
 {
@@ -22,7 +26,6 @@ class ActivityCatalogResource extends Resource
 
     protected static ?string $pluralLabel = 'Faaliyet Katalog Verileri';
 
-    // Sadece Admin görebilsin
     public static function canViewAny(): bool
     {
         return auth()->id() === 1;
@@ -51,33 +54,27 @@ class ActivityCatalogResource extends Resource
     {
         return $table
             ->columns([
-                // TABLODA GÖRÜNECEK SÜTUNLAR BURADADIR
                 Tables\Columns\TextColumn::make('faaliyet_kodu')
                     ->label('Kod')
                     ->searchable()
                     ->sortable()
                     ->badge(),
-
                 Tables\Columns\TextColumn::make('mudurluk')
                     ->label('Müdürlük')
                     ->searchable()
                     ->sortable(),
-
                 Tables\Columns\TextColumn::make('faaliyet_ailesi')
                     ->label('Faaliyet Ailesi')
                     ->searchable()
                     ->description(fn (ActivityCatalog $record): string => 'Ölçü Birimi: '.((string) ($record->olcu_birimi ?: '-')))
-                    ->wrap(), // Uzun metinleri alt satıra indirir
-
+                    ->wrap(),
                 Tables\Columns\TextColumn::make('olcu_birimi')
                     ->label('Birim')
                     ->badge()
                     ->color('gray'),
-
                 Tables\Columns\TextColumn::make('kpi_sla')
                     ->label('KPI / SLA')
-                    ->limit(30), // Çok uzunsa keser
-
+                    ->limit(30),
                 Tables\Columns\TextColumn::make('raporlama_sikligi')
                     ->label('Raporlama Sıklığı')
                     ->badge()
@@ -94,13 +91,83 @@ class ActivityCatalogResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                static::syncToReportsAction(),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('syncSelectedToReports')
+                        ->label('Seçilenleri raporlara yansıt')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('warning')
+                        ->modalHeading('Seçilen katalog kayıtlarını raporlara yansıt')
+                        ->modalDescription('Önce önizlemeyi kontrol edin, onay kutusunu işaretleyip uygulayın.')
+                        ->form(function (Collection $records): array {
+                            $ids = $records->map(fn (ActivityCatalog $r) => (int) $r->id)->all();
+                            $preview = ActivityCatalogReportSync::previewForCatalogIds($ids);
+
+                            return [
+                                Forms\Components\Placeholder::make('preview')
+                                    ->label('Önizleme')
+                                    ->content(new HtmlString(ActivityCatalogReportSync::previewToHtml($preview))),
+                                Forms\Components\Checkbox::make('confirm')
+                                    ->label('Değişiklikleri raporlara uygulamayı onaylıyorum')
+                                    ->accepted()
+                                    ->required(),
+                            ];
+                        })
+                        ->action(function (Collection $records): void {
+                            $ids = $records->map(fn (ActivityCatalog $r) => (int) $r->id)->all();
+                            $stats = ActivityCatalogReportSync::applyForCatalogIds($ids);
+                            Notification::make()
+                                ->title('Raporlar güncellendi')
+                                ->body(sprintf(
+                                    '%d raporda %d satır uygulandı (%d alan).',
+                                    $stats['reports'],
+                                    $stats['rows'],
+                                    $stats['change_fields']
+                                ))
+                                ->success()
+                                ->send();
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function syncToReportsAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('syncToReports')
+            ->label('Raporlara yansıt')
+            ->icon('heroicon-o-arrow-path')
+            ->color('warning')
+            ->modalHeading(fn (ActivityCatalog $record): string => 'Raporlara yansıt: '.$record->faaliyet_kodu)
+            ->modalDescription('Önce değişiklikleri görün, ardından onaylayıp uygulayın. Mevcut sayısal veriler korunur.')
+            ->form(function (ActivityCatalog $record): array {
+                $preview = ActivityCatalogReportSync::previewForCatalog($record);
+
+                return [
+                    Forms\Components\Placeholder::make('preview')
+                        ->label('Önizleme')
+                        ->content(new HtmlString(ActivityCatalogReportSync::previewToHtml($preview))),
+                    Forms\Components\Checkbox::make('confirm')
+                        ->label('Değişiklikleri raporlara uygulamayı onaylıyorum')
+                        ->accepted()
+                        ->required()
+                        ->visible(fn (): bool => (int) ($preview['summary']['reports'] ?? 0) > 0),
+                ];
+            })
+            ->action(function (ActivityCatalog $record): void {
+                $stats = ActivityCatalogReportSync::applyForCatalog($record);
+                Notification::make()
+                    ->title($stats['reports'] > 0 ? 'Raporlar güncellendi' : 'Uygulanacak değişiklik yok')
+                    ->body($stats['reports'] > 0
+                        ? sprintf('%d raporda %d satır uygulandı (%d alan).', $stats['reports'], $stats['rows'], $stats['change_fields'])
+                        : 'Bu kayıt için raporlarda fark bulunamadı.')
+                    ->color($stats['reports'] > 0 ? 'success' : 'gray')
+                    ->send();
+            });
     }
 
     public static function getPages(): array
