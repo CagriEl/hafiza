@@ -189,13 +189,16 @@ class ActivityService
             ->filter(fn (ActivityCatalog $r) => $this->mudurlukLabelMatchesLoose($mudurlukRaw, (string) $r->mudurluk))
             ->values();
 
+        // Dropdown kaynağı: activity_catalogs (DB). Admin silince listeden düşmeli.
+        // Snapshot yalnızca müdürlükte hiç kayıt yoksa (deploy sonrası boş DB) eksikleri doldurur.
         $rows = $rowsFromMudurluk;
         if ($codes !== []) {
             $rowsFromCodes = $allRows
                 ->filter(fn (ActivityCatalog $r) => in_array((string) $r->faaliyet_kodu, $codes, true))
                 ->values();
 
-            // JSON tarafinda gecikme olsa bile (eski kod listesi), mudurluge eklenen yeni katalog satirlari da gelsin.
+            // JSON'daki kodlar + bu müdürlüğe adminin eklediği DB satırları.
+            // Silinmiş kodlar DB'de olmadığı için listede görünmez (yeniden yaratılmaz).
             $rows = $rowsFromCodes
                 ->merge($rowsFromMudurluk)
                 ->unique(fn (ActivityCatalog $r) => (int) $r->id)
@@ -203,11 +206,11 @@ class ActivityService
                 ->values();
         }
 
-        // JSON'da kod var ama katalog satirlari eksikse (deploy sonrasi sync unutulduysa)
-        // yalnızca EKSİK kodları ekle. Mevcut kayıtları (admin düzenlemeleri) ASLA üzerine yazma.
+        // Yalnızca müdürlükte hiç katalog satırı yoksa eksik kodları snapshot'tan oluştur.
+        // Tek kayıt silindiğinde otomatik geri getirme — admin silmesini ezerdi.
         if (
             $codes !== []
-            && $rows->count() < count($codes)
+            && $rowsFromMudurluk->isEmpty()
             && ! $this->autoSyncAttempted
         ) {
             $this->autoSyncAttempted = true;

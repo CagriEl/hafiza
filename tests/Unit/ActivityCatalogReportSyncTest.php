@@ -222,6 +222,46 @@ class ActivityCatalogReportSyncTest extends TestCase
         $this->assertTrue(ActivityCatalog::query()->where('faaliyet_kodu', 'MKM-NEW-TEST')->exists());
     }
 
+    public function test_deleted_catalog_is_not_recreated_into_dropdown_options(): void
+    {
+        $mudurluk = 'Makine İkmal Bakım ve Onarım Müdürlüğü';
+
+        $keep = ActivityCatalog::query()->create([
+            'mudurluk' => $mudurluk,
+            'faaliyet_kodu' => 'MKM-02',
+            'faaliyet_ailesi' => 'Arıza Bakım',
+            'kapsam' => 'Arıza',
+            'olcu_birimi' => 'adet',
+        ]);
+
+        $toDelete = ActivityCatalog::query()->create([
+            'mudurluk' => $mudurluk,
+            'faaliyet_kodu' => 'MKM-01',
+            'faaliyet_ailesi' => 'Planlı Bakım Silinecek',
+            'kapsam' => 'X',
+            'olcu_birimi' => 'adet',
+        ]);
+
+        $service = app(\App\Services\ActivityService::class);
+        $service->forgetCache();
+
+        $before = $service->resolveCatalogOptionsForMudurluk($mudurluk)['options'];
+        $this->assertArrayHasKey((int) $toDelete->id, $before);
+
+        $deletedId = (int) $toDelete->id;
+        $toDelete->delete();
+
+        $service->forgetCache();
+        $after = $service->resolveCatalogOptionsForMudurluk($mudurluk)['options'];
+
+        $this->assertArrayNotHasKey($deletedId, $after);
+        $this->assertFalse(
+            ActivityCatalog::query()->where('faaliyet_kodu', 'MKM-01')->exists(),
+            'Silinen MKM-01 snapshot auto-heal ile yeniden oluşturulmamalı'
+        );
+        $this->assertArrayHasKey((int) $keep->id, $after);
+    }
+
     public function test_preview_html_handles_empty(): void
     {
         $html = ActivityCatalogReportSync::previewToHtml([
