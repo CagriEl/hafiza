@@ -204,7 +204,7 @@ class ActivityService
         }
 
         // JSON'da kod var ama katalog satirlari eksikse (deploy sonrasi sync unutulduysa)
-        // bir kez otomatik senkron dene ve sonucu tekrar cek.
+        // yalnızca EKSİK kodları ekle. Mevcut kayıtları (admin düzenlemeleri) ASLA üzerine yazma.
         if (
             $codes !== []
             && $rows->count() < count($codes)
@@ -213,8 +213,7 @@ class ActivityService
             $this->autoSyncAttempted = true;
 
             try {
-                app(ActivityCatalogSqlImportService::class)->updateExistingFromSnapshotFile($path);
-                $sync->regenerateActivitySetsJsonFromServerSnapshot($path);
+                app(ActivityCatalogSqlImportService::class)->createMissingFromSnapshotFile($path);
                 $this->forgetCache();
 
                 $allRows = ActivityCatalog::query()->orderBy('faaliyet_kodu')->get();

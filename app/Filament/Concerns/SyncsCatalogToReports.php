@@ -3,6 +3,7 @@
 namespace App\Filament\Concerns;
 
 use App\Models\ActivityCatalog;
+use App\Services\ActivityCatalogSyncService;
 use App\Support\ActivityCatalogReportSync;
 use Filament\Actions\Action;
 use Filament\Forms;
@@ -69,9 +70,21 @@ trait SyncsCatalogToReports
             });
     }
 
-    protected function offerCatalogReportSyncAfterSave(): void
+    protected function persistCatalogSourceOfTruth(): void
     {
         $record = $this->getCatalogRecordForSync();
+        if (! $record instanceof ActivityCatalog) {
+            return;
+        }
+
+        app(ActivityCatalogSyncService::class)->persistAdminCatalogChange($record->fresh() ?? $record);
+    }
+
+    protected function offerCatalogReportSyncAfterSave(): void
+    {
+        $this->persistCatalogSourceOfTruth();
+
+        $record = $this->getCatalogRecordForSync()?->fresh();
         if (! $record instanceof ActivityCatalog) {
             return;
         }

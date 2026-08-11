@@ -120,6 +120,108 @@ class ActivityCatalogReportSyncTest extends TestCase
         $this->assertSame(0, $after['summary']['reports']);
     }
 
+    public function test_preview_detects_removed_kapsam_kalem_and_apply_drops_it(): void
+    {
+        $catalog = ActivityCatalog::query()->create([
+            'mudurluk' => 'Test Sync Müdürlüğü',
+            'faaliyet_kodu' => 'TST-88',
+            'faaliyet_ailesi' => 'Planlı Bakım',
+            'kapsam' => 'Periyodik bakım, muayene',
+            'olcu_birimi' => 'adet',
+            'raporlama_sikligi' => 'Haftalık',
+            'baskanlik_bilgilendirme_seviyesi' => 'Bilgi amaçlı',
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'Test Sync Müdürlüğü',
+            'email' => 'sync-remove@example.com',
+            'password' => 'x',
+            'role' => User::ROLE_MUDURLUK,
+        ]);
+
+        $report = AylikFaaliyet::query()->create([
+            'user_id' => $user->id,
+            'yil' => 2026,
+            'ay' => '07',
+            'hafta' => 1,
+            'faaliyetler' => [
+                [
+                    'activity_catalog_id' => $catalog->id,
+                    'faaliyet_kodu' => 'TST-88',
+                    'kapsam_icerigi' => 'Planlı Bakım',
+                    'olcu_birimi' => 'adet',
+                    'raporlama_sikligi' => 'Haftalık',
+                    'baskanlik_bilgilendirme_seviyesi' => 'Bilgi amaçlı',
+                    'kapsam_verileri' => [
+                        ['kalem' => 'Periyodik bakım', 'ongorulen' => 3, 'gerceklesen' => 1],
+                        ['kalem' => 'muayene', 'ongorulen' => 2, 'gerceklesen' => 0],
+                        ['kalem' => 'kalibrasyon hazırlığı', 'ongorulen' => 1, 'gerceklesen' => 0],
+                    ],
+                ],
+            ],
+        ]);
+
+        $preview = ActivityCatalogReportSync::previewForCatalog($catalog);
+        $this->assertSame(1, $preview['summary']['reports']);
+        $fieldLabels = array_column($preview['items'][0]['changes'], 'field_label');
+        $this->assertContains('Kapsam kalemleri', $fieldLabels);
+
+        ActivityCatalogReportSync::applyForCatalog($catalog);
+        $report->refresh();
+        $kalemler = array_map(fn ($l) => $l['kalem'], $report->faaliyetler[0]['kapsam_verileri']);
+        $this->assertSame(['Periyodik bakım', 'muayene'], $kalemler);
+    }
+
+    public function test_create_missing_from_snapshot_does_not_overwrite_admin_kapsam(): void
+    {
+        $catalog = ActivityCatalog::query()->create([
+            'mudurluk' => 'Makine İkmal Bakım ve Onarım Müdürlüğü',
+            'faaliyet_kodu' => 'MKM-01',
+            'faaliyet_ailesi' => 'Planlı Bakım',
+            'kapsam' => 'Admin yeni kapsam',
+            'olcu_birimi' => 'araç / ekipman',
+            'raporlama_sikligi' => 'Haftalık / Aylık',
+            'baskanlik_bilgilendirme_seviyesi' => '',
+        ]);
+
+        // Eski davranış: options resolve → snapshot updateExisting → admin kapsam geri yazılıyordu.
+        app(\App\Services\ActivityService::class)->forgetCache();
+        app(\App\Services\ActivityService::class)
+            ->resolveCatalogOptionsForMudurluk('Makine İkmal Bakım ve Onarım Müdürlüğü');
+
+        $this->assertSame('Admin yeni kapsam', $catalog->fresh()->kapsam);
+
+        $stats = app(\App\Services\ActivityCatalogSqlImportService::class)->createMissingFromRows([
+            [
+                'faaliyet_kodu' => 'MKM-01',
+                'mudurluk' => 'Makine İkmal Bakım ve Onarım Müdürlüğü',
+                'faaliyet_ailesi' => 'Planlı Bakım',
+                'kategori' => 'Destek',
+                'kapsam' => 'Periyodik bakım, muayene, kalibrasyon hazırlığı',
+                'olcu_birimi' => 'araç / ekipman',
+                'kpi_sla' => '',
+                'raporlama_sikligi' => 'Haftalık / Aylık',
+                'baskanlik_bilgilendirme_seviyesi' => '',
+            ],
+            [
+                'faaliyet_kodu' => 'MKM-NEW-TEST',
+                'mudurluk' => 'Makine İkmal Bakım ve Onarım Müdürlüğü',
+                'faaliyet_ailesi' => 'Yeni',
+                'kategori' => 'Destek',
+                'kapsam' => 'Yeni kalem',
+                'olcu_birimi' => 'adet',
+                'kpi_sla' => '',
+                'raporlama_sikligi' => 'Aylık',
+                'baskanlik_bilgilendirme_seviyesi' => '',
+            ],
+        ]);
+
+        $this->assertSame(1, $stats['created']);
+        $this->assertSame(1, $stats['skipped_existing']);
+        $this->assertSame('Admin yeni kapsam', $catalog->fresh()->kapsam);
+        $this->assertTrue(ActivityCatalog::query()->where('faaliyet_kodu', 'MKM-NEW-TEST')->exists());
+    }
+
     public function test_preview_html_handles_empty(): void
     {
         $html = ActivityCatalogReportSync::previewToHtml([

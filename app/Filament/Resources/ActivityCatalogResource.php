@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ActivityCatalogResource\Pages;
 use App\Models\ActivityCatalog;
+use App\Services\ActivityCatalogSyncService;
 use App\Support\ActivityCatalogReportSync;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -92,7 +93,16 @@ class ActivityCatalogResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 static::syncToReportsAction(),
-                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\DeleteAction::make()
+                    ->before(function (ActivityCatalog $record): void {
+                        $record->setAttribute('_snapshot_code', (string) $record->faaliyet_kodu);
+                    })
+                    ->after(function (ActivityCatalog $record): void {
+                        $code = trim((string) ($record->getAttribute('_snapshot_code') ?: $record->faaliyet_kodu));
+                        if ($code !== '') {
+                            app(ActivityCatalogSyncService::class)->removeAdminCatalogChange($code);
+                        }
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -133,7 +143,26 @@ class ActivityCatalogResource extends Resource
                                 ->send();
                         })
                         ->deselectRecordsAfterCompletion(),
-                    Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->before(function (Collection $records): void {
+                            foreach ($records as $record) {
+                                if ($record instanceof ActivityCatalog) {
+                                    $record->setAttribute('_snapshot_code', (string) $record->faaliyet_kodu);
+                                }
+                            }
+                        })
+                        ->after(function (Collection $records): void {
+                            $sync = app(ActivityCatalogSyncService::class);
+                            foreach ($records as $record) {
+                                if (! $record instanceof ActivityCatalog) {
+                                    continue;
+                                }
+                                $code = trim((string) ($record->getAttribute('_snapshot_code') ?: $record->faaliyet_kodu));
+                                if ($code !== '') {
+                                    $sync->removeAdminCatalogChange($code);
+                                }
+                            }
+                        }),
                 ]),
             ]);
     }

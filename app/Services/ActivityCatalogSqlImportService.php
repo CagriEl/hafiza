@@ -123,6 +123,169 @@ final class ActivityCatalogSqlImportService
     }
 
     /**
+     * Eksik faaliyet kodlarını snapshot'tan oluşturur; mevcut kayıtları değiştirmez.
+     *
+     * @return array{created: int, skipped_existing: int, parsed: int}
+     */
+    public function createMissingFromSnapshotFile(?string $path = null): array
+    {
+        $path ??= $this->resolveDefaultSnapshotPath();
+
+        if (! File::isReadable($path)) {
+            throw new RuntimeException("Katalog snapshot dosyası okunamadı: {$path}");
+        }
+
+        $decoded = json_decode(File::get($path), true);
+        if (! is_array($decoded)) {
+            throw new RuntimeException('Snapshot JSON geçersiz.');
+        }
+
+        $rows = $decoded['rows'] ?? null;
+        if (! is_array($rows)) {
+            throw new RuntimeException('Snapshot içinde rows dizisi bulunamadı.');
+        }
+
+        return $this->createMissingFromRows($this->normalizeSnapshotRows($rows));
+    }
+
+    /**
+     * @param  list<array<string, string|null>>  $rows
+     * @return array{created: int, skipped_existing: int, parsed: int}
+     */
+    public function createMissingFromRows(array $rows): array
+    {
+        $created = 0;
+        $skippedExisting = 0;
+
+        foreach ($rows as $row) {
+            $code = trim((string) ($row['faaliyet_kodu'] ?? ''));
+            if ($code === '') {
+                continue;
+            }
+
+            if (ActivityCatalog::query()->where('faaliyet_kodu', $code)->exists()) {
+                $skippedExisting++;
+
+                continue;
+            }
+
+            $payload = ['faaliyet_kodu' => $code];
+            foreach (self::UPDATABLE_FIELDS as $field) {
+                $payload[$field] = $this->normalizeField($row[$field] ?? null);
+            }
+
+            ActivityCatalog::query()->create($payload);
+            $created++;
+        }
+
+        if ($created > 0) {
+            app(ActivityService::class)->forgetCache();
+            ActivityCatalogMetadataByCode::forgetCache();
+        }
+
+        return [
+            'created' => $created,
+            'skipped_existing' => $skippedExisting,
+            'parsed' => count($rows),
+        ];
+    }
+
+    /**
+     * Admin katalog düzenlemesini snapshot JSON'a yansıtır (sonraki sync'lerin geri almaması için).
+     */
+    public function upsertCatalogIntoSnapshot(ActivityCatalog $catalog, ?string $path = null): void
+    {
+        $path ??= $this->resolveDefaultSnapshotPath();
+        if (! File::isReadable($path) && ! File::exists(dirname($path))) {
+            return;
+        }
+
+        $code = trim((string) $catalog->faaliyet_kodu);
+        if ($code === '') {
+            return;
+        }
+
+        $decoded = [];
+        if (File::isReadable($path)) {
+            $raw = json_decode(File::get($path), true);
+            $decoded = is_array($raw) ? $raw : [];
+        }
+
+        $rows = is_array($decoded['rows'] ?? null) ? $decoded['rows'] : [];
+        $payload = [
+            'faaliyet_kodu' => $code,
+            'mudurluk' => $this->normalizeField($catalog->mudurluk),
+            'faaliyet_ailesi' => $this->normalizeField($catalog->faaliyet_ailesi),
+            'kategori' => $this->normalizeField($catalog->kategori),
+            'kapsam' => $this->normalizeField($catalog->kapsam),
+            'olcu_birimi' => $this->normalizeField($catalog->olcu_birimi),
+            'kpi_sla' => $this->normalizeField($catalog->kpi_sla),
+            'raporlama_sikligi' => $this->normalizeField($catalog->raporlama_sikligi),
+            'baskanlik_bilgilendirme_seviyesi' => $this->normalizeField($catalog->baskanlik_bilgilendirme_seviyesi),
+        ];
+
+        $found = false;
+        foreach ($rows as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            if (trim((string) ($row['faaliyet_kodu'] ?? '')) !== $code) {
+                continue;
+            }
+            $rows[$index] = array_merge($row, $payload);
+            $found = true;
+            break;
+        }
+
+        if (! $found) {
+            $rows[] = $payload;
+        }
+
+        usort($rows, fn (array $a, array $b): int => strcmp(
+            (string) ($a['faaliyet_kodu'] ?? ''),
+            (string) ($b['faaliyet_kodu'] ?? '')
+        ));
+
+        $out = [
+            'generated_at' => now()->toDateString(),
+            'source' => (string) ($decoded['source'] ?? 'activity_catalogs (admin)'),
+            'row_count' => count($rows),
+            'rows' => array_values($rows),
+        ];
+
+        File::put($path, json_encode($out, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)."\n");
+        app(ActivityService::class)->forgetCache();
+        ActivityCatalogMetadataByCode::forgetCache();
+    }
+
+    public function removeCatalogFromSnapshot(string $faaliyetKodu, ?string $path = null): void
+    {
+        $path ??= $this->resolveDefaultSnapshotPath();
+        $code = trim($faaliyetKodu);
+        if ($code === '' || ! File::isReadable($path)) {
+            return;
+        }
+
+        $decoded = json_decode(File::get($path), true);
+        if (! is_array($decoded) || ! is_array($decoded['rows'] ?? null)) {
+            return;
+        }
+
+        $rows = array_values(array_filter(
+            $decoded['rows'],
+            fn ($row): bool => is_array($row) && trim((string) ($row['faaliyet_kodu'] ?? '')) !== $code
+        ));
+
+        $decoded['rows'] = $rows;
+        $decoded['row_count'] = count($rows);
+        $decoded['generated_at'] = now()->toDateString();
+
+        File::put($path, json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)."\n");
+        app(ActivityService::class)->forgetCache();
+        ActivityCatalogMetadataByCode::forgetCache();
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $rows
      * @return list<array<string, string|null>>
      */

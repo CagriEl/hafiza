@@ -42,6 +42,26 @@ class ActivityCatalogSyncService
     }
 
     /**
+     * Filament admin katalog kaydını JSON kaynaklarına yazar; otomatik/manuel sync geri almasın.
+     */
+    public function persistAdminCatalogChange(ActivityCatalog $catalog): void
+    {
+        $import = app(ActivityCatalogSqlImportService::class);
+        $import->upsertCatalogIntoSnapshot($catalog);
+        $this->regenerateActivitySetsJsonFromCatalog();
+        ActivityCatalogMetadataByCode::forgetCache();
+        app(ActivityService::class)->forgetCache();
+    }
+
+    public function removeAdminCatalogChange(string $faaliyetKodu): void
+    {
+        app(ActivityCatalogSqlImportService::class)->removeCatalogFromSnapshot($faaliyetKodu);
+        $this->regenerateActivitySetsJsonFromCatalog();
+        ActivityCatalogMetadataByCode::forgetCache();
+        app(ActivityService::class)->forgetCache();
+    }
+
+    /**
      * @return list<array<string, string>>
      */
     public function readServerSnapshotRows(?string $path = null): array
