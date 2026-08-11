@@ -43,22 +43,68 @@ class ActivityCatalogSyncService
 
     /**
      * Filament admin katalog kaydını JSON kaynaklarına yazar; otomatik/manuel sync geri almasın.
+     * Canlıda resources/data yazılamazsa hata fırlatmaz — DB kaydı yeterlidir.
      */
     public function persistAdminCatalogChange(ActivityCatalog $catalog): void
     {
-        $import = app(ActivityCatalogSqlImportService::class);
-        $import->upsertCatalogIntoSnapshot($catalog);
-        $this->regenerateActivitySetsJsonFromCatalog();
+        try {
+            $import = app(ActivityCatalogSqlImportService::class);
+            $import->upsertCatalogIntoSnapshot($catalog);
+            $this->tryRegenerateActivitySetsJsonFromCatalog();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Katalog JSON senkronu atlandı (DB kaydı korundu).', [
+                'faaliyet_kodu' => $catalog->faaliyet_kodu,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         ActivityCatalogMetadataByCode::forgetCache();
         app(ActivityService::class)->forgetCache();
     }
 
     public function removeAdminCatalogChange(string $faaliyetKodu): void
     {
-        app(ActivityCatalogSqlImportService::class)->removeCatalogFromSnapshot($faaliyetKodu);
-        $this->regenerateActivitySetsJsonFromCatalog();
+        try {
+            app(ActivityCatalogSqlImportService::class)->removeCatalogFromSnapshot($faaliyetKodu);
+            $this->tryRegenerateActivitySetsJsonFromCatalog();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Katalog JSON silme senkronu atlandı (DB kaydı korundu).', [
+                'faaliyet_kodu' => $faaliyetKodu,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         ActivityCatalogMetadataByCode::forgetCache();
         app(ActivityService::class)->forgetCache();
+    }
+
+    /**
+     * Yazma izni yoksa sessizce atlar (admin kaydını bozmaz).
+     */
+    public function tryRegenerateActivitySetsJsonFromCatalog(): bool
+    {
+        $out = $this->activitySetsOutputPath ?? resource_path('data/activity_sets.json');
+        $import = app(ActivityCatalogSqlImportService::class);
+        if (! $import->canWriteCatalogDataFile($out)) {
+            \Illuminate\Support\Facades\Log::warning('activity_sets.json yazılamıyor; DB katalog kaydı korundu.', [
+                'path' => $out,
+            ]);
+
+            return false;
+        }
+
+        try {
+            $this->regenerateActivitySetsJsonFromCatalog();
+
+            return true;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('activity_sets.json yenilenemedi; DB katalog kaydı korundu.', [
+                'path' => $out,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     /**

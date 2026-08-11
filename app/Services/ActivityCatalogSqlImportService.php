@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\ActivityCatalog;
 use App\Support\ActivityCatalogMetadataByCode;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
+use Throwable;
 
 /**
  * Sunucu katalog anlık görüntüsünden (JSON veya SQL) yalnızca mevcut faaliyet kodlarını günceller.
@@ -192,97 +194,162 @@ final class ActivityCatalogSqlImportService
 
     /**
      * Admin katalog düzenlemesini snapshot JSON'a yansıtır (sonraki sync'lerin geri almaması için).
+     * Dosya yazılamıyorsa (canlıda permission) sessizce atlanır; DB kaydı asıl kaynaktır.
      */
-    public function upsertCatalogIntoSnapshot(ActivityCatalog $catalog, ?string $path = null): void
+    public function upsertCatalogIntoSnapshot(ActivityCatalog $catalog, ?string $path = null): bool
     {
         $path ??= $this->resolveDefaultSnapshotPath();
-        if (! File::isReadable($path) && ! File::exists(dirname($path))) {
-            return;
+        if (! $this->canWriteCatalogDataFile($path)) {
+            return false;
         }
 
         $code = trim((string) $catalog->faaliyet_kodu);
         if ($code === '') {
-            return;
+            return false;
         }
 
-        $decoded = [];
-        if (File::isReadable($path)) {
-            $raw = json_decode(File::get($path), true);
-            $decoded = is_array($raw) ? $raw : [];
-        }
-
-        $rows = is_array($decoded['rows'] ?? null) ? $decoded['rows'] : [];
-        $payload = [
-            'faaliyet_kodu' => $code,
-            'mudurluk' => $this->normalizeField($catalog->mudurluk),
-            'faaliyet_ailesi' => $this->normalizeField($catalog->faaliyet_ailesi),
-            'kategori' => $this->normalizeField($catalog->kategori),
-            'kapsam' => $this->normalizeField($catalog->kapsam),
-            'olcu_birimi' => $this->normalizeField($catalog->olcu_birimi),
-            'kpi_sla' => $this->normalizeField($catalog->kpi_sla),
-            'raporlama_sikligi' => $this->normalizeField($catalog->raporlama_sikligi),
-            'baskanlik_bilgilendirme_seviyesi' => $this->normalizeField($catalog->baskanlik_bilgilendirme_seviyesi),
-        ];
-
-        $found = false;
-        foreach ($rows as $index => $row) {
-            if (! is_array($row)) {
-                continue;
+        try {
+            $decoded = [];
+            if (File::isReadable($path)) {
+                $raw = json_decode(File::get($path), true);
+                $decoded = is_array($raw) ? $raw : [];
             }
-            if (trim((string) ($row['faaliyet_kodu'] ?? '')) !== $code) {
-                continue;
+
+            $rows = is_array($decoded['rows'] ?? null) ? $decoded['rows'] : [];
+            $payload = [
+                'faaliyet_kodu' => $code,
+                'mudurluk' => $this->normalizeField($catalog->mudurluk),
+                'faaliyet_ailesi' => $this->normalizeField($catalog->faaliyet_ailesi),
+                'kategori' => $this->normalizeField($catalog->kategori),
+                'kapsam' => $this->normalizeField($catalog->kapsam),
+                'olcu_birimi' => $this->normalizeField($catalog->olcu_birimi),
+                'kpi_sla' => $this->normalizeField($catalog->kpi_sla),
+                'raporlama_sikligi' => $this->normalizeField($catalog->raporlama_sikligi),
+                'baskanlik_bilgilendirme_seviyesi' => $this->normalizeField($catalog->baskanlik_bilgilendirme_seviyesi),
+            ];
+
+            $found = false;
+            foreach ($rows as $index => $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                if (trim((string) ($row['faaliyet_kodu'] ?? '')) !== $code) {
+                    continue;
+                }
+                $rows[$index] = array_merge($row, $payload);
+                $found = true;
+                break;
             }
-            $rows[$index] = array_merge($row, $payload);
-            $found = true;
-            break;
+
+            if (! $found) {
+                $rows[] = $payload;
+            }
+
+            usort($rows, fn (array $a, array $b): int => strcmp(
+                (string) ($a['faaliyet_kodu'] ?? ''),
+                (string) ($b['faaliyet_kodu'] ?? '')
+            ));
+
+            $out = [
+                'generated_at' => now()->toDateString(),
+                'source' => (string) ($decoded['source'] ?? 'activity_catalogs (admin)'),
+                'row_count' => count($rows),
+                'rows' => array_values($rows),
+            ];
+
+            if (! $this->writeCatalogDataFile($path, json_encode($out, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)."\n")) {
+                return false;
+            }
+
+            app(ActivityService::class)->forgetCache();
+            ActivityCatalogMetadataByCode::forgetCache();
+
+            return true;
+        } catch (Throwable $e) {
+            Log::warning('Katalog snapshot güncellenemedi (DB kaydı korundu).', [
+                'path' => $path,
+                'faaliyet_kodu' => $code,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
         }
-
-        if (! $found) {
-            $rows[] = $payload;
-        }
-
-        usort($rows, fn (array $a, array $b): int => strcmp(
-            (string) ($a['faaliyet_kodu'] ?? ''),
-            (string) ($b['faaliyet_kodu'] ?? '')
-        ));
-
-        $out = [
-            'generated_at' => now()->toDateString(),
-            'source' => (string) ($decoded['source'] ?? 'activity_catalogs (admin)'),
-            'row_count' => count($rows),
-            'rows' => array_values($rows),
-        ];
-
-        File::put($path, json_encode($out, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)."\n");
-        app(ActivityService::class)->forgetCache();
-        ActivityCatalogMetadataByCode::forgetCache();
     }
 
-    public function removeCatalogFromSnapshot(string $faaliyetKodu, ?string $path = null): void
+    public function removeCatalogFromSnapshot(string $faaliyetKodu, ?string $path = null): bool
     {
         $path ??= $this->resolveDefaultSnapshotPath();
         $code = trim($faaliyetKodu);
-        if ($code === '' || ! File::isReadable($path)) {
-            return;
+        if ($code === '' || ! File::isReadable($path) || ! $this->canWriteCatalogDataFile($path)) {
+            return false;
         }
 
-        $decoded = json_decode(File::get($path), true);
-        if (! is_array($decoded) || ! is_array($decoded['rows'] ?? null)) {
-            return;
+        try {
+            $decoded = json_decode(File::get($path), true);
+            if (! is_array($decoded) || ! is_array($decoded['rows'] ?? null)) {
+                return false;
+            }
+
+            $rows = array_values(array_filter(
+                $decoded['rows'],
+                fn ($row): bool => is_array($row) && trim((string) ($row['faaliyet_kodu'] ?? '')) !== $code
+            ));
+
+            $decoded['rows'] = $rows;
+            $decoded['row_count'] = count($rows);
+            $decoded['generated_at'] = now()->toDateString();
+
+            if (! $this->writeCatalogDataFile($path, json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)."\n")) {
+                return false;
+            }
+
+            app(ActivityService::class)->forgetCache();
+            ActivityCatalogMetadataByCode::forgetCache();
+
+            return true;
+        } catch (Throwable $e) {
+            Log::warning('Katalog snapshot silinemedi (DB kaydı korundu).', [
+                'path' => $path,
+                'faaliyet_kodu' => $code,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    public function canWriteCatalogDataFile(string $path): bool
+    {
+        $dir = dirname($path);
+        if (File::exists($path)) {
+            return is_writable($path);
         }
 
-        $rows = array_values(array_filter(
-            $decoded['rows'],
-            fn ($row): bool => is_array($row) && trim((string) ($row['faaliyet_kodu'] ?? '')) !== $code
-        ));
+        return File::isDirectory($dir) && is_writable($dir);
+    }
 
-        $decoded['rows'] = $rows;
-        $decoded['row_count'] = count($rows);
-        $decoded['generated_at'] = now()->toDateString();
+    private function writeCatalogDataFile(string $path, string $contents): bool
+    {
+        if (! $this->canWriteCatalogDataFile($path)) {
+            Log::warning('Katalog veri dosyası yazılamıyor (permission); DB kaydı asıl kaynaktır.', [
+                'path' => $path,
+            ]);
 
-        File::put($path, json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)."\n");
-        app(ActivityService::class)->forgetCache();
-        ActivityCatalogMetadataByCode::forgetCache();
+            return false;
+        }
+
+        try {
+            File::put($path, $contents);
+
+            return true;
+        } catch (Throwable $e) {
+            Log::warning('Katalog veri dosyası yazılamadı (permission); DB kaydı asıl kaynaktır.', [
+                'path' => $path,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     /**
