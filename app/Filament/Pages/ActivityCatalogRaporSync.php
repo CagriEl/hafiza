@@ -104,13 +104,19 @@ class ActivityCatalogRaporSync extends Page implements HasForms
         $this->preview = $this->buildPreview();
 
         $count = (int) ($this->preview['summary']['reports'] ?? 0);
-        Notification::make()
+        $notification = Notification::make()
             ->title($count > 0 ? 'Önizleme hazır' : 'Değişiklik bulunamadı')
             ->body($count > 0
                 ? $count.' raporda güncelleme adayı var. Aşağıdaki listeyi kontrol edin.'
-                : 'Seçime göre raporlarda katalogdan farklı satır yok.')
-            ->color($count > 0 ? 'success' : 'gray')
-            ->send();
+                : 'Seçime göre raporlarda katalogdan farklı satır yok.');
+
+        if ($count > 0) {
+            $notification->success();
+        } else {
+            $notification->info();
+        }
+
+        $notification->send();
     }
 
     public function runApply(): void
@@ -128,7 +134,7 @@ class ActivityCatalogRaporSync extends Page implements HasForms
         if ((int) ($this->preview['summary']['reports'] ?? 0) === 0) {
             Notification::make()
                 ->title('Uygulanacak değişiklik yok')
-                ->gray()
+                ->info()
                 ->send();
 
             return;

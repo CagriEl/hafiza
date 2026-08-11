@@ -54,7 +54,7 @@ trait SyncsCatalogToReports
                 }
 
                 $stats = ActivityCatalogReportSync::applyForCatalog($record);
-                Notification::make()
+                $notification = Notification::make()
                     ->title($stats['reports'] > 0 ? 'Raporlara kalıcı uygulandı' : 'Uygulanacak değişiklik yok')
                     ->body($stats['reports'] > 0
                         ? sprintf(
@@ -64,9 +64,15 @@ trait SyncsCatalogToReports
                             $stats['change_fields']
                         )
                         : 'Bu kayıt için raporlarda fark bulunamadı.')
-                    ->color($stats['reports'] > 0 ? 'success' : 'gray')
-                    ->persistent()
-                    ->send();
+                    ->persistent();
+
+                if ($stats['reports'] > 0) {
+                    $notification->success();
+                } else {
+                    $notification->info();
+                }
+
+                $notification->send();
             });
     }
 
