@@ -317,7 +317,8 @@ final class ActivityCatalogReportSync
                 ['faaliyetler' => $original],
                 $report->user?->name
             );
-            $newRows = is_array($synced['faaliyetler'] ?? null) ? $synced['faaliyetler'] : $original;
+            $syncedRows = is_array($synced['faaliyetler'] ?? null) ? $synced['faaliyetler'] : $original;
+            $newRows = self::replaceMatchingRows($original, $syncedRows, $rowMatcher);
 
             $diff = self::diffRows($original, $newRows, $rowMatcher, $report);
             if ($diff === []) {
@@ -397,6 +398,38 @@ final class ActivityCatalogReportSync
         $newRows = is_array($synced['faaliyetler'] ?? null) ? $synced['faaliyetler'] : $original;
 
         return self::diffRows($original, $newRows, $rowMatcher, $report);
+    }
+
+    /**
+     * Katalog sync tüm satırları döndürür; yalnızca eşleşen faaliyet kodlarını yaz, diğer satırlara dokunma.
+     *
+     * @param  list<array<string, mixed>>|array<int|string, mixed>  $original
+     * @param  list<array<string, mixed>>|array<int|string, mixed>  $synced
+     * @param  callable(array<string, mixed>): bool  $rowMatcher
+     * @return list<array<string, mixed>>
+     */
+    private static function replaceMatchingRows(array $original, array $synced, callable $rowMatcher): array
+    {
+        $syncedByKey = [];
+        foreach (array_values($synced) as $idx => $row) {
+            if (! is_array($row) || ! $rowMatcher($row)) {
+                continue;
+            }
+            $syncedByKey[self::rowKey($row, $idx)] = $row;
+        }
+
+        $out = [];
+        foreach (array_values($original) as $idx => $row) {
+            if (! is_array($row) || ! $rowMatcher($row)) {
+                $out[] = $row;
+
+                continue;
+            }
+            $key = self::rowKey($row, $idx);
+            $out[] = $syncedByKey[$key] ?? $row;
+        }
+
+        return $out;
     }
 
     /**
