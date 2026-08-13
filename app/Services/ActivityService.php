@@ -133,6 +133,8 @@ class ActivityService
      */
     public function resolveCatalogOptionsForMudurluk(string $mudurluk): array
     {
+        \App\Support\CatalogKalemRevisions::ensureApplied();
+
         $mudurlukRaw = $mudurluk;
         $debug = [
             'directorate_input' => $mudurlukRaw,

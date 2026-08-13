@@ -795,6 +795,9 @@ class AylikFaaliyetResource extends Resource
      */
     public static function prepareFaaliyetlerForSave(array $data, ?AylikFaaliyet $record, ?User $user): array
     {
+        $mudurluk = $user?->name ?? $record?->user?->name ?? auth()->user()?->name ?? null;
+        $data = static::syncFaaliyetlerWithCurrentCatalog($data, is_string($mudurluk) ? $mudurluk : null);
+
         if ($user instanceof User && $record instanceof AylikFaaliyet) {
             $data = AylikFaaliyetRepeaterLock::stripAySonuFieldsFromUnpersistedMudurlukRows($record, $user, $data);
         }
@@ -1284,9 +1287,7 @@ class AylikFaaliyetResource extends Resource
                                                 return;
                                             }
 
-                                            if (! filled($get('olcu_birimi'))) {
-                                                $set('olcu_birimi', $catalog->olcu_birimi);
-                                            }
+                                            $set('olcu_birimi', $catalog->olcu_birimi);
                                             $metadata = ActivityCatalogMetadataByCode::mergeWithCatalog(
                                                 (string) $catalog->faaliyet_kodu,
                                                 (string) ($catalog->raporlama_sikligi ?? ''),
@@ -1294,12 +1295,8 @@ class AylikFaaliyetResource extends Resource
                                             );
                                             $set('raporlama_sikligi', $metadata['raporlama_sikligi']);
                                             $set('baskanlik_bilgilendirme_seviyesi', $metadata['baskanlik_bilgilendirme_seviyesi']);
-                                            if (! filled($get('faaliyet_kodu'))) {
-                                                $set('faaliyet_kodu', $catalog->faaliyet_kodu);
-                                            }
-                                            if (! filled($get('kapsam_icerigi'))) {
-                                                $set('kapsam_icerigi', $catalog->kapsam);
-                                            }
+                                            $set('faaliyet_kodu', $catalog->faaliyet_kodu);
+                                            $set('kapsam_icerigi', $catalog->faaliyet_ailesi);
 
                                             $set(
                                                 'kapsam_verileri',
@@ -1322,7 +1319,7 @@ class AylikFaaliyetResource extends Resource
                                                 $set('raporlama_sikligi', $metadata['raporlama_sikligi']);
                                                 $set('baskanlik_bilgilendirme_seviyesi', $metadata['baskanlik_bilgilendirme_seviyesi']);
                                                 $set('faaliyet_kodu', $catalog->faaliyet_kodu);
-                                                $set('kapsam_icerigi', $catalog->kapsam);
+                                                $set('kapsam_icerigi', $catalog->faaliyet_ailesi);
                                                 $set(
                                                     'kapsam_verileri',
                                                     static::syncKapsamVerileri(
@@ -3250,6 +3247,8 @@ class AylikFaaliyetResource extends Resource
      */
     public static function syncFaaliyetlerWithCurrentCatalog(array $data, ?string $mudurlukAdi): array
     {
+        \App\Support\CatalogKalemRevisions::ensureApplied();
+
         $data = ActivityCatalogFormatter::hydrateActivityCatalogIdsInFaaliyetler($data, $mudurlukAdi);
 
         if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {

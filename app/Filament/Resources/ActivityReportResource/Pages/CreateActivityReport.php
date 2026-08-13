@@ -77,6 +77,11 @@ class CreateActivityReport extends CreateRecord
         $data['ay'] = $ay;
         $data['hafta'] = $hafta;
 
+        $data = AylikFaaliyetResource::syncFaaliyetlerWithCurrentCatalog(
+            $data,
+            auth()->user()?->name
+        );
+
         return AylikFaaliyetResource::prepareFaaliyetlerForSave(
             AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data),
             null,

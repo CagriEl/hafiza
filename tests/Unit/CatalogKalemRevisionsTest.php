@@ -238,4 +238,54 @@ class CatalogKalemRevisionsTest extends TestCase
         $this->assertSame(4.0, (float) $merged['gerceklesen']);
         $this->assertContains('Araç talepleri', array_column($mkm03['kapsam_verileri'], 'kalem'));
     }
+
+    public function test_ensure_applied_upgrades_legacy_catalog_for_new_reports(): void
+    {
+        CatalogKalemRevisions::resetEnsureState();
+
+        $mkm = User::query()->create([
+            'name' => 'Makine İkmal Bakım ve Onarım Müdürlüğü',
+            'email' => 'mkm-ensure@example.com',
+            'password' => 'x',
+            'role' => User::ROLE_MUDURLUK,
+        ]);
+
+        ActivityCatalog::query()->create([
+            'mudurluk' => 'Makine İkmal Bakım ve Onarım Müdürlüğü',
+            'faaliyet_kodu' => 'MKM-01',
+            'faaliyet_ailesi' => 'Planlı Bakım',
+            'kapsam' => 'Periyodik bakım, muayene, kalibrasyon hazırlığı',
+            'olcu_birimi' => 'araç / ekipman',
+        ]);
+
+        app(\App\Services\ActivityService::class)->forgetCache();
+        $options = app(\App\Services\ActivityService::class)
+            ->resolveCatalogOptionsForMudurluk('Makine İkmal Bakım ve Onarım Müdürlüğü')['options'];
+
+        $this->assertNotEmpty($options);
+        $this->assertSame(
+            'Periyodik bakım, muayene',
+            ActivityCatalog::query()->where('faaliyet_kodu', 'MKM-01')->value('kapsam')
+        );
+
+        $data = \App\Filament\Resources\AylikFaaliyetResource::syncFaaliyetlerWithCurrentCatalog(
+            [
+                'faaliyetler' => [
+                    [
+                        'faaliyet_kodu' => 'MKM-01',
+                        'kapsam_verileri' => [
+                            ['kalem' => 'Periyodik bakım', 'ongorulen' => 2, 'gerceklesen' => 2],
+                            ['kalem' => 'muayene', 'ongorulen' => 4, 'gerceklesen' => 4],
+                            ['kalem' => 'kalibrasyon hazırlığı', 'ongorulen' => 0, 'gerceklesen' => 0],
+                        ],
+                    ],
+                ],
+            ],
+            $mkm->name
+        );
+
+        $kalemler = array_column($data['faaliyetler'][0]['kapsam_verileri'], 'kalem');
+        $this->assertSame(['Periyodik bakım', 'muayene'], $kalemler);
+        $this->assertSame(2, $data['faaliyetler'][0]['kapsam_verileri'][0]['ongorulen']);
+    }
 }

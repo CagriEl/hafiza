@@ -75,6 +75,10 @@ class CreateAylikFaaliyet extends CreateRecord
         $data['ay'] = $ay;
         $data['hafta'] = $hafta;
 
+        $data = AylikFaaliyetResource::syncFaaliyetlerWithCurrentCatalog(
+            $data,
+            auth()->user()?->name
+        );
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
 
         return AylikFaaliyetResource::prepareFaaliyetlerForSave(
