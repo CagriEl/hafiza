@@ -67,7 +67,9 @@ class ActivityCatalogResource extends Resource
                 Tables\Columns\TextColumn::make('faaliyet_ailesi')
                     ->label('Faaliyet Ailesi')
                     ->searchable()
-                    ->description(fn (ActivityCatalog $record): string => 'Ölçü Birimi: '.((string) ($record->olcu_birimi ?: '-')))
+                    ->description(fn (ActivityCatalog $record): string => trim((string) ($record->kapsam ?: '')) !== ''
+                        ? 'Kapsam: '.(string) $record->kapsam
+                        : 'Ölçü Birimi: '.((string) ($record->olcu_birimi ?: '-')))
                     ->wrap(),
                 Tables\Columns\TextColumn::make('olcu_birimi')
                     ->label('Birim')

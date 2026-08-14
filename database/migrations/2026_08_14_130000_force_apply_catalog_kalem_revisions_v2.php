@@ -13,12 +13,16 @@ return new class extends Migration
         }
 
         CatalogKalemRevisions::resetEnsureState();
-        CatalogKalemRevisions::apply(false);
+        $stats = CatalogKalemRevisions::apply(false);
         Cache::forever('catalog_kalem_revisions_applied', CatalogKalemRevisions::VERSION);
+
+        if (isset($stats) && function_exists('logger')) {
+            logger()->info('catalog_kalem_revisions_v2_applied', $stats);
+        }
     }
 
     public function down(): void
     {
-        // Kalem revizyonu geri alınmaz; rapor sayısal verileri korunur.
+        //
     }
 };

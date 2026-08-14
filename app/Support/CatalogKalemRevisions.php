@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Log;
  */
 final class CatalogKalemRevisions
 {
-    public const VERSION = '2026-08-14-kalem-v1';
+    public const VERSION = '2026-08-14-kalem-v2';
 
     private static bool $ensuredThisRequest = false;
 
@@ -32,7 +32,9 @@ final class CatalogKalemRevisions
      *     olcu_birimi?: string,
      *     legacy_olcu_birimi?: list<string>,
      *     rename_kalemler?: array<string, string>,
-     *     merge_kalemler?: list<array{from: list<string>, to: string}>
+     *     merge_kalemler?: list<array{from: list<string>, to: string}>,
+     *     required_kalemler?: list<string>,
+     *     forbidden_kalemler?: list<string>
      * }>
      */
     public static function catalogPatches(): array
@@ -45,16 +47,21 @@ final class CatalogKalemRevisions
                 'rename_kalemler' => [
                     'Geçici trafik planı ve saha uygulama takibi' => 'Geçici trafik planı',
                 ],
+                'required_kalemler' => ['Geçici trafik planı'],
+                'forbidden_kalemler' => ['Geçici trafik planı ve saha uygulama takibi'],
             ],
             [
                 'faaliyet_kodu' => 'SKM-02',
                 'kapsam' => 'Su arızası, isale hattı, pompa ve bakım işleri',
                 'legacy_kapsam' => ['Su arızası, isale hattı, pompa ve bakım işleri, Arıza kontrol'],
+                'forbidden_kalemler' => ['Arıza kontrol'],
             ],
             [
                 'faaliyet_kodu' => 'SKM-03',
                 'kapsam' => 'Abonelik açma-kapama, değişiklik, Arıza kontrol',
                 'legacy_kapsam' => ['Abonelik açma-kapama, değişiklik, bildirim'],
+                'required_kalemler' => ['Arıza kontrol'],
+                'forbidden_kalemler' => ['bildirim'],
             ],
             [
                 'faaliyet_kodu' => 'SKM-04',
@@ -65,11 +72,13 @@ final class CatalogKalemRevisions
                 'faaliyet_kodu' => 'MKM-01',
                 'kapsam' => 'Periyodik bakım, muayene',
                 'legacy_kapsam' => ['Periyodik bakım, muayene, kalibrasyon hazırlığı'],
+                'forbidden_kalemler' => ['kalibrasyon hazırlığı'],
             ],
             [
                 'faaliyet_kodu' => 'MKM-02',
                 'kapsam' => 'Arıza giderme, motor, kaporta, kaynak, HVAC, Lastik ve boya atölyeleri, yıkama-yağlama işlemleri',
                 'legacy_kapsam' => ['Arıza giderme, motor, kaporta, kaynak, HVAC, Elektrik, Hidrolik'],
+                'required_kalemler' => ['Lastik ve boya atölyeleri', 'yıkama-yağlama işlemleri'],
             ],
             [
                 'faaliyet_kodu' => 'MKM-03',
@@ -83,6 +92,8 @@ final class CatalogKalemRevisions
                         'to' => 'Engelli ve hasta taşıma aracı',
                     ],
                 ],
+                'required_kalemler' => ['Engelli ve hasta taşıma aracı', 'Araç talepleri', 'araç kiralama süreçleri'],
+                'forbidden_kalemler' => ['Engelli taşıma aracı', 'Hasta taşıma aracı'],
             ],
             [
                 'faaliyet_kodu' => 'MKM-04',
@@ -90,16 +101,21 @@ final class CatalogKalemRevisions
                 'legacy_kapsam' => ['Yakıt tüketimi, rölanti, kilometre, verimlilik analizi'],
                 'olcu_birimi' => 'lt',
                 'legacy_olcu_birimi' => ['lt / km / saat'],
+                'forbidden_kalemler' => ['rölanti', 'kilometre'],
             ],
             [
                 'faaliyet_kodu' => 'MKM-05',
                 'kapsam' => 'Kritik parça, stok, Malzeme girişi',
                 'legacy_kapsam' => ['Kritik parça, stok, garanti ve iade süreçleri'],
+                'required_kalemler' => ['Malzeme girişi'],
+                'forbidden_kalemler' => ['garanti ve iade süreçleri'],
             ],
             [
                 'faaliyet_kodu' => 'MKM-06',
                 'kapsam' => 'Servis, Avans işlemleri',
                 'legacy_kapsam' => ['Servis, muayene-kabul, garanti, teknik alım süreçleri'],
+                'required_kalemler' => ['Avans işlemleri'],
+                'forbidden_kalemler' => ['muayene-kabul', 'garanti', 'teknik alım süreçleri'],
             ],
         ];
     }
@@ -116,7 +132,7 @@ final class CatalogKalemRevisions
 
         try {
             $cached = \Illuminate\Support\Facades\Cache::get('catalog_kalem_revisions_applied');
-            if ($cached === self::VERSION && ! self::catalogHasLegacyValues()) {
+            if ($cached === self::VERSION && ! self::needsApply()) {
                 return;
             }
 
@@ -128,6 +144,15 @@ final class CatalogKalemRevisions
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    public static function needsApply(): bool
+    {
+        if (self::catalogHasLegacyValues() || self::catalogMissesTargetValues()) {
+            return true;
+        }
+
+        return self::reportsNeedKalemSync();
     }
 
     public static function catalogHasLegacyValues(): bool
@@ -147,6 +172,69 @@ final class CatalogKalemRevisions
             foreach ($patch['legacy_olcu_birimi'] ?? [] as $legacy) {
                 if ($currentOlcu === $legacy) {
                     return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public static function catalogMissesTargetValues(): bool
+    {
+        foreach (self::catalogPatches() as $patch) {
+            $catalog = ActivityCatalog::query()->where('faaliyet_kodu', $patch['faaliyet_kodu'])->first();
+            if (! $catalog instanceof ActivityCatalog) {
+                continue;
+            }
+            if (isset($patch['kapsam']) && trim((string) $catalog->kapsam) !== trim($patch['kapsam'])) {
+                return true;
+            }
+            if (isset($patch['olcu_birimi']) && trim((string) $catalog->olcu_birimi) !== trim($patch['olcu_birimi'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static function reportsNeedKalemSync(): bool
+    {
+        $patches = [];
+        foreach (self::catalogPatches() as $patch) {
+            $patches[$patch['faaliyet_kodu']] = $patch;
+        }
+
+        foreach (AylikFaaliyet::query()->orderBy('id')->cursor() as $report) {
+            foreach ((array) $report->faaliyetler as $row) {
+                if (! is_array($row)) {
+                    continue;
+                }
+                $code = trim((string) ($row['faaliyet_kodu'] ?? ''));
+                if ($code === '' || ! isset($patches[$code])) {
+                    continue;
+                }
+                $patch = $patches[$code];
+                if (isset($patch['olcu_birimi']) && trim((string) ($row['olcu_birimi'] ?? '')) !== trim($patch['olcu_birimi'])) {
+                    return true;
+                }
+                $kalemler = [];
+                foreach ((array) ($row['kapsam_verileri'] ?? []) as $line) {
+                    if (is_array($line)) {
+                        $kalem = trim((string) ($line['kalem'] ?? ''));
+                        if ($kalem !== '') {
+                            $kalemler[] = $kalem;
+                        }
+                    }
+                }
+                foreach ($patch['forbidden_kalemler'] ?? [] as $forbidden) {
+                    if (in_array($forbidden, $kalemler, true)) {
+                        return true;
+                    }
+                }
+                foreach ($patch['required_kalemler'] ?? [] as $required) {
+                    if (! in_array($required, $kalemler, true)) {
+                        return true;
+                    }
                 }
             }
         }
@@ -191,19 +279,11 @@ final class CatalogKalemRevisions
             }
 
             $dirty = false;
-            if (isset($patch['kapsam']) && self::shouldReplaceValue(
-                (string) $catalog->kapsam,
-                $patch['kapsam'],
-                $patch['legacy_kapsam'] ?? []
-            )) {
+            if (isset($patch['kapsam']) && trim((string) $catalog->kapsam) !== trim($patch['kapsam'])) {
                 $catalog->kapsam = $patch['kapsam'];
                 $dirty = true;
             }
-            if (isset($patch['olcu_birimi']) && self::shouldReplaceValue(
-                (string) $catalog->olcu_birimi,
-                $patch['olcu_birimi'],
-                $patch['legacy_olcu_birimi'] ?? []
-            )) {
+            if (isset($patch['olcu_birimi']) && trim((string) $catalog->olcu_birimi) !== trim($patch['olcu_birimi'])) {
                 $catalog->olcu_birimi = $patch['olcu_birimi'];
                 $dirty = true;
             }
@@ -227,23 +307,6 @@ final class CatalogKalemRevisions
         }
 
         return $updated;
-    }
-
-    /**
-     * @param  list<string>  $legacyValues
-     */
-    private static function shouldReplaceValue(string $current, string $target, array $legacyValues): bool
-    {
-        $current = trim($current);
-        $target = trim($target);
-        if ($current === $target) {
-            return false;
-        }
-        if ($legacyValues === []) {
-            return true;
-        }
-
-        return in_array($current, $legacyValues, true);
     }
 
     private static function writeJsonSources(): void
