@@ -40,6 +40,7 @@ class AnalizEkibiHaftalikFaaliyetEkraniTest extends TestCase
             $table->string('faaliyet_kodu')->nullable();
             $table->string('faaliyet_ailesi')->nullable();
             $table->string('olcu_birimi')->nullable();
+            $table->string('kpi_sla')->nullable();
             $table->string('mudurluk')->nullable();
             $table->timestamps();
         });
@@ -190,6 +191,67 @@ class AnalizEkibiHaftalikFaaliyetEkraniTest extends TestCase
         $this->assertSame('SKM-04', $week4['rows'][0]['kod']);
         $this->assertSame('adet / tutanak', $week4['rows'][0]['olcu']);
         $this->assertSame('ok', $week4['tavsiye']['seviye']);
+    }
+
+    public function test_monthly_comparison_aggregates_weeks_and_titles_directorate_month(): void
+    {
+        [$analiz, $mudurluk] = $this->makeAssignedPair();
+
+        ActivityCatalog::query()->create([
+            'faaliyet_kodu' => 'SKM-02',
+            'faaliyet_ailesi' => 'Şebeke arıza',
+            'olcu_birimi' => 'arıza / müdahale',
+            'kpi_sla' => 'Zamanında gerçekleşme oranı',
+            'mudurluk' => $mudurluk->name,
+        ]);
+
+        AylikFaaliyet::withoutEvents(function () use ($mudurluk): void {
+            AylikFaaliyet::query()->create([
+                'user_id' => $mudurluk->id,
+                'yil' => 2026,
+                'ay' => '07',
+                'hafta' => '3',
+                'faaliyetler' => [
+                    [
+                        'faaliyet_kodu' => 'SKM-02',
+                        'kapsam_verileri' => [
+                            ['kalem' => 'Su arızası', 'ongorulen' => 21, 'gerceklesen' => 12, 'olcu_birimi' => 'arıza / müdahale'],
+                        ],
+                    ],
+                ],
+            ]);
+            AylikFaaliyet::query()->create([
+                'user_id' => $mudurluk->id,
+                'yil' => 2026,
+                'ay' => '07',
+                'hafta' => '4',
+                'faaliyetler' => [
+                    [
+                        'faaliyet_kodu' => 'SKM-02',
+                        'kapsam_verileri' => [
+                            ['kalem' => 'Su arızası', 'ongorulen' => 21, 'gerceklesen' => 21, 'olcu_birimi' => 'arıza / müdahale'],
+                        ],
+                    ],
+                ],
+            ]);
+        });
+
+        $screen = AnalizEkibiHaftalikFaaliyetEkrani::buildMonth($analiz, (int) $mudurluk->id, 2026, '07');
+
+        $this->assertSame('aylik', $screen['mod']);
+        $this->assertTrue($screen['rapor_var']);
+        $this->assertSame('Su ve Kanalizasyon — Temmuz 2026', $screen['baslik']);
+        $this->assertSame(2, $screen['ozet']['raporlanan_hafta']);
+        $this->assertGreaterThanOrEqual(2, $screen['ozet']['beklenen_hafta']);
+        $this->assertSame('SKM-02', $screen['rows'][0]['kod']);
+        $this->assertSame('Su arızası', $screen['rows'][0]['kalem']);
+        $this->assertSame('Zamanında gerçekleşme oranı', $screen['rows'][0]['kpi']);
+        $this->assertStringContainsString('12/21', implode(' ', $screen['rows'][0]['cells']));
+        $this->assertStringContainsString('21/21', implode(' ', $screen['rows'][0]['cells']));
+        $this->assertNotNull($screen['ozet']['en_zayif']);
+        $this->assertSame(3, $screen['ozet']['en_zayif']['hafta']);
+        $this->assertSame(4, $screen['ozet']['en_guclu']['hafta']);
+        $this->assertStringContainsString('Temmuz 2026', $screen['tavsiye']['ozet']);
     }
 
     /**

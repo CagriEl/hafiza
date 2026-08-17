@@ -52,6 +52,272 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
     }
 
     /**
+     * Seçilen müdürlük + yıl/ay için tüm haftaları yan yana karşılaştırır.
+     *
+     * @return array<string, mixed>
+     */
+    public static function fromFormMonth(Get $get, ?User $viewer = null): array
+    {
+        $viewer ??= auth()->user() instanceof User ? auth()->user() : null;
+
+        return self::buildMonth(
+            $viewer,
+            (int) ($get('directorate_user_id') ?? 0),
+            (int) ($get('yil') ?? 0),
+            (string) ($get('ay') ?? '')
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function fromNoteMonth(ControlTeamAuditNote $note, ?User $viewer = null): array
+    {
+        $viewer ??= auth()->user() instanceof User ? auth()->user() : null;
+        $note->loadMissing('directorate');
+
+        return self::buildMonth(
+            $viewer,
+            (int) ($note->directorate_user_id ?? 0),
+            (int) ($note->yil ?? 0),
+            (string) ($note->ay ?? '')
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function buildMonth(?User $viewer, int $mudurlukId, int $yil, string|int $ay): array
+    {
+        $ayPadded = AylikFaaliyetPeriodMerge::normalizeAy($ay);
+        $ayInt = (int) $ayPadded;
+        $ayAdi = ($ayInt >= 1 && $ayInt <= 12)
+            ? ReportPeriodWeeks::turkishMonthName($ayInt).' '.$yil
+            : trim($yil.' / '.$ayPadded);
+        $empty = self::emptyMonth($mudurlukId, '', $yil, $ayPadded, $ayAdi);
+
+        if ($mudurlukId <= 0 || $yil <= 0 || $ayPadded === '') {
+            return $empty;
+        }
+
+        if ($viewer instanceof User && ! AnalizEkibiYoneticiRapor::userCanAccessMudurluk($viewer, $mudurlukId)) {
+            $empty['durum'] = 'Yetki yok';
+            $empty['tavsiye'] = self::tavsiye($empty);
+
+            return $empty;
+        }
+
+        $mudurluk = User::query()->find($mudurlukId);
+        $mudurlukAdi = trim((string) ($mudurluk?->name ?? ''));
+        if ($mudurlukAdi === '') {
+            $mudurlukAdi = '#'.$mudurlukId;
+        }
+        $baslik = $mudurlukAdi.' — '.$ayAdi;
+        $empty['mudurluk_adi'] = $mudurlukAdi;
+        $empty['donem_etiketi'] = $ayAdi;
+        $empty['baslik'] = $baslik;
+
+        $weekDefs = ReportPeriodWeeks::weeksForMonth($yil, $ayInt);
+        if ($weekDefs === []) {
+            for ($w = 1; $w <= ReportPeriodWeeks::WEEK_COUNT; $w++) {
+                $weekDefs[] = ['hafta' => $w];
+            }
+        }
+
+        $haftalar = [];
+        $kalemIndex = [];
+        $raporSayisi = 0;
+        $slaToplamOlcu = 0;
+        $slaToplamOk = 0;
+        $enZayif = null;
+        $enGuclu = null;
+        $sonAcikta = 0;
+        $kodSet = [];
+
+        foreach ($weekDefs as $def) {
+            $haftaNo = (int) ($def['hafta'] ?? 0);
+            if ($haftaNo < 1) {
+                continue;
+            }
+
+            $weekScreen = self::build($viewer, $mudurlukId, $yil, $ayPadded, $haftaNo);
+            $var = (bool) ($weekScreen['rapor_var'] ?? false);
+            $sla = self::slaFromRows(is_array($weekScreen['rows'] ?? null) ? $weekScreen['rows'] : []);
+            $acikta = (int) ($weekScreen['ozet']['acikta_kalem_sayisi'] ?? 0);
+            $etiket = ReportPeriodWeeks::weekShortLabel($yil, $ayInt, $haftaNo);
+            $durum = $var ? (string) ($weekScreen['durum'] ?? 'Kısmi') : 'Girilmedi';
+
+            if ($var) {
+                $raporSayisi++;
+                $sonAcikta = $acikta;
+                $slaToplamOlcu += $sla['olculebilir'];
+                $slaToplamOk += $sla['basarili'];
+                if ($sla['oran'] !== null) {
+                    if ($enZayif === null || $sla['oran'] < $enZayif['oran']) {
+                        $enZayif = ['hafta' => $haftaNo, 'oran' => $sla['oran'], 'etiket' => $etiket];
+                    }
+                    if ($enGuclu === null || $sla['oran'] > $enGuclu['oran']) {
+                        $enGuclu = ['hafta' => $haftaNo, 'oran' => $sla['oran'], 'etiket' => $etiket];
+                    }
+                }
+                foreach (is_array($weekScreen['rows'] ?? null) ? $weekScreen['rows'] : [] as $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    $kod = (string) ($row['kod'] ?? '—');
+                    $kalem = (string) ($row['kalem'] ?? '');
+                    $key = $kod.'|'.$kalem;
+                    if ($kod !== '' && $kod !== '—') {
+                        $kodSet[$kod] = true;
+                    }
+                    if (! isset($kalemIndex[$key])) {
+                        $kalemIndex[$key] = [
+                            'kod' => $kod,
+                            'aile' => (string) ($row['aile'] ?? ''),
+                            'kalem' => $kalem,
+                            'olcu' => (string) ($row['olcu'] ?? ''),
+                            'kpi' => '',
+                            'haftalar' => [],
+                            'plan_toplam' => 0.0,
+                            'gercek_toplam' => 0.0,
+                            'tone' => 'neutral',
+                        ];
+                    }
+                    $planN = $row['ongorulen_sayi'] ?? null;
+                    $doneN = $row['gerceklesen_sayi'] ?? null;
+                    $kalemIndex[$key]['haftalar'][$haftaNo] = [
+                        'etiket' => is_numeric($planN) || is_numeric($doneN)
+                            ? ((is_numeric($doneN) ? self::formatNumber((float) $doneN) : '—')
+                                .(is_numeric($planN) ? '/'.self::formatNumber((float) $planN) : ''))
+                            : '—',
+                        'tone' => (string) ($row['tone'] ?? 'neutral'),
+                    ];
+                    if (is_numeric($planN)) {
+                        $kalemIndex[$key]['plan_toplam'] += (float) $planN;
+                    }
+                    if (is_numeric($doneN)) {
+                        $kalemIndex[$key]['gercek_toplam'] += (float) $doneN;
+                    }
+                    if (($row['olcu'] ?? '') !== '' && $kalemIndex[$key]['olcu'] === '') {
+                        $kalemIndex[$key]['olcu'] = (string) $row['olcu'];
+                    }
+                }
+            }
+
+            $haftalar[] = [
+                'hafta' => $haftaNo,
+                'etiket' => $etiket,
+                'kisa' => $haftaNo.'. hafta',
+                'rapor_var' => $var,
+                'sla' => $sla['oran'],
+                'acikta' => $var ? $acikta : null,
+                'durum' => $durum,
+            ];
+        }
+
+        $catalogByCode = [];
+        if ($kodSet !== []) {
+            foreach (ActivityCatalog::query()->whereIn('faaliyet_kodu', array_keys($kodSet))->get() as $catalog) {
+                $code = trim((string) $catalog->faaliyet_kodu);
+                if ($code !== '') {
+                    $catalogByCode[$code] = $catalog;
+                }
+            }
+        }
+
+        $slaRows = [];
+        foreach ($kalemIndex as $row) {
+            $catalog = $catalogByCode[$row['kod']] ?? null;
+            $kpi = trim((string) ($catalog?->kpi_sla ?? ''));
+            $plan = (float) $row['plan_toplam'];
+            $done = (float) $row['gercek_toplam'];
+            $oran = $plan > 0.0 ? (int) round(($done / $plan) * 100) : null;
+            $tone = 'neutral';
+            if ($oran !== null) {
+                $tone = $oran >= 100 ? 'success' : ($oran < 70 ? 'danger' : 'warning');
+            }
+            $cells = [];
+            foreach ($haftalar as $hafta) {
+                $h = (int) $hafta['hafta'];
+                $cells[] = $row['haftalar'][$h]['etiket'] ?? '—';
+            }
+            $slaRows[] = [
+                'kod' => $row['kod'],
+                'aile' => $row['aile'],
+                'kalem' => $row['kalem'],
+                'olcu' => $row['olcu'],
+                'kpi' => $kpi !== '' ? $kpi : 'Gerçekleşen ≥ öngörülen',
+                'cells' => $cells,
+                'ay' => $plan > 0.0
+                    ? self::formatNumber($done).'/'.self::formatNumber($plan)
+                    : ($done > 0.0 ? self::formatNumber($done) : '—'),
+                'sla' => $oran !== null ? '%'.$oran : '—',
+                'sla_oran' => $oran,
+                'tone' => $tone,
+            ];
+        }
+
+        $aySla = $slaToplamOlcu > 0 ? (int) round(($slaToplamOk / $slaToplamOlcu) * 100) : null;
+        $durum = 'Rapor yok';
+        if ($raporSayisi > 0) {
+            $eksik = count($haftalar) - $raporSayisi;
+            if ($aySla !== null && $aySla >= 100 && $sonAcikta === 0 && $eksik === 0) {
+                $durum = 'Tamamlandı';
+            } elseif ($eksik > 0 || ($aySla !== null && $aySla < 100) || $sonAcikta > 0) {
+                $durum = 'Kısmi';
+            } else {
+                $durum = 'Tamamlandı';
+            }
+        }
+
+        $chartCategories = [];
+        $chartSla = [];
+        $chartAcik = [];
+        foreach ($haftalar as $hafta) {
+            $chartCategories[] = (string) $hafta['kisa'];
+            $chartSla[] = $hafta['rapor_var'] && $hafta['sla'] !== null ? (int) $hafta['sla'] : 0;
+            $chartAcik[] = $hafta['rapor_var'] ? (int) ($hafta['acikta'] ?? 0) : 0;
+        }
+
+        $screen = [
+            'mod' => 'aylik',
+            'mudurluk_id' => $mudurlukId,
+            'mudurluk_adi' => $mudurlukAdi,
+            'yil' => $yil,
+            'ay' => $ayPadded,
+            'hafta' => ReportPeriodWeeks::MONTHLY_VALUE,
+            'baslik' => $baslik,
+            'donem_etiketi' => $ayAdi,
+            'rapor_var' => $raporSayisi > 0,
+            'rapor_id' => null,
+            'durum' => $durum,
+            'ozet' => [
+                'raporlanan_hafta' => $raporSayisi,
+                'beklenen_hafta' => count($haftalar),
+                'kod_sayisi' => count($kodSet),
+                'kalem_sayisi' => count($slaRows),
+                'sla_orani' => $aySla,
+                'acikta_kalem_sayisi' => $sonAcikta,
+                'en_zayif' => $enZayif,
+                'en_guclu' => $enGuclu,
+            ],
+            'chart' => [
+                'categories' => $chartCategories,
+                'values' => $chartSla,
+                'planned' => array_fill(0, count($chartCategories), 100),
+                'acikta' => $chartAcik,
+                'max' => 100.0,
+            ],
+            'haftalar' => $haftalar,
+            'rows' => $slaRows,
+            'uyarilar' => [],
+        ];
+        $screen['tavsiye'] = self::tavsiye($screen);
+
+        return $screen;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function build(?User $viewer, int $mudurlukId, int $yil, string|int $ay, mixed $hafta): array
@@ -297,6 +563,10 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
         $donem = trim((string) ($screen['donem_etiketi'] ?? ''));
         $prefix = 'Sistem tavsiyesi: ';
 
+        if (($screen['mod'] ?? '') === 'aylik') {
+            return self::tavsiyeAylik($screen);
+        }
+
         if (($screen['durum'] ?? '') === 'Yetki yok') {
             return [
                 'seviye' => 'yuksek',
@@ -365,6 +635,151 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
             'baslik' => 'Eksik veri',
             'ozet' => $prefix.$mudurluk.' raporunda henüz sayı girilmemiş kalemler var. Notta veri tamamlama talebi yazılabilir.',
             'maddeler' => $maddeler,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $screen
+     * @return array{seviye: string, baslik: string, ozet: string, maddeler: list<string>}
+     */
+    private static function tavsiyeAylik(array $screen): array
+    {
+        $mudurluk = trim((string) ($screen['mudurluk_adi'] ?? ''));
+        $donem = trim((string) ($screen['donem_etiketi'] ?? ''));
+        $prefix = 'Sistem tavsiyesi: ';
+        $kim = $mudurluk !== '' ? $mudurluk : 'Seçilen müdürlük';
+
+        if (($screen['durum'] ?? '') === 'Yetki yok') {
+            return [
+                'seviye' => 'yuksek',
+                'baslik' => 'Yetki yok',
+                'ozet' => $prefix.'Bu müdürlük raporunu yalnızca atandığınız birimler için görebilirsiniz.',
+                'maddeler' => [],
+            ];
+        }
+
+        if (! (bool) ($screen['rapor_var'] ?? false)) {
+            return [
+                'seviye' => 'yuksek',
+                'baslik' => 'Bu ay rapor yok',
+                'ozet' => $prefix.$kim.($donem !== '' ? ' · '.$donem : '').' için haftalık faaliyet raporu girilmemiş.',
+                'maddeler' => ['Müdürlükten hafta raporları istenmeli; aylık karşılaştırma rapor gelince dolar.'],
+            ];
+        }
+
+        $ozet = is_array($screen['ozet'] ?? null) ? $screen['ozet'] : [];
+        $eksik = max(0, (int) ($ozet['beklenen_hafta'] ?? 0) - (int) ($ozet['raporlanan_hafta'] ?? 0));
+        $sla = $ozet['sla_orani'] ?? null;
+        $zayif = is_array($ozet['en_zayif'] ?? null) ? $ozet['en_zayif'] : null;
+        $maddeler = [];
+        if (is_array($zayif) && ($zayif['oran'] ?? 100) < 100) {
+            $maddeler[] = 'En zayıf dönem: '.(string) ($zayif['etiket'] ?? '').' (SLA %'.(int) $zayif['oran'].').';
+        }
+        if ($eksik > 0) {
+            $maddeler[] = $eksik.' haftanın raporu henüz yok.';
+        }
+        foreach (is_array($screen['rows'] ?? null) ? $screen['rows'] : [] as $row) {
+            if (! is_array($row) || ($row['tone'] ?? '') !== 'danger') {
+                continue;
+            }
+            $maddeler[] = trim((string) ($row['kod'] ?? '').' · '.(string) ($row['kalem'] ?? '')).' ay SLA '.(string) ($row['sla'] ?? '—').'.';
+            if (count($maddeler) >= 6) {
+                break;
+            }
+        }
+
+        if ($eksik === 0 && (int) ($sla ?? 0) >= 100 && (int) ($ozet['acikta_kalem_sayisi'] ?? 0) === 0) {
+            return [
+                'seviye' => 'ok',
+                'baslik' => 'Ay kapanmış',
+                'ozet' => $prefix.$kim.' '.$donem.' boyunca hedeflerini kapatmış.',
+                'maddeler' => ['Kritik sapma görünmüyor; izleme bir sonraki aya bırakılabilir.'],
+            ];
+        }
+
+        return [
+            'seviye' => ($sla !== null && (int) $sla < 70) || $eksik > 0 ? 'yuksek' : 'orta',
+            'baslik' => $eksik > 0 ? 'Eksik hafta var' : 'SLA sapması',
+            'ozet' => $prefix.$kim.' '.$donem.' ortalama SLA '.($sla !== null ? '%'.$sla : 'hesaplanamadı').'. Açık veya eksik haftalar analiz notuna yazılabilir.',
+            'maddeler' => $maddeler !== [] ? $maddeler : ['Haftalık gerçekleşme, katalogdaki KPI / SLA hedefine göre izlenmeli.'],
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return array{olculebilir: int, basarili: int, oran: int|null}
+     */
+    private static function slaFromRows(array $rows): array
+    {
+        $olculebilir = 0;
+        $basarili = 0;
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $plan = $row['ongorulen_sayi'] ?? null;
+            $done = $row['gerceklesen_sayi'] ?? null;
+            if (! is_numeric($plan) || (float) $plan <= 0.0) {
+                continue;
+            }
+            $olculebilir++;
+            if (is_numeric($done) && (float) $done + 0.0001 >= (float) $plan) {
+                $basarili++;
+            }
+        }
+
+        return [
+            'olculebilir' => $olculebilir,
+            'basarili' => $basarili,
+            'oran' => $olculebilir > 0 ? (int) round(($basarili / $olculebilir) * 100) : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function emptyMonth(int $mudurlukId, string $mudurlukAdi, int $yil, string $ay, string $donem): array
+    {
+        $baslik = trim($mudurlukAdi) !== '' ? $mudurlukAdi.' — '.$donem : $donem;
+
+        return [
+            'mod' => 'aylik',
+            'mudurluk_id' => $mudurlukId,
+            'mudurluk_adi' => $mudurlukAdi,
+            'yil' => $yil,
+            'ay' => $ay,
+            'hafta' => ReportPeriodWeeks::MONTHLY_VALUE,
+            'baslik' => $baslik,
+            'donem_etiketi' => $donem,
+            'rapor_var' => false,
+            'rapor_id' => null,
+            'durum' => 'Rapor yok',
+            'ozet' => [
+                'raporlanan_hafta' => 0,
+                'beklenen_hafta' => 0,
+                'kod_sayisi' => 0,
+                'kalem_sayisi' => 0,
+                'sla_orani' => null,
+                'acikta_kalem_sayisi' => 0,
+                'en_zayif' => null,
+                'en_guclu' => null,
+            ],
+            'chart' => [
+                'categories' => [],
+                'values' => [],
+                'planned' => [],
+                'acikta' => [],
+                'max' => 100.0,
+            ],
+            'haftalar' => [],
+            'rows' => [],
+            'uyarilar' => [],
+            'tavsiye' => [
+                'seviye' => 'info',
+                'baslik' => 'Müdürlük ve ay seçin',
+                'ozet' => 'Sistem tavsiyesi: Atandığınız müdürlüğü ve ayı seçin; haftalık raporlar otomatik karşılaştırılır.',
+                'maddeler' => [],
+            ],
         ];
     }
 

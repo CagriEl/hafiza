@@ -12,17 +12,19 @@ use App\Support\ActivityCatalogFormatter;
 use App\Support\AnalizEkibiHaftalikFaaliyetEkrani;
 use App\Support\AnalizEkibiHaftalikFaaliyetPdf;
 use App\Support\AnalizEkibiYoneticiRapor;
+use App\Support\AylikFaaliyetPeriodMerge;
 use App\Support\QuerySafety;
 use App\Support\ReportPeriodWeeks;
-use Filament\Infolists\Components\RepeatableEntry;
-use Filament\Infolists\Components\Section as InfolistSection;
-use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Infolist;
 use Filament\Forms;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\Section as InfolistSection;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -127,6 +129,25 @@ class ControlTeamAuditNoteResource extends Resource
                     ->default(null),
                 Section::make('Seçilen haftanın faaliyet raporu')
                     ->description('Tüm müdürlükler aynı şablonu kullanır; her kalemin yanında ölçü birimi (m², adet, tutanak, iş vb.) görünür.')
+                    ->headerActions([
+                        FormAction::make('aylikKarsilastirma')
+                            ->label('Aylık karşılaştırma')
+                            ->icon('heroicon-m-chart-bar')
+                            ->url(function (Get $get): string {
+                                return static::aylikKarsilastirmaUrl(
+                                    (int) ($get('directorate_user_id') ?? 0),
+                                    $get('yil'),
+                                    $get('ay')
+                                ) ?? '#';
+                            })
+                            ->visible(function (Get $get): bool {
+                                return static::aylikKarsilastirmaUrl(
+                                    (int) ($get('directorate_user_id') ?? 0),
+                                    $get('yil'),
+                                    $get('ay')
+                                ) !== null;
+                            }),
+                    ])
                     ->schema([
                         Forms\Components\Placeholder::make('haftalik_rapor_ekrani')
                             ->label('')
@@ -249,6 +270,24 @@ class ControlTeamAuditNoteResource extends Resource
                             }
 
                             return (string) $record->yil.' / '.$ay;
+                        }),
+                    TextEntry::make('aylik_karsilastirma')
+                        ->label('Karşılaştırma')
+                        ->getStateUsing(fn (): string => 'Aylık karşılaştırma')
+                        ->url(function (ControlTeamAuditNote $record): ?string {
+                            return static::aylikKarsilastirmaUrl(
+                                (int) $record->directorate_user_id,
+                                $record->yil,
+                                $record->ay,
+                                (int) $record->id
+                            );
+                        })
+                        ->visible(function (ControlTeamAuditNote $record): bool {
+                            return static::aylikKarsilastirmaUrl(
+                                (int) $record->directorate_user_id,
+                                $record->yil,
+                                $record->ay
+                            ) !== null;
                         }),
                     TextEntry::make('audit_date')
                         ->label('Analiz Tarihi')
@@ -407,8 +446,30 @@ class ControlTeamAuditNoteResource extends Resource
         return [
             'index' => Pages\ListControlTeamAuditNotes::route('/'),
             'create' => Pages\CreateControlTeamAuditNote::route('/create'),
+            'aylik-karsilastirma' => Pages\AylikHaftaKarsilastirma::route('/aylik-karsilastirma'),
             'view' => Pages\ViewControlTeamAuditNote::route('/{record}'),
         ];
+    }
+
+    public static function aylikKarsilastirmaUrl(?int $mudurlukId, mixed $yil, mixed $ay, ?int $noteId = null): ?string
+    {
+        $id = (int) $mudurlukId;
+        $yilInt = (int) $yil;
+        $ayPadded = AylikFaaliyetPeriodMerge::normalizeAy((string) $ay);
+        if ($id <= 0 || $yilInt <= 0 || $ayPadded === '') {
+            return null;
+        }
+
+        $parameters = [
+            'directorate' => $id,
+            'yil' => $yilInt,
+            'ay' => $ayPadded,
+        ];
+        if ($noteId !== null && $noteId > 0) {
+            $parameters['note'] = $noteId;
+        }
+
+        return static::getUrl('aylik-karsilastirma').'?'.http_build_query($parameters);
     }
 
     /**
