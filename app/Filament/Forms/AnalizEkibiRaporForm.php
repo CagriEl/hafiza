@@ -24,32 +24,7 @@ final class AnalizEkibiRaporForm
             Forms\Components\Hidden::make('rapor_verileri.ozet.gecen_ay_fark')->dehydrated(),
             Forms\Components\Hidden::make('rapor_verileri.ozet.kritik_kalem_notu')->dehydrated(),
 
-            Section::make('Kalem Kalem Analiz')
-                ->description('Müdürlüğün dönem raporundaki kapsam kalemleri otomatik gelir.')
-                ->schema([
-                    Repeater::make('rapor_verileri.kalem_analizi')
-                        ->label('')
-                        ->schema([
-                            Forms\Components\TextInput::make('kalem')->label('Kalem')->required(),
-                            Forms\Components\TextInput::make('gerceklesen')->label('Gerçekleşen')->numeric()->minValue(0),
-                            Forms\Components\TextInput::make('acikta')->label('Açıkta')->numeric()->minValue(0),
-                            Forms\Components\Select::make('durum')
-                                ->label('Durum')
-                                ->options([
-                                    'Tamamlandı' => 'Tamamlandı',
-                                    'Kısmi' => 'Kısmi',
-                                    'Riskli' => 'Riskli',
-                                    'Veri Eksik' => 'Veri Eksik',
-                                ]),
-                            Forms\Components\Textarea::make('sapma_not')->label('Sapma / Not')->rows(2)->columnSpanFull(),
-                            Forms\Components\TextInput::make('son_tarih')->label('Son Yapılma Tarihi'),
-                        ])
-                        ->columns(2)
-                        ->defaultItems(0)
-                        ->addActionLabel('Kalem ekle')
-                        ->collapsible()
-                        ->itemLabel(fn (array $state): ?string => filled($state['kalem'] ?? null) ? (string) $state['kalem'] : 'Kalem'),
-                ]),
+            Forms\Components\Hidden::make('rapor_verileri.kalem_analizi')->dehydrated()->default([]),
 
             Section::make('Öncelikli Aksiyon Listesi')
                 ->description('Açıkta kalan kalemlerden otomatik önerilir; düzenleyebilirsiniz.')

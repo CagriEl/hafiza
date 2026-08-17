@@ -263,21 +263,6 @@ class ControlTeamAuditNoteResource extends Resource
                         ->columnSpanFull(),
                 ]),
 
-            InfolistSection::make('Kalem Kalem Analiz')
-                ->schema([
-                    RepeatableEntry::make('rapor_verileri.kalem_analizi')
-                        ->label('')
-                        ->schema([
-                            TextEntry::make('kalem')->label('Kalem'),
-                            TextEntry::make('gerceklesen')->label('Gerçekleşen'),
-                            TextEntry::make('acikta')->label('Açıkta'),
-                            TextEntry::make('durum')->label('Durum')->badge(),
-                            TextEntry::make('sapma_not')->label('Sapma / Not')->columnSpanFull(),
-                            TextEntry::make('son_tarih')->label('Son Tarih'),
-                        ])
-                        ->columns(3),
-                ]),
-
             InfolistSection::make('Öncelikli Aksiyonlar')
                 ->schema([
                     RepeatableEntry::make('rapor_verileri.aksiyonlar')
