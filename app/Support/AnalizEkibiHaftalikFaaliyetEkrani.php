@@ -93,6 +93,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
         $kalemSatirlari = [];
         $chartCategories = [];
         $chartValues = [];
+        $chartPlans = [];
         $uyarilar = [];
         $toplamGerceklesen = 0.0;
         $aciktaKalemSayisi = 0;
@@ -108,6 +109,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
             $rowOlcu = self::resolveOlcu($row, null, $catalog);
             $kv = is_array($row['kapsam_verileri'] ?? null) ? $row['kapsam_verileri'] : [];
             $kodToplam = 0.0;
+            $kodPlan = 0.0;
             $hadKalem = false;
 
             if ($kv !== []) {
@@ -139,6 +141,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                     }
                     $toplamGerceklesen += $done;
                     $kodToplam += $done;
+                    $kodPlan += $plan;
 
                     $kalemSatirlari[] = [
                         'kod' => $kod !== '' ? $kod : '—',
@@ -150,6 +153,8 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                         'acikta' => (! $planFilled && ! $doneFilled)
                             ? '—'
                             : self::formatNumber($pending),
+                        'ongorulen_sayi' => $planFilled ? $plan : null,
+                        'gerceklesen_sayi' => $doneFilled ? $done : null,
                         'acikta_sayi' => $pending,
                         'tone' => $tone,
                     ];
@@ -178,6 +183,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                 }
                 $toplamGerceklesen += $done;
                 $kodToplam += $done;
+                $kodPlan += $plan;
                 $kalemSatirlari[] = [
                     'kod' => $kod !== '' ? $kod : '—',
                     'aile' => $aile,
@@ -188,6 +194,8 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                     'acikta' => (! $planFilled && ! $doneFilled)
                     ? '—'
                     : self::formatNumber($pending),
+                    'ongorulen_sayi' => $planFilled ? $plan : null,
+                    'gerceklesen_sayi' => $doneFilled ? $done : null,
                     'acikta_sayi' => $pending,
                     'tone' => $tone,
                 ];
@@ -196,6 +204,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
             if ($kod !== '') {
                 $chartCategories[] = $kod;
                 $chartValues[] = $kodToplam;
+                $chartPlans[] = $kodPlan;
             }
         }
 
@@ -229,6 +238,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
             'chart' => [
                 'categories' => $chartCategories,
                 'values' => $chartValues,
+                'planned' => $chartPlans,
                 'max' => $chartMax,
             ],
             'rows' => $kalemSatirlari,
@@ -263,6 +273,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
             'chart' => [
                 'categories' => [],
                 'values' => [],
+                'planned' => [],
                 'max' => 0.0,
             ],
             'rows' => [],
