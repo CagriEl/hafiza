@@ -10,6 +10,7 @@ use App\Models\ControlTeamAuditNote;
 use App\Models\User;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\AnalizEkibiHaftalikFaaliyetEkrani;
+use App\Support\AnalizEkibiHaftalikFaaliyetPdf;
 use App\Support\AnalizEkibiYoneticiRapor;
 use App\Support\QuerySafety;
 use App\Support\ReportPeriodWeeks;
@@ -218,6 +219,11 @@ class ControlTeamAuditNoteResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Analiz Notunu Görüntüle'),
+                Tables\Actions\Action::make('pdfIndir')
+                    ->label('PDF')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->action(fn (ControlTeamAuditNote $record) => AnalizEkibiHaftalikFaaliyetPdf::downloadForNote($record)),
             ])
             ->bulkActions([]);
     }

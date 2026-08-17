@@ -4,7 +4,10 @@ namespace App\Filament\Resources\ControlTeamAuditNoteResource\Pages;
 
 use App\Filament\Concerns\ProvidesAnalizEkibiOrnekRaporSablonDownload;
 use App\Filament\Resources\ControlTeamAuditNoteResource;
+use App\Models\User;
+use App\Support\AnalizEkibiHaftalikFaaliyetPdf;
 use App\Support\AnalizEkibiRaporVerileri;
+use Filament\Actions;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -18,6 +21,18 @@ class CreateControlTeamAuditNote extends CreateRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('pdfIndir')
+                ->label('PDF İndir')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('success')
+                ->action(function () {
+                    $user = auth()->user();
+
+                    return AnalizEkibiHaftalikFaaliyetPdf::downloadFromFormState(
+                        $this->form->getRawState(),
+                        $user instanceof User ? $user : null
+                    );
+                }),
             $this->analizEkibiOrnekRaporSablonDownloadAction(),
         ];
     }
