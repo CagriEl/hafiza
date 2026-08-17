@@ -4,7 +4,6 @@ namespace App\Filament\Resources\ActivityReportResource\Pages;
 
 use App\Filament\Resources\ActivityReportResource;
 use App\Models\User;
-use App\Services\ActivityService;
 use App\Support\AylikFaaliyetPdfHtml;
 use App\Support\CoordinationAccess;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -27,26 +26,6 @@ class ListActivityReports extends ListRecords
             session(['activity_report_active_tab' => 'all']);
         }
         session(['activity_report_active_tab' => $this->activeTab ?? 'all']);
-
-        $user = auth()->user();
-        if (! $user instanceof User || $user->isReportingSuperAdmin()) {
-            return;
-        }
-
-        $q = ActivityReportResource::getEloquentQuery();
-        if ($q instanceof Builder && $q->count() === 0) {
-            $bundle = app(ActivityService::class)->resolveCatalogOptionsForMudurluk(trim($user->name ?? ''));
-            $payload = [
-                'message' => 'Faaliyet raporu listesi boş — olası nedenler',
-                'mudurluk_kullanici_adi' => $user->name,
-                'erisim_kapsaminda_rapor_sayisi' => 0,
-                'katalog_cozumleme' => $bundle['debug'],
-                'not' => 'Sekme veya filtre listeyi daraltıyor olabilir. Katalog boşsa müdürlük adı eşleşmesi veya php artisan activity-catalog:sync gerekebilir.',
-            ];
-            if (method_exists($this, 'js')) {
-                $this->js('console.warn('.json_encode($payload, JSON_UNESCAPED_UNICODE).')');
-            }
-        }
     }
 
     public function updatedActiveTab(): void
@@ -214,9 +193,9 @@ class ListActivityReports extends ListRecords
 
         $this->js(<<<'JS'
             if (window.__activityReportsCollapseBooted) {
-                window.__activityReportsRunCollapseBurst?.();
                 return;
             }
+            window.__activityReportsCollapseBooted = true;
 
             const collapseAllGroups = () => {
                 document.querySelectorAll('.fi-ta-group-header').forEach((header) => {
@@ -227,28 +206,8 @@ class ListActivityReports extends ListRecords
                 });
             };
 
-            const runCollapseBurst = () => {
-                let tries = 0;
-                collapseAllGroups();
-                const timer = setInterval(() => {
-                    tries += 1;
-                    collapseAllGroups();
-                    if (tries >= 10) {
-                        clearInterval(timer);
-                    }
-                }, 150);
-            };
-
-            window.__activityReportsCollapseBooted = true;
-            window.__activityReportsRunCollapseBurst = runCollapseBurst;
-
-            runCollapseBurst();
-
-            if (window.Livewire?.hook) {
-                Livewire.hook('message.processed', () => {
-                    runCollapseBurst();
-                });
-            }
+            collapseAllGroups();
+            setTimeout(collapseAllGroups, 200);
         JS);
     }
 }

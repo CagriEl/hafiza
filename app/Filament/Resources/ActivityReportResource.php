@@ -28,6 +28,9 @@ class ActivityReportResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    /** @var array<int, list<int>> */
+    private static array $controlTeamDirectorateIdsCache = [];
+
     public static function form(Form $form): Form
     {
         return AylikFaaliyetResource::form($form);
@@ -43,6 +46,8 @@ class ActivityReportResource extends Resource
         $tabFromSession = fn (): string => (string) session('activity_report_active_tab', 'all');
 
         return AylikFaaliyetResource::table($table)
+            ->paginated([10, 25, 50])
+            ->defaultPaginationPageOption(25)
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->label('Görüntüle')
@@ -63,7 +68,7 @@ class ActivityReportResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        $base = parent::getEloquentQuery();
+        $base = parent::getEloquentQuery()->with('user');
         if (! QuerySafety::shouldApplyFilters($base)) {
             return $base;
         }
@@ -78,10 +83,7 @@ class ActivityReportResource extends Resource
         }
 
         if ($user->isControlTeam()) {
-            $dirIds = $user->assignedDirectorates()
-                ->pluck('users.id')
-                ->map(fn ($id) => (int) $id)
-                ->all();
+            $dirIds = static::controlTeamDirectorateIds($user);
             if ($dirIds === []) {
                 return $base->whereRaw('0 = 1');
             }
@@ -141,8 +143,24 @@ class ActivityReportResource extends Resource
         if ($u->isReportingSuperAdmin()) {
             return true;
         }
-        if ($u->isViceMayorAccount() || $u->isControlTeam()) {
-            return static::getEloquentQuery()->whereKey($record->getKey())->exists();
+        if ($u->isViceMayorAccount()) {
+            return $u->canViewReportDataForOwnerId((int) $record->user_id);
+        }
+        if ($u->isControlTeam()) {
+            $dirIds = static::controlTeamDirectorateIds($u);
+            if ($dirIds === []) {
+                return false;
+            }
+            if (in_array((int) $record->user_id, $dirIds, true)) {
+                return true;
+            }
+            foreach ($dirIds as $dirId) {
+                if (CoordinationAccess::isIncomingPartnerOnRecord($record, $dirId)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
         if ($u->isMaliHizmetlerAccount() && ! $u->isReportingSuperAdmin()) {
             return false;
@@ -211,5 +229,21 @@ class ActivityReportResource extends Resource
             'view' => Pages\ViewActivityReport::route('/{record}'),
             'edit' => Pages\EditActivityReport::route('/{record}/edit'),
         ];
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function controlTeamDirectorateIds(User $user): array
+    {
+        $key = (int) $user->id;
+        if (! array_key_exists($key, static::$controlTeamDirectorateIdsCache)) {
+            static::$controlTeamDirectorateIdsCache[$key] = $user->assignedDirectorates()
+                ->pluck('users.id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+        }
+
+        return static::$controlTeamDirectorateIdsCache[$key];
     }
 }

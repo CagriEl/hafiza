@@ -109,7 +109,9 @@ final class AnalizEkibiHaftalikFaaliyetPdf
     {
         $pdf = Pdf::loadHTML($html)
             ->setPaper('a4', 'landscape')
-            ->setWarnings(false);
+            ->setWarnings(false)
+            ->setOption('isHtml5ParserEnabled', true)
+            ->setOption('isRemoteEnabled', false);
 
         return response()->streamDownload(function () use ($pdf): void {
             echo $pdf->output();

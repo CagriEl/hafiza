@@ -102,7 +102,11 @@ class AnalizEkibiHaftalikFaaliyetPdfTest extends TestCase
             'note' => 'Sayaç okuma bu hafta kapandı.',
         ], $analiz);
 
-        $this->assertStringContainsString('Haftalık faaliyet raporu', $html);
+        $this->assertStringContainsString('Faaliyet bazında öngörülen / gerçekleşen', $html);
+        $this->assertStringContainsString('bgcolor="#94a3b8"', $html);
+        $this->assertTrue(
+            str_contains($html, 'bgcolor="#2563eb"') || str_contains($html, 'bgcolor="#16a34a"')
+        );
         $this->assertStringContainsString('Su ve Kanalizasyon', $html);
         $this->assertStringContainsString('Sayaç kontrol', $html);
         $this->assertStringContainsString('adet / tutanak', $html);

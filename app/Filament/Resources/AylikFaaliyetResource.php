@@ -18,7 +18,6 @@ use App\Support\NonNegativeInput;
 use App\Support\OlcuBirimiForKapsam;
 use App\Support\QuerySafety;
 use App\Support\ReportPeriodWeeks;
-use App\Support\ReportingModelReader;
 use App\Support\TurkishString;
 use Carbon\Carbon;
 use Filament\Forms;
@@ -30,8 +29,6 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
-use Filament\Infolists\Components\Component as InfolistComponent;
-use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
@@ -57,6 +54,9 @@ class AylikFaaliyetResource extends Resource
 
     /** @var array<string, int> */
     private static array $mudurlukAyGroupReportCountCache = [];
+
+    /** @var array<string, string> */
+    private static array $extraordinarySituationSummaryCache = [];
 
     protected static ?string $navigationIcon = 'heroicon-o-presentation-chart-line';
 
@@ -150,6 +150,7 @@ class AylikFaaliyetResource extends Resource
             return static::sumKapsamAciktaKalan($get) > 0;
         }
         $bek = $get('bekleyen_is');
+
         return $bek !== null && $bek !== '' && is_numeric($bek) && (float) $bek > 0;
     }
 
@@ -3867,8 +3868,7 @@ class AylikFaaliyetResource extends Resource
         ?AylikFaaliyet $record,
         bool $includePeriodSiblings = false,
         bool $omitEmptyQuantities = false
-    ): array
-    {
+    ): array {
         $rows = static::rowsForReportPresentation($record, $includePeriodSiblings);
         $items = [];
         $totalDone = 0.0;
@@ -4356,7 +4356,13 @@ class AylikFaaliyetResource extends Resource
 
     private static function latestExtraordinarySituationSummary(AylikFaaliyet $record): string
     {
+        $key = (int) ($record->user_id ?? 0).'|'.(int) ($record->yil ?? 0).'|'.str_pad((string) ($record->ay ?? ''), 2, '0', STR_PAD_LEFT);
+        if (array_key_exists($key, static::$extraordinarySituationSummaryCache)) {
+            return static::$extraordinarySituationSummaryCache[$key];
+        }
+
         $last = ExtraordinarySituation::query()
+            ->with('reporter:id,name')
             ->where('target_user_id', (int) $record->user_id)
             ->where('yil', (int) $record->yil)
             ->where('ay', str_pad((string) $record->ay, 2, '0', STR_PAD_LEFT))
@@ -4364,17 +4370,19 @@ class AylikFaaliyetResource extends Resource
             ->first();
 
         if (! $last instanceof ExtraordinarySituation) {
-            return '—';
+            return static::$extraordinarySituationSummaryCache[$key] = '—';
         }
 
-        $reporter = User::find((int) ($last->reporter_user_id ?? 0));
-        $reporterName = $reporter?->name ? trim((string) $reporter->name) : 'Sistem';
+        $reporterName = trim((string) ($last->reporter?->name ?? ''));
+        if ($reporterName === '') {
+            $reporterName = 'Sistem';
+        }
         $message = trim((string) $last->message);
         if ($message === '') {
-            return $reporterName;
+            return static::$extraordinarySituationSummaryCache[$key] = $reporterName;
         }
 
-        return $reporterName.': '.$message;
+        return static::$extraordinarySituationSummaryCache[$key] = $reporterName.': '.$message;
     }
 
     private static function extraordinarySituationDetailText(?AylikFaaliyet $record): string
@@ -4384,6 +4392,7 @@ class AylikFaaliyetResource extends Resource
         }
 
         $rows = ExtraordinarySituation::query()
+            ->with('reporter:id,name')
             ->where('target_user_id', (int) $record->user_id)
             ->where('yil', (int) $record->yil)
             ->where('ay', str_pad((string) $record->ay, 2, '0', STR_PAD_LEFT))
@@ -4396,8 +4405,8 @@ class AylikFaaliyetResource extends Resource
         }
 
         $blocks = $rows->map(function (ExtraordinarySituation $row): string {
-            $reporter = User::find((int) ($row->reporter_user_id ?? 0));
-            $reporterName = $reporter?->name ? e($reporter->name) : 'Sistem';
+            $reporterName = trim((string) ($row->reporter?->name ?? ''));
+            $reporterName = $reporterName !== '' ? e($reporterName) : 'Sistem';
             $message = trim((string) $row->message) !== '' ? e(trim((string) $row->message)) : '—';
             $at = optional($row->created_at)?->format('d.m.Y H:i') ?? '—';
 
