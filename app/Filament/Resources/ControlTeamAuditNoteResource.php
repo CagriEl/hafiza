@@ -263,17 +263,6 @@ class ControlTeamAuditNoteResource extends Resource
                         ->columnSpanFull(),
                 ]),
 
-            InfolistSection::make('Özet Göstergeler')
-                ->schema([
-                    TextEntry::make('rapor_verileri.ozet.yapilan_is')->label('Yapılan İş'),
-                    TextEntry::make('rapor_verileri.ozet.acikta_bekleyen')->label('Açıkta Bekleyen'),
-                    TextEntry::make('rapor_verileri.ozet.tamamlanma_orani')->label('Tamamlanma (%)')->suffix('%'),
-                    TextEntry::make('rapor_verileri.ozet.revize_karar')->label('Revize + Karar'),
-                    TextEntry::make('rapor_verileri.ozet.gecen_ay_fark')->label('Geçen Ay Fark'),
-                    TextEntry::make('rapor_verileri.ozet.kritik_kalem_notu')->label('Kritik Kalem Notu')->columnSpanFull(),
-                ])
-                ->columns(3),
-
             InfolistSection::make('Kalem Kalem Analiz')
                 ->schema([
                     RepeatableEntry::make('rapor_verileri.kalem_analizi')

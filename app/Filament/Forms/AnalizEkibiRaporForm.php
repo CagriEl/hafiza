@@ -17,37 +17,12 @@ final class AnalizEkibiRaporForm
     public static function schema(): array
     {
         return [
-            Section::make('Analiz Raporu — Özet Göstergeler')
-                ->description('Müdürlük seçildiğinde aylık rapordan otomatik doldurulur; gerekirse düzenleyebilirsiniz.')
-                ->schema([
-                    Forms\Components\Grid::make(3)->schema([
-                        Forms\Components\TextInput::make('rapor_verileri.ozet.yapilan_is')
-                            ->label('Yapılan İş')
-                            ->numeric()
-                            ->minValue(0),
-                        Forms\Components\TextInput::make('rapor_verileri.ozet.acikta_bekleyen')
-                            ->label('Açıkta Bekleyen İş')
-                            ->numeric()
-                            ->minValue(0),
-                        Forms\Components\TextInput::make('rapor_verileri.ozet.tamamlanma_orani')
-                            ->label('Tamamlanma Oranı (%)')
-                            ->numeric()
-                            ->minValue(0)
-                            ->maxValue(100)
-                            ->helperText('Üstteki performans özetinden otomatik gelir.'),
-                        Forms\Components\TextInput::make('rapor_verileri.ozet.revize_karar')
-                            ->label('Revize + Karar İhtiyacı')
-                            ->numeric()
-                            ->minValue(0),
-                        Forms\Components\TextInput::make('rapor_verileri.ozet.gecen_ay_fark')
-                            ->label('Geçen Aya Göre Fark (Yapılan)')
-                            ->numeric()
-                            ->helperText('Önceki ay ile karşılaştırmalı otomatik hesaplanır.'),
-                        Forms\Components\TextInput::make('rapor_verileri.ozet.kritik_kalem_notu')
-                            ->label('Kritik Kalem Notu')
-                            ->columnSpanFull(),
-                    ]),
-                ]),
+            Forms\Components\Hidden::make('rapor_verileri.ozet.yapilan_is')->dehydrated(),
+            Forms\Components\Hidden::make('rapor_verileri.ozet.acikta_bekleyen')->dehydrated(),
+            Forms\Components\Hidden::make('rapor_verileri.ozet.tamamlanma_orani')->dehydrated(),
+            Forms\Components\Hidden::make('rapor_verileri.ozet.revize_karar')->dehydrated(),
+            Forms\Components\Hidden::make('rapor_verileri.ozet.gecen_ay_fark')->dehydrated(),
+            Forms\Components\Hidden::make('rapor_verileri.ozet.kritik_kalem_notu')->dehydrated(),
 
             Section::make('Kalem Kalem Analiz')
                 ->description('Müdürlüğün dönem raporundaki kapsam kalemleri otomatik gelir.')
