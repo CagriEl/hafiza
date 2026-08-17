@@ -13,6 +13,7 @@ class ControlTeamAuditNote extends Model
         'aylik_faaliyet_id',
         'yil',
         'ay',
+        'hafta',
         'activity_catalog_id',
         'note',
         'rapor_verileri',

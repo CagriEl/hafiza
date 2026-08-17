@@ -418,7 +418,7 @@ final class AnalizEkibiYoneticiRapor
         return $month.' · '.$week;
     }
 
-    private static function findWeekReport(int $mudurlukId, int $yil, string $ayPadded, string $haftaNorm): ?AylikFaaliyet
+    public static function findWeekReport(int $mudurlukId, int $yil, string $ayPadded, string $haftaNorm): ?AylikFaaliyet
     {
         $variants = AylikFaaliyetPeriodMerge::ayQueryVariants($ayPadded);
         $haftaVariants = array_values(array_unique(array_filter([

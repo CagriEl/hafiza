@@ -176,13 +176,19 @@ final class AnalizEkibiRaporVerileri
             ? (string) $note->yil.'-'.$ay
             : '—';
 
+        $hafta = ReportPeriodWeeks::normalizeReportHafta($note->hafta)
+            ?? ReportPeriodWeeks::normalizeReportHafta($note->aylikFaaliyet?->hafta);
+        $haftaLabel = ($note->yil && strlen($ay) === 2 && $hafta !== null)
+            ? (ReportPeriodWeeks::periodLabelForRecord((int) $note->yil, $ay, $hafta) ?? $hafta)
+            : '—';
+
         return [
             'donem' => $donem,
             'mudurluk' => trim((string) ($note->directorate?->name ?? '—')),
             'faaliyet_kodu' => 'Müdürlük geneli',
             'analiz_tarihi' => $note->audit_date?->format('d.m.Y') ?? '—',
             'analiz_eden' => trim((string) ($note->user?->name ?? '—')),
-            'rapor_haftasi' => '—',
+            'rapor_haftasi' => $haftaLabel,
         ];
     }
 

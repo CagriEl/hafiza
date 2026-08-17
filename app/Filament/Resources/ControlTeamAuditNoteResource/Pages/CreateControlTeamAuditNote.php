@@ -35,7 +35,7 @@ class CreateControlTeamAuditNote extends CreateRecord
             $aylikId = $this->resolveAylikFaaliyetId($data);
             if ($aylikId <= 0) {
                 throw ValidationException::withMessages([
-                    'directorate_user_id' => 'Seçilen müdürlük ve dönem için bağlı aylık rapor bulunamadı.',
+                    'directorate_user_id' => 'Seçilen müdürlük, ay ve hafta için bağlı faaliyet raporu bulunamadı.',
                 ]);
             }
             $data['aylik_faaliyet_id'] = $aylikId;
@@ -45,6 +45,11 @@ class CreateControlTeamAuditNote extends CreateRecord
         }
         if (! Schema::hasColumn('control_team_audit_notes', 'ay')) {
             unset($data['ay']);
+        }
+        if (! Schema::hasColumn('control_team_audit_notes', 'hafta')) {
+            unset($data['hafta']);
+        } else {
+            $data['hafta'] = \App\Support\ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null);
         }
 
         return $data;
@@ -81,7 +86,8 @@ class CreateControlTeamAuditNote extends CreateRecord
         $rapor = ControlTeamAuditNoteResource::resolveAylikFaaliyetForDirectoratePeriod(
             $directorateUserId,
             $yil,
-            $ayRaw
+            $ayRaw,
+            $data['hafta'] ?? null
         );
 
         return $rapor ? (int) $rapor->id : 0;

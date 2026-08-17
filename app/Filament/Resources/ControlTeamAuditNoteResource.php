@@ -9,7 +9,10 @@ use App\Models\AylikFaaliyet;
 use App\Models\ControlTeamAuditNote;
 use App\Models\User;
 use App\Support\ActivityCatalogFormatter;
+use App\Support\AnalizEkibiHaftalikFaaliyetEkrani;
+use App\Support\AnalizEkibiYoneticiRapor;
 use App\Support\QuerySafety;
+use App\Support\ReportPeriodWeeks;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
@@ -77,12 +80,12 @@ class ControlTeamAuditNoteResource extends Resource
                             $latest = static::latestReportPeriodForDirectorate((int) $state);
                             $set('yil', $latest['yil']);
                             $set('ay', $latest['ay']);
+                            $set('hafta', $latest['hafta']);
                         }
-                        $set('activity_catalog_id', null);
-                        AnalizEkibiRaporForm::applyPrefill($set, $get);
+                        static::applySelectedPeriod($set, $get);
                     }),
                 Section::make('Rapor dönemi')
-                    ->description('Seçilen müdürlüğün bu dönemdeki aylık raporundan özet ve kalem analizi otomatik gelir.')
+                    ->description('Müdürlük, yıl, ay ve haftayı (tarih aralığıyla) seçin. Alttaki ekran o haftanın faaliyet raporunu birebir gösterir.')
                     ->schema([
                         Forms\Components\Select::make('yil')
                             ->label('Yıl')
@@ -91,8 +94,7 @@ class ControlTeamAuditNoteResource extends Resource
                             ->required()
                             ->live()
                             ->afterStateUpdated(function (Set $set, Get $get): void {
-                                $set('activity_catalog_id', null);
-                                AnalizEkibiRaporForm::applyPrefill($set, $get);
+                                static::applySelectedPeriod($set, $get);
                             }),
                         Forms\Components\Select::make('ay')
                             ->label('Ay')
@@ -105,60 +107,44 @@ class ControlTeamAuditNoteResource extends Resource
                             ->required()
                             ->live()
                             ->afterStateUpdated(function (Set $set, Get $get): void {
-                                $set('activity_catalog_id', null);
-                                AnalizEkibiRaporForm::applyPrefill($set, $get);
+                                static::applySelectedPeriod($set, $get);
+                            }),
+                        Forms\Components\Select::make('hafta')
+                            ->label('Hafta / tarih aralığı')
+                            ->options(function (Get $get): array {
+                                return static::haftaSelectOptions($get('yil'), $get('ay'));
+                            })
+                            ->required()
+                            ->live()
+                            ->afterStateUpdated(function (Set $set, Get $get): void {
+                                static::applySelectedPeriod($set, $get, false);
                             }),
                     ])
-                    ->columns(2),
+                    ->columns(3),
                 Forms\Components\Hidden::make('activity_catalog_id')
                     ->dehydrated()
                     ->default(null),
-                Section::make('Müdürlük performans özeti')
-                    ->description('Seçilen müdürlük ve dönemin aylık rapor verilerinden otomatik gelir (tüm faaliyetler).')
+                Section::make('Seçilen haftanın faaliyet raporu')
+                    ->description('Tüm müdürlükler aynı şablonu kullanır; her kalemin yanında ölçü birimi (m², adet, tutanak, iş vb.) görünür.')
                     ->schema([
-                        Forms\Components\Placeholder::make('mudurluk_ozet_baslik')
-                            ->label('Kapsam')
-                            ->content('Müdürlük geneli (tüm faaliyetler)'),
-                        Forms\Components\Placeholder::make('ozet_yapilan')
-                            ->label('Yapılan İş')
-                            ->content(function (Get $get): string {
-                                $summary = static::mudurlukPeriodSummary($get);
-
-                                return (string) (int) ($summary['gerceklesen'] ?? 0);
-                            }),
-                        Forms\Components\Placeholder::make('ozet_acikta')
-                            ->label('Açıkta Bekleyen')
-                            ->content(function (Get $get): string {
-                                $summary = static::mudurlukPeriodSummary($get);
-
-                                return (string) (int) ($summary['kalan'] ?? 0);
-                            }),
-                        Forms\Components\Placeholder::make('ozet_toplam')
-                            ->label('Toplam İş')
-                            ->content(function (Get $get): string {
-                                $summary = static::mudurlukPeriodSummary($get);
-                                $hedef = (int) ($summary['hedef'] ?? 0);
-                                $gerceklesen = (int) ($summary['gerceklesen'] ?? 0);
-                                $kalan = (int) ($summary['kalan'] ?? 0);
-                                $toplam = $hedef > 0 ? $hedef : ($gerceklesen + $kalan);
-
-                                return (string) $toplam;
-                            }),
-                        Forms\Components\Placeholder::make('ozet_tamamlanma')
-                            ->label('Tamamlanma Oranı (%)')
-                            ->content(function (Get $get): string {
-                                $summary = static::mudurlukPeriodSummary($get);
-                                $gerceklesen = (int) ($summary['gerceklesen'] ?? 0);
-                                $hedef = (int) ($summary['hedef'] ?? 0);
-                                $kalan = (int) ($summary['kalan'] ?? 0);
-                                $toplam = $hedef > 0 ? $hedef : ($gerceklesen + $kalan);
-                                $pct = \App\Support\AnalizEkibiRaporVerileri::completionPercent($gerceklesen, $toplam);
-
-                                return $pct === null ? '—' : '%'.$pct;
+                        Forms\Components\Placeholder::make('haftalik_rapor_ekrani')
+                            ->label('')
+                            ->content(function (Get $get) {
+                                return view('filament.forms.analiz-ekibi-haftalik-rapor-ekrani', [
+                                    'screen' => AnalizEkibiHaftalikFaaliyetEkrani::fromForm($get),
+                                ]);
                             }),
                     ])
-                    ->columns(3)
-                    ->visible(fn (Get $get): bool => (int) ($get('directorate_user_id') ?? 0) > 0),
+                    ->columnSpanFull()
+                    ->visible(function (Get $get): bool {
+                        $user = auth()->user();
+                        if (! $user instanceof User) {
+                            return false;
+                        }
+                        $id = (int) ($get('directorate_user_id') ?? 0);
+
+                        return $id > 0 && AnalizEkibiYoneticiRapor::userCanAccessMudurluk($user, $id);
+                    }),
 
                 ...AnalizEkibiRaporForm::schema(),
 
@@ -190,7 +176,15 @@ class ControlTeamAuditNoteResource extends Resource
                             return '—';
                         }
 
-                        return (string) $record->yil.' / '.$record->ay;
+                        $ay = str_pad((string) $record->ay, 2, '0', STR_PAD_LEFT);
+                        $hafta = $record->hafta;
+                        $weekLabel = ReportPeriodWeeks::periodLabelForRecord((int) $record->yil, $ay, $hafta);
+
+                        if ($weekLabel !== null) {
+                            return (string) $record->yil.' / '.$ay.' · '.$weekLabel;
+                        }
+
+                        return (string) $record->yil.' / '.$ay;
                     }),
                 Tables\Columns\TextColumn::make('audit_date')
                     ->label('Tarih')
@@ -200,7 +194,27 @@ class ControlTeamAuditNoteResource extends Resource
                     ->toggleable(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('directorate_user_id')
+                    ->label('Müdürlük')
+                    ->options(function (): array {
+                        $u = auth()->user();
+                        if (! $u instanceof User) {
+                            return [];
+                        }
+
+                        return AnalizEkibiYoneticiRapor::mudurlukOptionsForUser($u);
+                    })
+                    ->searchable(),
+                Tables\Filters\SelectFilter::make('yil')
+                    ->label('Yıl')
+                    ->options(fn (): array => static::reportYearOptions()),
+                Tables\Filters\SelectFilter::make('ay')
+                    ->label('Ay')
+                    ->options([
+                        '01' => 'Ocak', '02' => 'Şubat', '03' => 'Mart', '04' => 'Nisan',
+                        '05' => 'Mayıs', '06' => 'Haziran', '07' => 'Temmuz', '08' => 'Ağustos',
+                        '09' => 'Eylül', '10' => 'Ekim', '11' => 'Kasım', '12' => 'Aralık',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Analiz Notunu Görüntüle'),
@@ -222,13 +236,32 @@ class ControlTeamAuditNoteResource extends Resource
                                 return '—';
                             }
 
-                            return (string) $record->yil.' / '.$record->ay;
+                            $ay = str_pad((string) $record->ay, 2, '0', STR_PAD_LEFT);
+                            $weekLabel = ReportPeriodWeeks::periodLabelForRecord((int) $record->yil, $ay, $record->hafta);
+                            if ($weekLabel !== null) {
+                                return (string) $record->yil.' / '.$ay.' · '.$weekLabel;
+                            }
+
+                            return (string) $record->yil.' / '.$ay;
                         }),
                     TextEntry::make('audit_date')
                         ->label('Analiz Tarihi')
                         ->date('d.m.Y'),
                 ])
                 ->columns(2),
+
+            InfolistSection::make('Seçilen haftanın faaliyet raporu')
+                ->schema([
+                    TextEntry::make('haftalik_rapor_ekrani')
+                        ->hiddenLabel()
+                        ->getStateUsing(function (ControlTeamAuditNote $record) {
+                            return view('filament.forms.analiz-ekibi-haftalik-rapor-ekrani', [
+                                'screen' => AnalizEkibiHaftalikFaaliyetEkrani::fromNote($record),
+                            ])->render();
+                        })
+                        ->html()
+                        ->columnSpanFull(),
+                ]),
 
             InfolistSection::make('Özet Göstergeler')
                 ->schema([
@@ -361,7 +394,17 @@ class ControlTeamAuditNoteResource extends Resource
     {
         $u = auth()->user();
 
-        return $u instanceof User && ($u->isReportingSuperAdmin() || $u->isControlTeam());
+        if (! $u instanceof User) {
+            return false;
+        }
+        if ($u->isReportingSuperAdmin()) {
+            return true;
+        }
+        if (! $u->isControlTeam()) {
+            return false;
+        }
+
+        return $u->assignedDirectorates()->exists();
     }
 
     public static function canView(Model $record): bool
@@ -389,10 +432,14 @@ class ControlTeamAuditNoteResource extends Resource
     }
 
     /**
-     * Aylık rapor kaydı: önce seçilen yıl/ay (ay değeri DB'de "04" veya "4" olabilir), yoksa takvim sırasına göre en güncel dönem.
+     * Aylık/haftalık rapor: seçilen yıl + ay + (varsa) hafta.
      */
-    public static function resolveAylikFaaliyetForDirectoratePeriod(int $directorateUserId, int $yil, string $ayRaw): ?AylikFaaliyet
-    {
+    public static function resolveAylikFaaliyetForDirectoratePeriod(
+        int $directorateUserId,
+        int $yil,
+        string $ayRaw,
+        mixed $hafta = null
+    ): ?AylikFaaliyet {
         if ($directorateUserId <= 0) {
             return null;
         }
@@ -400,11 +447,17 @@ class ControlTeamAuditNoteResource extends Resource
         $ayNorm = str_pad(preg_replace('/\D/', '', $ayRaw) ?: '', 2, '0', STR_PAD_LEFT);
 
         if ($yil > 0 && strlen($ayNorm) === 2) {
+            $haftaNorm = ReportPeriodWeeks::normalizeReportHafta($hafta);
+            if ($haftaNorm !== null) {
+                return AnalizEkibiYoneticiRapor::findWeekReport($directorateUserId, $yil, $ayNorm, $haftaNorm);
+            }
+
             $variants = static::normalizeAyQueryVariants($ayNorm);
             $exact = AylikFaaliyet::query()
                 ->where('user_id', $directorateUserId)
                 ->where('yil', $yil)
                 ->whereIn('ay', $variants)
+                ->orderByDesc('id')
                 ->first();
             if ($exact instanceof AylikFaaliyet) {
                 return $exact;
@@ -412,6 +465,60 @@ class ControlTeamAuditNoteResource extends Resource
         }
 
         return static::latestAylikFaaliyetForDirectorateUser($directorateUserId);
+    }
+
+    /**
+     * @return array<int|string, string>
+     */
+    public static function haftaSelectOptions(mixed $yil, mixed $ay): array
+    {
+        $yilInt = (int) ($yil ?: now()->year);
+        $ayInt = (int) preg_replace('/\D/', '', (string) ($ay ?: now()->month));
+        if ($ayInt < 1 || $ayInt > 12) {
+            $ayInt = (int) now()->month;
+        }
+
+        return ReportPeriodWeeks::periodSelectOptions($yilInt, $ayInt, null);
+    }
+
+    public static function applySelectedPeriod(Set $set, Get $get, bool $normalizeWeek = true): void
+    {
+        if ($normalizeWeek) {
+            static::normalizeHaftaSelection($set, $get);
+        }
+        $set('activity_catalog_id', null);
+        AnalizEkibiRaporForm::applyPrefill($set, $get);
+
+        $note = trim((string) ($get('note') ?? ''));
+        if ($note !== '' && ! str_starts_with($note, 'Sistem tavsiyesi:')) {
+            return;
+        }
+
+        $screen = AnalizEkibiHaftalikFaaliyetEkrani::fromForm($get);
+        $ozet = trim((string) ($screen['tavsiye']['ozet'] ?? ''));
+        if ($ozet !== '') {
+            $set('note', $ozet);
+        }
+    }
+
+    public static function normalizeHaftaSelection(Set $set, Get $get): void
+    {
+        $options = static::haftaSelectOptions($get('yil'), $get('ay'));
+        if ($options === []) {
+            return;
+        }
+
+        $hafta = $get('hafta');
+        $norm = ReportPeriodWeeks::normalizeReportHafta($hafta);
+        foreach (array_keys($options) as $key) {
+            if ((string) $key === (string) $norm || (string) $key === (string) $hafta) {
+                $set('hafta', $key);
+
+                return;
+            }
+        }
+
+        $set('hafta', array_key_first($options));
     }
 
     /**
@@ -544,11 +651,17 @@ class ControlTeamAuditNoteResource extends Resource
     }
 
     /**
-     * @return array{yil:int, ay:string}
+     * @return array{yil:int, ay:string, hafta:string}
      */
     protected static function latestReportPeriodForDirectorate(int $directorateUserId): array
     {
-        $fallback = ['yil' => (int) now()->year, 'ay' => now()->format('m')];
+        $yil = (int) now()->year;
+        $ay = now()->format('m');
+        $fallback = [
+            'yil' => $yil,
+            'ay' => $ay,
+            'hafta' => (string) ReportPeriodWeeks::resolveWeekForReportPeriod($yil, (int) $ay),
+        ];
         if ($directorateUserId <= 0) {
             return $fallback;
         }
@@ -559,9 +672,15 @@ class ControlTeamAuditNoteResource extends Resource
             return $fallback;
         }
 
+        $yilR = (int) ($rapor->yil ?: $fallback['yil']);
+        $ayR = str_pad((string) ($rapor->ay ?: $fallback['ay']), 2, '0', STR_PAD_LEFT);
+        $hafta = ReportPeriodWeeks::normalizeReportHafta($rapor->hafta)
+            ?? (string) ReportPeriodWeeks::resolveWeekForReportPeriod($yilR, (int) $ayR);
+
         return [
-            'yil' => (int) ($rapor->yil ?: $fallback['yil']),
-            'ay' => str_pad((string) ($rapor->ay ?: $fallback['ay']), 2, '0', STR_PAD_LEFT),
+            'yil' => $yilR,
+            'ay' => $ayR,
+            'hafta' => $hafta,
         ];
     }
 
@@ -666,7 +785,8 @@ class ControlTeamAuditNoteResource extends Resource
         $rapor = static::resolveAylikFaaliyetForDirectoratePeriod(
             $directorateUserId,
             (int) $yil,
-            (string) $ay
+            (string) $ay,
+            $get('hafta')
         );
 
         if (! $rapor) {
@@ -734,7 +854,8 @@ class ControlTeamAuditNoteResource extends Resource
         $rapor = static::resolveAylikFaaliyetForDirectoratePeriod(
             $directorateUserId,
             (int) $yil,
-            (string) $ay
+            (string) $ay,
+            $get('hafta')
         );
         if (! $rapor) {
             return [];
@@ -988,8 +1109,10 @@ class ControlTeamAuditNoteResource extends Resource
     {
         $y = (int) ($r->yil ?? 0);
         $m = (int) (preg_replace('/\D/', '', (string) ($r->ay ?? '')) ?: 0);
+        $week = ReportPeriodWeeks::normalizeReportHafta($r->hafta ?? null);
+        $w = ($week === null || $week === ReportPeriodWeeks::MONTHLY_VALUE) ? 0 : (int) $week;
 
-        return $y * 100 + $m;
+        return $y * 10000 + $m * 100 + $w;
     }
 
     private static function latestAylikFaaliyetForDirectorateUser(int $directorateUserId): ?AylikFaaliyet
