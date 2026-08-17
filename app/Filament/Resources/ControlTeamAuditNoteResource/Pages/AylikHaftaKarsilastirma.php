@@ -24,6 +24,8 @@ class AylikHaftaKarsilastirma extends Page
 
     public int $note = 0;
 
+    public string $kod = 'all';
+
     /** @var array<string, mixed>|null */
     protected ?array $screenCache = null;
 

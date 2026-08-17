@@ -252,6 +252,10 @@ class AnalizEkibiHaftalikFaaliyetEkraniTest extends TestCase
         $this->assertSame(3, $screen['ozet']['en_zayif']['hafta']);
         $this->assertSame(4, $screen['ozet']['en_guclu']['hafta']);
         $this->assertStringContainsString('Temmuz 2026', $screen['tavsiye']['ozet']);
+        $this->assertNotEmpty($screen['kodlar']);
+        $this->assertSame('SKM-02', $screen['kodlar'][0]['value']);
+        $this->assertNotEmpty($screen['ay_ici']);
+        $this->assertStringContainsString('Kısmi', (string) ($screen['durum_chip'] ?? ''));
     }
 
     /**

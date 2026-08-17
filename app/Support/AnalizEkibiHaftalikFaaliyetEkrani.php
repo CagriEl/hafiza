@@ -154,7 +154,12 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                 $slaToplamOk += $sla['basarili'];
                 if ($sla['oran'] !== null) {
                     if ($enZayif === null || $sla['oran'] < $enZayif['oran']) {
-                        $enZayif = ['hafta' => $haftaNo, 'oran' => $sla['oran'], 'etiket' => $etiket];
+                        $enZayif = [
+                            'hafta' => $haftaNo,
+                            'oran' => $sla['oran'],
+                            'etiket' => $etiket,
+                            'acikta' => $acikta,
+                        ];
                     }
                     if ($enGuclu === null || $sla['oran'] > $enGuclu['oran']) {
                         $enGuclu = ['hafta' => $haftaNo, 'oran' => $sla['oran'], 'etiket' => $etiket];
@@ -191,6 +196,8 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                                 .(is_numeric($planN) ? '/'.self::formatNumber((float) $planN) : ''))
                             : '—',
                         'tone' => (string) ($row['tone'] ?? 'neutral'),
+                        'plan' => is_numeric($planN) ? (float) $planN : 0.0,
+                        'done' => is_numeric($doneN) ? (float) $doneN : 0.0,
                     ];
                     if (is_numeric($planN)) {
                         $kalemIndex[$key]['plan_toplam'] += (float) $planN;
@@ -204,14 +211,24 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                 }
             }
 
+            $range = '';
+            $start = $def['baslangic'] ?? null;
+            $end = $def['bitis'] ?? null;
+            if ($start instanceof \Carbon\Carbon && $end instanceof \Carbon\Carbon) {
+                $range = ReportPeriodWeeks::formatDate($start).' – '.ReportPeriodWeeks::formatDate($end);
+            }
+
             $haftalar[] = [
                 'hafta' => $haftaNo,
                 'etiket' => $etiket,
                 'kisa' => $haftaNo.'. hafta',
+                'range' => $range,
                 'rapor_var' => $var,
                 'sla' => $sla['oran'],
                 'acikta' => $var ? $acikta : null,
-                'durum' => $durum,
+                'durum' => $var
+                    ? (((int) ($sla['oran'] ?? 0) >= 100) ? 'Kapandı' : (((int) ($sla['oran'] ?? 0) < 70) ? 'SLA altında' : 'Kısmi'))
+                    : 'Girilmedi',
             ];
         }
 
@@ -279,6 +296,112 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
             $chartAcik[] = $hafta['rapor_var'] ? (int) ($hafta['acikta'] ?? 0) : 0;
         }
 
+        $weekIndexByNo = [];
+        foreach ($haftalar as $i => $hafta) {
+            $weekIndexByNo[(int) $hafta['hafta']] = $i;
+        }
+        $weekN = count($haftalar);
+        $kodlar = [];
+        foreach ($kalemIndex as $row) {
+            $kod = (string) $row['kod'];
+            if ($kod === '' || $kod === '—') {
+                continue;
+            }
+            if (! isset($kodlar[$kod])) {
+                $catalog = $catalogByCode[$kod] ?? null;
+                $aile = (string) ($row['aile'] ?? '');
+                $kodlar[$kod] = [
+                    'value' => $kod,
+                    'label' => $kod.($aile !== '' ? ' · '.$aile : ''),
+                    'olcu' => (string) ($row['olcu'] ?? ''),
+                    'kpi' => trim((string) ($catalog?->kpi_sla ?? '')),
+                    'plan' => array_fill(0, $weekN, 0.0),
+                    'gercek' => array_fill(0, $weekN, 0.0),
+                ];
+                if ($kodlar[$kod]['olcu'] === '' && $catalog) {
+                    $kodlar[$kod]['olcu'] = trim((string) ($catalog->olcu_birimi ?? ''));
+                }
+            }
+            foreach ($row['haftalar'] as $hn => $cell) {
+                $idx = $weekIndexByNo[(int) $hn] ?? null;
+                if ($idx === null || ! is_array($cell)) {
+                    continue;
+                }
+                $kodlar[$kod]['plan'][$idx] += (float) ($cell['plan'] ?? 0);
+                $kodlar[$kod]['gercek'][$idx] += (float) ($cell['done'] ?? 0);
+            }
+        }
+
+        $eksikHaftalar = [];
+        $kapandi = [];
+        $kismi = [];
+        $zayif = [];
+        $yok = [];
+        foreach ($haftalar as $hafta) {
+            if (! ($hafta['rapor_var'] ?? false)) {
+                $yok[] = $hafta;
+                $eksikHaftalar[] = (int) $hafta['hafta'];
+
+                continue;
+            }
+            $oran = (int) ($hafta['sla'] ?? 0);
+            if ($oran >= 100) {
+                $kapandi[] = $hafta;
+            } elseif ($oran < 70) {
+                $zayif[] = $hafta;
+            } else {
+                $kismi[] = $hafta;
+            }
+        }
+
+        $ayIci = [];
+        if ($kapandi !== []) {
+            $ayIci[] = [
+                'tone' => 'success',
+                'baslik' => self::haftaListLabel($kapandi).' kapandı',
+                'aciklama' => 'Hedefler kapanmış',
+            ];
+        }
+        if ($kismi !== []) {
+            $slaText = implode(' / ', array_map(fn (array $h): string => '%'.(int) ($h['sla'] ?? 0), $kismi));
+            $ayIci[] = [
+                'tone' => 'warning',
+                'baslik' => self::haftaListLabel($kismi),
+                'aciklama' => $slaText.' — kabul edilebilir sapma',
+            ];
+        }
+        if ($zayif !== []) {
+            $weakHints = [];
+            foreach ($slaRows as $row) {
+                if (! is_array($row) || ($row['tone'] ?? '') !== 'danger') {
+                    continue;
+                }
+                $weakHints[] = trim((string) ($row['kod'] ?? '').' '.(string) ($row['kalem'] ?? ''));
+                if (count($weakHints) >= 2) {
+                    break;
+                }
+            }
+            $ayIci[] = [
+                'tone' => 'danger',
+                'baslik' => self::haftaListLabel($zayif).' zayıf',
+                'aciklama' => $weakHints !== [] ? implode(' · ', $weakHints) : 'SLA eşiğinin altında',
+            ];
+        }
+        if ($yok !== []) {
+            $ayIci[] = [
+                'tone' => 'neutral',
+                'baslik' => self::haftaListLabel($yok).' yok',
+                'aciklama' => 'Müdürlükten rapor istenmeli',
+            ];
+        }
+
+        $durumChip = $durum;
+        if ($raporSayisi > 0 && $eksikHaftalar !== []) {
+            $durumChip = count($eksikHaftalar) === 1
+                ? 'Kısmi · '.$eksikHaftalar[0].'. hafta yok'
+                : 'Kısmi · '.implode(', ', array_map(fn (int $n): string => $n.'.', $eksikHaftalar)).' hafta yok';
+        }
+
         $screen = [
             'mod' => 'aylik',
             'mudurluk_id' => $mudurlukId,
@@ -291,6 +414,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
             'rapor_var' => $raporSayisi > 0,
             'rapor_id' => null,
             'durum' => $durum,
+            'durum_chip' => $durumChip,
             'ozet' => [
                 'raporlanan_hafta' => $raporSayisi,
                 'beklenen_hafta' => count($haftalar),
@@ -306,9 +430,11 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                 'values' => $chartSla,
                 'planned' => array_fill(0, count($chartCategories), 100),
                 'acikta' => $chartAcik,
-                'max' => 100.0,
+                'max' => 110.0,
             ],
             'haftalar' => $haftalar,
+            'kodlar' => array_values($kodlar),
+            'ay_ici' => $ayIci,
             'rows' => $slaRows,
             'uyarilar' => [],
         ];
@@ -754,6 +880,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
             'rapor_var' => false,
             'rapor_id' => null,
             'durum' => 'Rapor yok',
+            'durum_chip' => 'Rapor yok',
             'ozet' => [
                 'raporlanan_hafta' => 0,
                 'beklenen_hafta' => 0,
@@ -772,6 +899,8 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                 'max' => 100.0,
             ],
             'haftalar' => [],
+            'kodlar' => [],
+            'ay_ici' => [],
             'rows' => [],
             'uyarilar' => [],
             'tavsiye' => [
@@ -970,5 +1099,29 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
         }
 
         return rtrim(rtrim(number_format($value, 2, ',', '.'), '0'), ',');
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $haftalar
+     */
+    private static function haftaListLabel(array $haftalar): string
+    {
+        $nos = [];
+        foreach ($haftalar as $hafta) {
+            $n = (int) ($hafta['hafta'] ?? 0);
+            if ($n > 0) {
+                $nos[] = $n;
+            }
+        }
+        $nos = array_values(array_unique($nos));
+        if ($nos === []) {
+            return 'Hafta';
+        }
+        if (count($nos) === 1) {
+            return $nos[0].'. hafta';
+        }
+        $last = array_pop($nos);
+
+        return implode('. ve ', $nos).'. ve '.$last.'. hafta';
     }
 }

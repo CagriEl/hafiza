@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ActivityCatalogResource\Pages;
 
 use App\Filament\Pages\ActivityCatalogRaporSync;
 use App\Filament\Resources\ActivityCatalogResource;
+use App\Support\ActivityCatalogExcel;
 use App\Support\CatalogKalemRevisions;
 use Filament\Actions;
 use Filament\Notifications\Notification;
@@ -16,6 +17,12 @@ class ListActivityCatalogs extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('excelIndir')
+                ->label('Excel indir')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('success')
+                ->tooltip('Tüm müdürlüklerin faaliyet aileleri ve alt kalemleri')
+                ->action(fn () => ActivityCatalogExcel::downloadResponse()),
             Actions\Action::make('applyKalemRevisions')
                 ->label('Kalem revizyonlarını şimdi uygula')
                 ->icon('heroicon-o-bolt')
