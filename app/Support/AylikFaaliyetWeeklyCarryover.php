@@ -719,6 +719,11 @@ final class AylikFaaliyetWeeklyCarryover
             }
         }
 
+        $incomingTur = KapsamIslemTuru::normalize($incoming['islem_turu'] ?? null);
+        if ($incomingTur !== null) {
+            $base['islem_turu'] = $incomingTur;
+        }
+
         if (trim((string) ($incoming['acikta_revize_notu'] ?? '')) !== '') {
             $base['acikta_revize_notu'] = $incoming['acikta_revize_notu'];
         }
