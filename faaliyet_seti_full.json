@@ -356,7 +356,7 @@
         "Faaliyet Kodu": "MKM-04",
         "Faaliyet Ailesi": "Yakıt ve Telematik Verimliliği",
         "Kategori": "Strateji / İyileştirme / Eğitim",
-        "Kapsam": "Yakıt tüketimi, verimlilik analizi",
+        "Kapsam": "Yakıt tüketimi",
         "Ölçü Birimi": "lt",
         "Ana KPI / SLA": "yakıt sapma oranı",
         "Veri Kaynağı": "ATS",

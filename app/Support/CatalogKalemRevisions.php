@@ -16,12 +16,15 @@ final class CatalogKalemRevisions
 {
     public const VERSION = '2026-08-14-kalem-v2';
 
+    private const MKM04_VERIMLILIK_CACHE = 'catalog_mkm04_verimlilik_removed';
+
     private static bool $ensuredThisRequest = false;
 
     public static function resetEnsureState(): void
     {
         self::$ensuredThisRequest = false;
         \Illuminate\Support\Facades\Cache::forget('catalog_kalem_revisions_applied');
+        \Illuminate\Support\Facades\Cache::forget(self::MKM04_VERIMLILIK_CACHE);
     }
 
     /**
@@ -97,11 +100,8 @@ final class CatalogKalemRevisions
             ],
             [
                 'faaliyet_kodu' => 'MKM-04',
-                'kapsam' => 'Yakıt tüketimi, verimlilik analizi',
-                'legacy_kapsam' => ['Yakıt tüketimi, rölanti, kilometre, verimlilik analizi'],
                 'olcu_birimi' => 'lt',
                 'legacy_olcu_birimi' => ['lt / km / saat'],
-                'forbidden_kalemler' => ['rölanti', 'kilometre'],
             ],
             [
                 'faaliyet_kodu' => 'MKM-05',
@@ -131,8 +131,11 @@ final class CatalogKalemRevisions
         self::$ensuredThisRequest = true;
 
         try {
-            $cached = \Illuminate\Support\Facades\Cache::get('catalog_kalem_revisions_applied');
-            if ($cached === self::VERSION && ! self::needsApply()) {
+            self::ensureMkm04VerimlilikRemoved();
+
+            if (! self::needsApply()) {
+                \Illuminate\Support\Facades\Cache::forever('catalog_kalem_revisions_applied', self::VERSION);
+
                 return;
             }
 
@@ -144,6 +147,109 @@ final class CatalogKalemRevisions
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Yalnızca MKM-04 içinden "verimlilik analizi" kalemini çıkarır; diğer kod ve kalemlere dokunmaz.
+     */
+    public static function ensureMkm04VerimlilikRemoved(): void
+    {
+        if (\Illuminate\Support\Facades\Cache::get(self::MKM04_VERIMLILIK_CACHE) === '1') {
+            return;
+        }
+
+        self::stripMkm04VerimlilikAnalizi();
+        \Illuminate\Support\Facades\Cache::forever(self::MKM04_VERIMLILIK_CACHE, '1');
+    }
+
+    /**
+     * @return array{catalog: bool, reports: int}
+     */
+    public static function stripMkm04VerimlilikAnalizi(): array
+    {
+        $forbidden = self::mkm04VerimlilikNames();
+        $catalogChanged = false;
+
+        $catalog = ActivityCatalog::query()->where('faaliyet_kodu', 'MKM-04')->first();
+        if ($catalog instanceof ActivityCatalog) {
+            $next = self::removeTokensFromKapsam((string) $catalog->kapsam, $forbidden);
+            if ($next !== trim((string) $catalog->kapsam)) {
+                $catalog->kapsam = $next;
+                $catalog->save();
+                $catalogChanged = true;
+            }
+        }
+
+        $reports = 0;
+        foreach (AylikFaaliyet::query()->orderBy('id')->cursor() as $report) {
+            $rows = is_array($report->faaliyetler) ? $report->faaliyetler : [];
+            if ($rows === []) {
+                continue;
+            }
+            $changed = false;
+            foreach ($rows as $i => $row) {
+                if (! is_array($row) || trim((string) ($row['faaliyet_kodu'] ?? '')) !== 'MKM-04') {
+                    continue;
+                }
+                $kv = $row['kapsam_verileri'] ?? null;
+                if (! is_array($kv)) {
+                    continue;
+                }
+                $kept = [];
+                $rowChanged = false;
+                foreach ($kv as $line) {
+                    if (! is_array($line)) {
+                        continue;
+                    }
+                    $kalem = trim((string) ($line['kalem'] ?? ''));
+                    if (in_array($kalem, $forbidden, true)) {
+                        $rowChanged = true;
+
+                        continue;
+                    }
+                    $kept[] = $line;
+                }
+                if ($rowChanged) {
+                    $rows[$i]['kapsam_verileri'] = array_values($kept);
+                    $changed = true;
+                }
+            }
+            if (! $changed) {
+                continue;
+            }
+            $report->faaliyetler = $rows;
+            $report->save();
+            $reports++;
+        }
+
+        if ($catalogChanged) {
+            ActivityCatalogMetadataByCode::forgetCache();
+            app(ActivityService::class)->forgetCache();
+        }
+
+        return ['catalog' => $catalogChanged, 'reports' => $reports];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function mkm04VerimlilikNames(): array
+    {
+        return ['verimlilik analizi', 'Verimlilik analizi'];
+    }
+
+    /**
+     * @param  list<string>  $forbidden
+     */
+    private static function removeTokensFromKapsam(string $kapsam, array $forbidden): string
+    {
+        $parts = collect(explode(',', $kapsam))
+            ->map(fn (string $part): string => trim($part))
+            ->filter(fn (string $part): bool => $part !== '' && ! in_array($part, $forbidden, true))
+            ->values()
+            ->all();
+
+        return implode(', ', $parts);
     }
 
     public static function needsApply(): bool

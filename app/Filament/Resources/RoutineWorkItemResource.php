@@ -43,14 +43,35 @@ class RoutineWorkItemResource extends Resource
                     ->visible(fn (): bool => static::isEntryClosedForCurrentUser())
                     ->columnSpanFull(),
                 Forms\Components\Repeater::make('bulk_items')
-                    ->label('Rutin İş Satırları')
+                    ->label('Günlük Rutin İş Satırları')
                     ->schema([
-                        Forms\Components\DatePicker::make('work_date')
-                            ->label('Tarih')
+                        Forms\Components\DatePicker::make('start_date')
+                            ->label('Başlangıç Tarihi')
                             ->native(false)
                             ->displayFormat('d.m.Y')
                             ->minDate($window?->start_date)
                             ->maxDate($window?->end_date)
+                            ->required()
+                            ->rule(function () {
+                                return function (string $attribute, $value, \Closure $fail): void {
+                                    if (blank($value) || static::isAdmin()) {
+                                        return;
+                                    }
+
+                                    if (! RoutineWorkWindow::isEntryOpenForDate((string) $value)) {
+                                        $fail(self::CLOSED_MESSAGE);
+                                    }
+                                };
+                            })
+                            ->disabled(fn (): bool => static::isEntryClosedForCurrentUser()),
+                        Forms\Components\DatePicker::make('end_date')
+                            ->label('Bitiş Tarihi')
+                            ->native(false)
+                            ->displayFormat('d.m.Y')
+                            ->minDate($window?->start_date)
+                            ->maxDate($window?->end_date)
+                            ->required()
+                            ->afterOrEqual('start_date')
                             ->rule(function () {
                                 return function (string $attribute, $value, \Closure $fail): void {
                                     if (blank($value) || static::isAdmin()) {
@@ -66,29 +87,52 @@ class RoutineWorkItemResource extends Resource
                         Forms\Components\Select::make('status')
                             ->label('Durum')
                             ->options(static::statusOptions())
+                            ->required()
                             ->disabled(fn (): bool => static::isEntryClosedForCurrentUser()),
                         Forms\Components\Textarea::make('work_item')
                             ->label('İş')
                             ->rows(2)
+                            ->required()
                             ->columnSpanFull()
                             ->disabled(fn (): bool => static::isEntryClosedForCurrentUser()),
                     ])
-                    ->defaultItems(10)
+                    ->defaultItems(0)
                     ->addActionLabel('Alta Satır Ekle')
                     ->reorderable(false)
                     ->collapsible()
                     ->grid(2)
                     ->columns(2)
                     ->columnSpanFull()
-                    ->helperText('İlk 10 satır otomatik gelir. Alttaki butondan sınırsız yeni satır ekleyebilirsiniz.')
+                    ->helperText('Her satır bir günlük kayıttır. Aktif ölçüm penceresindeki tüm günler otomatik listelenir; doldurmak istemediğiniz günleri boş bırakabilirsiniz.')
                     ->visible(fn (string $operation): bool => $operation === 'create'),
-                Forms\Components\DatePicker::make('work_date')
-                    ->label('Tarih')
+                Forms\Components\DatePicker::make('start_date')
+                    ->label('Başlangıç Tarihi')
                     ->native(false)
                     ->displayFormat('d.m.Y')
                     ->minDate($window?->start_date)
                     ->maxDate($window?->end_date)
                     ->required()
+                    ->rule(function () {
+                        return function (string $attribute, $value, \Closure $fail): void {
+                            if (static::isAdmin()) {
+                                return;
+                            }
+
+                            if (! RoutineWorkWindow::isEntryOpenForDate((string) $value)) {
+                                $fail(self::CLOSED_MESSAGE);
+                            }
+                        };
+                    })
+                    ->disabled(fn (): bool => static::isEntryClosedForCurrentUser())
+                    ->visible(fn (string $operation): bool => $operation !== 'create'),
+                Forms\Components\DatePicker::make('end_date')
+                    ->label('Bitiş Tarihi')
+                    ->native(false)
+                    ->displayFormat('d.m.Y')
+                    ->minDate($window?->start_date)
+                    ->maxDate($window?->end_date)
+                    ->required()
+                    ->afterOrEqual('start_date')
                     ->rule(function () {
                         return function (string $attribute, $value, \Closure $fail): void {
                             if (static::isAdmin()) {
@@ -122,11 +166,15 @@ class RoutineWorkItemResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->defaultSort('work_date', 'desc')
+            ->defaultSort('start_date', 'desc')
             ->description(fn (): ?string => static::isEntryClosedForCurrentUser() ? self::CLOSED_MESSAGE : null)
             ->columns([
-                Tables\Columns\TextColumn::make('work_date')
-                    ->label('Tarih')
+                Tables\Columns\TextColumn::make('start_date')
+                    ->label('Başlangıç')
+                    ->date('d.m.Y')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('end_date')
+                    ->label('Bitiş')
                     ->date('d.m.Y')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('work_item')

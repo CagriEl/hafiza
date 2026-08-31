@@ -239,6 +239,68 @@ class CatalogKalemRevisionsTest extends TestCase
         $this->assertContains('Araç talepleri', array_column($mkm03['kapsam_verileri'], 'kalem'));
     }
 
+    public function test_mkm04_drops_verimlilik_analizi_from_catalog_and_form_rows(): void
+    {
+        $mkm = User::query()->create([
+            'name' => 'Makine İkmal Bakım ve Onarım Müdürlüğü',
+            'email' => 'mkm04-rev@example.com',
+            'password' => 'x',
+            'role' => User::ROLE_MUDURLUK,
+        ]);
+
+        ActivityCatalog::query()->create([
+            'mudurluk' => 'Makine İkmal Bakım ve Onarım Müdürlüğü',
+            'faaliyet_kodu' => 'MKM-04',
+            'faaliyet_ailesi' => 'Yakıt ve Telematik Verimliliği',
+            'kapsam' => 'Yakıt tüketimi, verimlilik analizi',
+            'olcu_birimi' => 'lt',
+        ]);
+
+        $report = AylikFaaliyet::query()->create([
+            'user_id' => $mkm->id,
+            'yil' => 2026,
+            'ay' => '08',
+            'hafta' => 1,
+            'faaliyetler' => [
+                [
+                    'faaliyet_kodu' => 'MKM-04',
+                    'kapsam_verileri' => [
+                        ['kalem' => 'Yakıt tüketimi', 'ongorulen' => 10, 'gerceklesen' => 8],
+                        ['kalem' => 'verimlilik analizi', 'ongorulen' => 1, 'gerceklesen' => 0],
+                        ['kalem' => 'rölanti', 'ongorulen' => 3, 'gerceklesen' => 3],
+                    ],
+                ],
+                [
+                    'faaliyet_kodu' => 'MKM-01',
+                    'kapsam_verileri' => [
+                        ['kalem' => 'Periyodik bakım', 'ongorulen' => 2, 'gerceklesen' => 2],
+                        ['kalem' => 'muayene', 'ongorulen' => 4, 'gerceklesen' => 4],
+                    ],
+                ],
+            ],
+        ]);
+
+        CatalogKalemRevisions::resetEnsureState();
+        CatalogKalemRevisions::ensureApplied();
+
+        $this->assertSame(
+            'Yakıt tüketimi',
+            ActivityCatalog::query()->where('faaliyet_kodu', 'MKM-04')->value('kapsam')
+        );
+
+        $report->refresh();
+        $mkm04 = collect($report->faaliyetler)->first(fn ($r) => ($r['faaliyet_kodu'] ?? '') === 'MKM-04');
+        $kalemler = array_column($mkm04['kapsam_verileri'], 'kalem');
+        $this->assertSame(['Yakıt tüketimi', 'rölanti'], $kalemler);
+        $this->assertSame(10, $mkm04['kapsam_verileri'][0]['ongorulen']);
+        $this->assertSame(8, $mkm04['kapsam_verileri'][0]['gerceklesen']);
+        $this->assertSame(3, collect($mkm04['kapsam_verileri'])->firstWhere('kalem', 'rölanti')['gerceklesen']);
+
+        $mkm01 = collect($report->faaliyetler)->first(fn ($r) => ($r['faaliyet_kodu'] ?? '') === 'MKM-01');
+        $this->assertSame(['Periyodik bakım', 'muayene'], array_column($mkm01['kapsam_verileri'], 'kalem'));
+        $this->assertSame(4, $mkm01['kapsam_verileri'][1]['gerceklesen']);
+    }
+
     public function test_ensure_applied_upgrades_legacy_catalog_for_new_reports(): void
     {
         CatalogKalemRevisions::resetEnsureState();
