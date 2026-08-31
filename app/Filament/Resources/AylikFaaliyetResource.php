@@ -228,7 +228,7 @@ class AylikFaaliyetResource extends Resource
 
     public static function resolveKapsamIslemTuru(Get $get): ?string
     {
-        return KapsamIslemTuru::normalize($get('islem_turu_ui') ?? $get('islem_turu'));
+        return KapsamIslemTuru::normalize($get('islem_turu'));
     }
 
     public static function kapsamShowsProcessDateFields(Get $get): bool
@@ -245,6 +245,10 @@ class AylikFaaliyetResource extends Resource
     {
         if (! static::kapsamKalemVisibleInCurrentWeek($get, $livewire)) {
             return false;
+        }
+
+        if (static::kapsamShowsProcessDateFields($get) || static::kapsamShowsDailyDateField($get)) {
+            return true;
         }
 
         if (! filled($get('baslangic_tarihi')) || ! filled($get('bitis_tarihi'))) {
@@ -1461,7 +1465,6 @@ class AylikFaaliyetResource extends Resource
                                         Forms\Components\Hidden::make('bu_hafta_yapilma_tarihi')->dehydrated(true),
                                         Forms\Components\Hidden::make('baslangic_tarihi')->dehydrated(true),
                                         Forms\Components\Hidden::make('bitis_tarihi')->dehydrated(true),
-                                        Forms\Components\Hidden::make('islem_turu')->dehydrated(true),
                                         Forms\Components\Hidden::make('kalem_notu')->dehydrated(true),
                                         Forms\Components\Placeholder::make('kalem_bu_hafta_kapali')
                                             ->label(fn (Get $get): string => trim((string) ($get('kalem') ?? 'Kalem')))
@@ -1570,13 +1573,14 @@ class AylikFaaliyetResource extends Resource
                                                         || static::kapsamShowsWeeklyFollowUpFields($get, $livewire)
                                                         || static::kapsamHasPendingWork($get))),
                                         ]),
-                                        Forms\Components\Select::make('islem_turu_ui')
+                                        Forms\Components\Select::make('islem_turu')
                                             ->label('İşlem Türü')
                                             ->options(KapsamIslemTuru::options())
                                             ->placeholder('Seçiniz')
                                             ->native(false)
                                             ->required(fn (Get $get): bool => static::kapsamRequiresIslemTuru($get))
                                             ->live()
+                                            ->dehydrated(true)
                                             ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire))
                                             ->afterStateUpdated(function (Set $set, ?string $state): void {
                                                 $normalized = KapsamIslemTuru::normalize($state);
@@ -1587,36 +1591,40 @@ class AylikFaaliyetResource extends Resource
                                                 $set('bitis_tarihi_ui', null);
                                                 $set('gunluk_tarihi_ui', null);
                                             })
-                                            ->afterStateHydrated(fn (Set $set, Get $get, mixed $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'islem_turu', 'islem_turu_ui'))
-                                            ->dehydrated(false)
                                             ->columnSpanFull(),
-                                        Grid::make(2)->schema([
-                                            Forms\Components\DatePicker::make('baslangic_tarihi_ui')
-                                                ->label('Başlangıç Tarihi')
-                                                ->native(false)
-                                                ->displayFormat('d.m.Y')
-                                                ->required(fn (Get $get): bool => static::kapsamRequiresProcessDateRange($get))
-                                                ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
-                                                ->afterStateUpdated(function (Set $set, mixed $state): void {
-                                                    $set('baslangic_tarihi', static::normalizeKapsamDate($state));
-                                                })
-                                                ->afterStateHydrated(fn (Set $set, Get $get, mixed $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'baslangic_tarihi', 'baslangic_tarihi_ui'))
-                                                ->dehydrated(false),
-                                            Forms\Components\DatePicker::make('bitis_tarihi_ui')
-                                                ->label('Bitiş Tarihi')
-                                                ->native(false)
-                                                ->displayFormat('d.m.Y')
-                                                ->required(fn (Get $get): bool => static::kapsamRequiresProcessDateRange($get))
-                                                ->afterOrEqual('baslangic_tarihi_ui')
-                                                ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
-                                                ->afterStateUpdated(function (Set $set, mixed $state): void {
-                                                    $set('bitis_tarihi', static::normalizeKapsamDate($state));
-                                                })
-                                                ->afterStateHydrated(fn (Set $set, Get $get, mixed $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'bitis_tarihi', 'bitis_tarihi_ui'))
-                                                ->dehydrated(false),
-                                        ])->columnSpanFull()
+                                        Section::make('Süreç Tarihleri')
+                                            ->description('Başlangıç ve bitiş tarihi seçiniz.')
+                                            ->schema([
+                                                Grid::make(2)->schema([
+                                                    Forms\Components\DatePicker::make('baslangic_tarihi_ui')
+                                                        ->label('Başlangıç Tarihi')
+                                                        ->native(false)
+                                                        ->displayFormat('d.m.Y')
+                                                        ->required(fn (Get $get): bool => static::kapsamRequiresProcessDateRange($get))
+                                                        ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
+                                                        ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                                            $set('baslangic_tarihi', static::normalizeKapsamDate($state));
+                                                        })
+                                                        ->afterStateHydrated(fn (Set $set, Get $get, mixed $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'baslangic_tarihi', 'baslangic_tarihi_ui'))
+                                                        ->dehydrated(false),
+                                                    Forms\Components\DatePicker::make('bitis_tarihi_ui')
+                                                        ->label('Bitiş Tarihi')
+                                                        ->native(false)
+                                                        ->displayFormat('d.m.Y')
+                                                        ->required(fn (Get $get): bool => static::kapsamRequiresProcessDateRange($get))
+                                                        ->afterOrEqual('baslangic_tarihi_ui')
+                                                        ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
+                                                        ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                                            $set('bitis_tarihi', static::normalizeKapsamDate($state));
+                                                        })
+                                                        ->afterStateHydrated(fn (Set $set, Get $get, mixed $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'bitis_tarihi', 'bitis_tarihi_ui'))
+                                                        ->dehydrated(false),
+                                                ]),
+                                            ])
                                             ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
-                                                && static::kapsamShowsProcessDateFields($get)),
+                                                && static::kapsamShowsProcessDateFields($get))
+                                            ->compact()
+                                            ->columnSpanFull(),
                                         Forms\Components\DatePicker::make('gunluk_tarihi_ui')
                                             ->label('Tarih')
                                             ->native(false)
