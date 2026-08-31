@@ -166,6 +166,9 @@ final class AylikFaaliyetRepeaterLock
                         $original['kapsam_verileri'][$idx]['islem_turu'] = $incomingTur;
                     }
                 }
+                if (array_key_exists('kalem_notu', $incomingKv[$idx])) {
+                    $original['kapsam_verileri'][$idx]['kalem_notu'] = $incomingKv[$idx]['kalem_notu'];
+                }
                 $incomingKapatildi = (bool) ($incomingKv[$idx]['acikta_kapatildi'] ?? false);
                 foreach (['acikta_revize_tarihi', 'acikta_revize_notu'] as $revizeKey) {
                     if (! array_key_exists($revizeKey, $incomingKv[$idx])) {
