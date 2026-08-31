@@ -15,7 +15,7 @@ final class ReportPeriodWeeks
 {
     public const WEEK_COUNT = 5;
 
-  /** Aylık raporlama dönemi (hafta numarası yerine). */
+    /** Aylık raporlama dönemi (hafta numarası yerine). */
     public const MONTHLY_VALUE = 'aylik';
 
     /**
@@ -272,17 +272,7 @@ final class ReportPeriodWeeks
             return $week.'. Hafta';
         }
 
-        $range = self::weekByNumber($year, $month, $week);
-        if ($range === null) {
-            return $week.'. Hafta';
-        }
-
-        return sprintf(
-            '%d. Hafta (%s – %s)',
-            $week,
-            self::formatDate($range['baslangic']),
-            self::formatDate($range['bitis'])
-        );
+        return $week.'. Hafta';
     }
 
     public static function monthPeriodLabel(int $year, int $month): string
@@ -471,7 +461,6 @@ final class ReportPeriodWeeks
 
         return self::weekShortLabel($yearNumber, $monthNumber, $weekNumber);
     }
-
 
     private static function firstFridayOnOrAfter(Carbon $from, Carbon $max): ?Carbon
     {

@@ -498,7 +498,6 @@ final class ActivityCatalogReportSync
         $map = [
             'kapsam_icerigi' => 'Faaliyet ailesi',
             'olcu_birimi' => 'Ölçü birimi',
-            'raporlama_sikligi' => 'Raporlama sıklığı',
             'baskanlik_bilgilendirme_seviyesi' => 'Başkanlık bilgilendirme',
         ];
 

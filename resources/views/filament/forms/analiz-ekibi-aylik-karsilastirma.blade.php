@@ -274,7 +274,6 @@
                 <thead>
                     <tr>
                         <th>Hafta</th>
-                        <th>Tarih aralığı</th>
                         <th>Rapor</th>
                         <th class="num">SLA</th>
                         <th class="num">Açık kalem</th>
@@ -290,7 +289,6 @@
                         @endphp
                         <tr class="t-{{ $slaTone }}">
                             <td>{{ $hafta['kisa'] }}</td>
-                            <td>{{ $hafta['range'] !== '' ? $hafta['range'] : '—' }}</td>
                             <td>{{ ($hafta['rapor_var'] ?? false) ? 'Var' : 'Yok' }}</td>
                             <td class="num">{{ ($hafta['sla'] ?? null) !== null ? '%'.$hafta['sla'] : '—' }}</td>
                             <td class="num">{{ $hafta['acikta'] !== null ? $fmt($hafta['acikta']) : '—' }}</td>

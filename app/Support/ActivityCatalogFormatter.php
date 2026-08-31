@@ -32,7 +32,7 @@ final class ActivityCatalogFormatter
         $ids = array_map('intval', array_keys($raw));
         $rows = ActivityCatalog::query()
             ->whereIn('id', $ids)
-            ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'raporlama_sikligi']);
+            ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi']);
 
         $out = [];
         foreach ($rows as $row) {
@@ -40,7 +40,7 @@ final class ActivityCatalogFormatter
             if ($code !== '' && in_array($code, self::HIDDEN_ACTIVITY_CODES, true)) {
                 continue;
             }
-            $label = static::buildCatalogLabel($row);
+            $label = self::buildCatalogLabel($row);
             $out[(int) $row->id] = $label;
             self::$labelCache[(int) $row->id] = $label;
         }
@@ -66,11 +66,11 @@ final class ActivityCatalogFormatter
 
         $rows = ActivityCatalog::query()
             ->whereIn('id', array_values(array_unique($missing)))
-            ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'raporlama_sikligi']);
+            ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi']);
 
         $found = [];
         foreach ($rows as $row) {
-            $label = static::buildCatalogLabel($row);
+            $label = self::buildCatalogLabel($row);
             self::$labelCache[(int) $row->id] = $label;
             $found[(int) $row->id] = true;
         }
@@ -97,7 +97,7 @@ final class ActivityCatalogFormatter
             return null;
         }
 
-        return self::$labelCache[$id] = static::buildCatalogLabel($row);
+        return self::$labelCache[$id] = self::buildCatalogLabel($row);
     }
 
     /**
@@ -149,7 +149,6 @@ final class ActivityCatalogFormatter
         $base = trim((string) $row->faaliyet_kodu).' - '.trim((string) $row->faaliyet_ailesi);
         $olcuBirimi = trim((string) ($row->olcu_birimi ?? ''));
         $kpiSla = trim((string) ($row->kpi_sla ?? ''));
-        $freq = trim((string) ($row->raporlama_sikligi ?? ''));
         $infoLevel = trim((string) ($row->baskanlik_bilgilendirme_seviyesi ?? ''));
 
         $parts = [];
@@ -158,9 +157,6 @@ final class ActivityCatalogFormatter
         }
         if ($kpiSla !== '') {
             $parts[] = 'KPI/SLA: '.$kpiSla;
-        }
-        if ($freq !== '') {
-            $parts[] = 'Raporlama: '.$freq;
         }
         if ($infoLevel !== '') {
             $parts[] = 'Bilgilendirme: '.$infoLevel;

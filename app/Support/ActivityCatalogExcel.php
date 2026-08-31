@@ -56,7 +56,6 @@ final class ActivityCatalogExcel
             'Alt Kalem',
             'Ölçü Birimi',
             'KPI / SLA',
-            'Raporlama Sıklığı',
             'Kategori',
         ], $headerStyle));
 
@@ -68,7 +67,6 @@ final class ActivityCatalogExcel
                 $row['kalem'],
                 $row['olcu'],
                 $row['kpi'],
-                $row['sikligi'],
                 $row['kategori'],
             ]));
         }
@@ -95,7 +93,7 @@ final class ActivityCatalogExcel
     }
 
     /**
-     * @return list<array{mudurluk: string, kod: string, aile: string, kalem: string, olcu: string, kpi: string, sikligi: string, kategori: string}>
+     * @return list<array{mudurluk: string, kod: string, aile: string, kalem: string, olcu: string, kpi: string, kategori: string}>
      */
     public static function detailRows(Collection $catalogs): array
     {
@@ -109,7 +107,6 @@ final class ActivityCatalogExcel
             $aile = trim((string) ($catalog->faaliyet_ailesi ?? ''));
             $olcu = trim((string) ($catalog->olcu_birimi ?? ''));
             $kpi = trim((string) ($catalog->kpi_sla ?? ''));
-            $sikligi = trim((string) ($catalog->raporlama_sikligi ?? ''));
             $kategori = trim((string) ($catalog->kategori ?? ''));
             $kalemler = self::parseKapsamKalemleri((string) ($catalog->kapsam ?? ''));
             if ($kalemler === []) {
@@ -123,7 +120,6 @@ final class ActivityCatalogExcel
                     'kalem' => $kalem,
                     'olcu' => $olcu,
                     'kpi' => $kpi,
-                    'sikligi' => $sikligi,
                     'kategori' => $kategori,
                 ];
             }

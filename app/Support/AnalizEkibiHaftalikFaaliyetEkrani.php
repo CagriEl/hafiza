@@ -211,18 +211,10 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                 }
             }
 
-            $range = '';
-            $start = $def['baslangic'] ?? null;
-            $end = $def['bitis'] ?? null;
-            if ($start instanceof \Carbon\Carbon && $end instanceof \Carbon\Carbon) {
-                $range = ReportPeriodWeeks::formatDate($start).' – '.ReportPeriodWeeks::formatDate($end);
-            }
-
             $haftalar[] = [
                 'hafta' => $haftaNo,
                 'etiket' => $etiket,
                 'kisa' => $haftaNo.'. hafta',
-                'range' => $range,
                 'rapor_var' => $var,
                 'sla' => $sla['oran'],
                 'acikta' => $var ? $acikta : null,

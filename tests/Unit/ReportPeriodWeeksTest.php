@@ -49,7 +49,7 @@ class ReportPeriodWeeksTest extends TestCase
         $options = ReportPeriodWeeks::selectOptions(2026, 3);
 
         $this->assertArrayHasKey(2, $options);
-        $this->assertSame('2. Hafta (02.03.2026 – 08.03.2026)', $options[2]);
+        $this->assertSame('2. Hafta', $options[2]);
     }
 
     public function test_resolve_week_for_current_date_in_report_period(): void

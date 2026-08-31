@@ -11,7 +11,7 @@ class SyncAylikFaaliyetCatalogMetadataCommand extends Command
     protected $signature = 'aylik-faaliyet:sync-catalog-metadata
                             {--dry-run : Değişiklikleri kaydetmeden önizle}';
 
-    protected $description = 'Mevcut rapor satırlarında yalnızca raporlama sıklığı ve başkanlık bilgilendirme seviyesini katalog/JSON ile günceller (kodlar ve kapsam korunur).';
+    protected $description = 'Mevcut rapor satırlarında yalnızca başkanlık bilgilendirme seviyesini katalog/JSON ile günceller (kodlar ve kapsam korunur).';
 
     public function handle(): int
     {
@@ -89,7 +89,7 @@ class SyncAylikFaaliyetCatalogMetadataCommand extends Command
             if (trim((string) ($row['faaliyet_kodu'] ?? '')) !== trim((string) ($next['faaliyet_kodu'] ?? ''))) {
                 return 0;
             }
-            foreach (['raporlama_sikligi', 'baskanlik_bilgilendirme_seviyesi'] as $field) {
+            foreach (['baskanlik_bilgilendirme_seviyesi'] as $field) {
                 if (trim((string) ($row[$field] ?? '')) !== trim((string) ($next[$field] ?? ''))) {
                     $count++;
                     break;

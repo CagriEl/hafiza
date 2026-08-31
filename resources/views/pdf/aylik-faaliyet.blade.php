@@ -28,8 +28,8 @@
     <div class="bilgi-kutusu">
         <strong>Birim:</strong> {{ $rapor->user->name }} <br>
         <strong>Oluşturulma Tarihi:</strong> {{ $rapor->created_at->format('d.m.Y H:i') }} <br>
-        @if($raporYil > 0 && $raporAy >= 1)
-            <strong>Haftalar:</strong> {{ ReportPeriodWeeks::weeksOverviewText($raporYil, $raporAy) }}
+        @if($raporYil > 0 && $raporAy >= 1 && filled($rapor->hafta ?? null))
+            <strong>Hafta:</strong> {{ ReportPeriodWeeks::weekShortLabel($raporYil, $raporAy, (int) $rapor->hafta) }}
         @endif
     </div>
 
