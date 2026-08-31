@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Support\ActivityCatalogFormatter;
 use App\Support\ActivityCatalogMetadataByCode;
 use App\Support\KapsamIslemTuru;
+use App\Support\AylikFaaliyetEscalation;
 use App\Support\AylikFaaliyetPeriodMerge;
 use App\Support\AylikFaaliyetRepeaterLock;
 use App\Support\AylikFaaliyetWeeklyCarryover;
