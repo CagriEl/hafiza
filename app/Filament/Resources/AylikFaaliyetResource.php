@@ -215,18 +215,37 @@ class AylikFaaliyetResource extends Resource
         return static::kapsamHasEnteredQuantity($get);
     }
 
-    public static function kapsamRequiresDateRange(Get $get): bool
+    public static function resolveKapsamIslemTuru(Get $get): ?string
     {
-        if (! KapsamIslemTuru::requiresDateRange(KapsamIslemTuru::normalize($get('islem_turu')))) {
+        return KapsamIslemTuru::normalize($get('islem_turu_ui') ?? $get('islem_turu'));
+    }
+
+    public static function kapsamRequiresProcessDateRange(Get $get): bool
+    {
+        if (! KapsamIslemTuru::requiresProcessDateRange(static::resolveKapsamIslemTuru($get))) {
             return false;
         }
 
         return static::kapsamHasEnteredQuantity($get);
     }
 
-    public static function kapsamShowsDateFields(Get $get): bool
+    public static function kapsamRequiresDailyDate(Get $get): bool
     {
-        return KapsamIslemTuru::requiresDateRange(KapsamIslemTuru::normalize($get('islem_turu')));
+        if (! KapsamIslemTuru::requiresDailyDate(static::resolveKapsamIslemTuru($get))) {
+            return false;
+        }
+
+        return static::kapsamHasEnteredQuantity($get);
+    }
+
+    public static function kapsamShowsProcessDateFields(Get $get): bool
+    {
+        return KapsamIslemTuru::requiresProcessDateRange(static::resolveKapsamIslemTuru($get));
+    }
+
+    public static function kapsamShowsDailyDateField(Get $get): bool
+    {
+        return KapsamIslemTuru::requiresDailyDate(static::resolveKapsamIslemTuru($get));
     }
 
     public static function kapsamDateFieldsEditable(Get $get, mixed $livewire): bool
@@ -316,11 +335,23 @@ class AylikFaaliyetResource extends Resource
                     $line['bitis_tarihi'] = null;
                 }
 
-                if ($hasQuantity && KapsamIslemTuru::requiresDateRange($line['islem_turu'])
+                if ($hasQuantity && KapsamIslemTuru::requiresProcessDateRange($line['islem_turu'])
                     && (! filled($line['baslangic_tarihi']) || ! filled($line['bitis_tarihi']))) {
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'data.faaliyetler' => 'Süreç gerektir ve günlük kalemlerde başlangıç ve bitiş tarihi zorunludur.',
+                        'data.faaliyetler' => 'Süreç gerektirir kalemlerde başlangıç ve bitiş tarihi zorunludur.',
                     ]);
+                }
+
+                if ($hasQuantity && KapsamIslemTuru::requiresDailyDate($line['islem_turu'])
+                    && ! filled($line['baslangic_tarihi'])) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'data.faaliyetler' => 'Günlük kalemlerde tarih zorunludur.',
+                    ]);
+                }
+
+                if ($hasQuantity && KapsamIslemTuru::requiresDailyDate($line['islem_turu'])
+                    && filled($line['baslangic_tarihi'])) {
+                    $line['bitis_tarihi'] = $line['baslangic_tarihi'];
                 }
 
                 if (filled($line['baslangic_tarihi']) && filled($line['bitis_tarihi'])
@@ -1413,7 +1444,7 @@ class AylikFaaliyetResource extends Resource
 
                                 Repeater::make('kapsam_verileri')
                                     ->label('Kapsam kalemleri')
-                                    ->helperText('İş varsa miktarı girin; yoksa alanı boş bırakın (0 yazmayın). Miktar girilen kalemlerde işlem türü zorunludur; süreç ve günlük işlerde tarih aralığı girilir.')
+                                    ->helperText('İş varsa miktarı girin; yoksa alanı boş bırakın (0 yazmayın). Miktar girilen kalemlerde işlem türü zorunludur. Süreç gerektirir seçildiğinde başlangıç/bitiş, günlük seçildiğinde tarih girilir.')
                                     ->dehydrated()
                                     ->schema([
                                         Forms\Components\Hidden::make('kalem')->dehydrated(true),
@@ -1559,12 +1590,11 @@ class AylikFaaliyetResource extends Resource
                                             ->afterStateUpdated(function (Set $set, ?string $state): void {
                                                 $normalized = KapsamIslemTuru::normalize($state);
                                                 $set('islem_turu', $normalized);
-                                                if (! KapsamIslemTuru::requiresDateRange($normalized)) {
-                                                    $set('baslangic_tarihi', null);
-                                                    $set('bitis_tarihi', null);
-                                                    $set('baslangic_tarihi_ui', null);
-                                                    $set('bitis_tarihi_ui', null);
-                                                }
+                                                $set('baslangic_tarihi', null);
+                                                $set('bitis_tarihi', null);
+                                                $set('baslangic_tarihi_ui', null);
+                                                $set('bitis_tarihi_ui', null);
+                                                $set('gunluk_tarihi_ui', null);
                                             })
                                             ->afterStateHydrated(fn (Set $set, Get $get, mixed $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'islem_turu', 'islem_turu_ui'))
                                             ->dehydrated(false)
@@ -1574,9 +1604,7 @@ class AylikFaaliyetResource extends Resource
                                                 ->label('Başlangıç Tarihi')
                                                 ->native(false)
                                                 ->displayFormat('d.m.Y')
-                                                ->required(fn (Get $get): bool => static::kapsamRequiresDateRange($get))
-                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
-                                                    && static::kapsamShowsDateFields($get))
+                                                ->required(fn (Get $get): bool => static::kapsamRequiresProcessDateRange($get))
                                                 ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
                                                 ->afterStateUpdated(function (Set $set, mixed $state): void {
                                                     $set('baslangic_tarihi', static::normalizeKapsamDate($state));
@@ -1587,10 +1615,8 @@ class AylikFaaliyetResource extends Resource
                                                 ->label('Bitiş Tarihi')
                                                 ->native(false)
                                                 ->displayFormat('d.m.Y')
-                                                ->required(fn (Get $get): bool => static::kapsamRequiresDateRange($get))
+                                                ->required(fn (Get $get): bool => static::kapsamRequiresProcessDateRange($get))
                                                 ->afterOrEqual('baslangic_tarihi_ui')
-                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
-                                                    && static::kapsamShowsDateFields($get))
                                                 ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
                                                 ->afterStateUpdated(function (Set $set, mixed $state): void {
                                                     $set('bitis_tarihi', static::normalizeKapsamDate($state));
@@ -1599,7 +1625,33 @@ class AylikFaaliyetResource extends Resource
                                                 ->dehydrated(false),
                                         ])->columnSpanFull()
                                             ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
-                                                && static::kapsamShowsDateFields($get)),
+                                                && static::kapsamShowsProcessDateFields($get)),
+                                        Forms\Components\DatePicker::make('gunluk_tarihi_ui')
+                                            ->label('Tarih')
+                                            ->native(false)
+                                            ->displayFormat('d.m.Y')
+                                            ->required(fn (Get $get): bool => static::kapsamRequiresDailyDate($get))
+                                            ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
+                                                && static::kapsamShowsDailyDateField($get))
+                                            ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
+                                            ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                                $date = static::normalizeKapsamDate($state);
+                                                $set('baslangic_tarihi', $date);
+                                                $set('bitis_tarihi', $date);
+                                            })
+                                            ->afterStateHydrated(function (Set $set, Get $get, mixed $state): void {
+                                                $stored = $get('baslangic_tarihi') ?? $get('bitis_tarihi');
+                                                if (filled($stored)) {
+                                                    $set('gunluk_tarihi_ui', $stored);
+
+                                                    return;
+                                                }
+                                                if (filled($state)) {
+                                                    $set('gunluk_tarihi_ui', $state);
+                                                }
+                                            })
+                                            ->dehydrated(false)
+                                            ->columnSpanFull(),
                                         Section::make('Açıkta İş Kapat Revizesi')
                                             ->description('Her kalemde açık işi not ile kapatabilirsiniz. Örn: 10 işten 7 tamamlandı, 3 kaldı → bu hafta 2’sini not ile kapatıp 1’ini sonraki haftaya bırakın.')
                                             ->schema([

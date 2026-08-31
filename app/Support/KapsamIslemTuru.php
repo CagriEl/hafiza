@@ -16,7 +16,7 @@ final class KapsamIslemTuru
     public static function options(): array
     {
         return [
-            self::SUREC => 'Süreç gerektir',
+            self::SUREC => 'Süreç gerektirir',
             self::ANLIK => 'Anlık',
             self::GUNLUK => 'Günlük',
         ];
@@ -33,9 +33,19 @@ final class KapsamIslemTuru
         return array_key_exists($key, self::options()) ? $key : null;
     }
 
+    public static function requiresProcessDateRange(?string $tur): bool
+    {
+        return $tur === self::SUREC;
+    }
+
+    public static function requiresDailyDate(?string $tur): bool
+    {
+        return $tur === self::GUNLUK;
+    }
+
     public static function requiresDateRange(?string $tur): bool
     {
-        return in_array($tur, [self::SUREC, self::GUNLUK], true);
+        return self::requiresProcessDateRange($tur) || self::requiresDailyDate($tur);
     }
 
     public static function label(?string $tur): ?string

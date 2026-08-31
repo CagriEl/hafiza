@@ -9,6 +9,8 @@ class KapsamIslemTuruTest extends TestCase
 {
     public function test_requires_date_range_for_surec_and_gunluk_only(): void
     {
+        $this->assertTrue(KapsamIslemTuru::requiresProcessDateRange(KapsamIslemTuru::SUREC));
+        $this->assertTrue(KapsamIslemTuru::requiresDailyDate(KapsamIslemTuru::GUNLUK));
         $this->assertTrue(KapsamIslemTuru::requiresDateRange(KapsamIslemTuru::SUREC));
         $this->assertTrue(KapsamIslemTuru::requiresDateRange(KapsamIslemTuru::GUNLUK));
         $this->assertFalse(KapsamIslemTuru::requiresDateRange(KapsamIslemTuru::ANLIK));

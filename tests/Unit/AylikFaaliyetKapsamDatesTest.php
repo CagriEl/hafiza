@@ -49,26 +49,7 @@ class AylikFaaliyetKapsamDatesTest extends TestCase
         $this->assertNull($line['bitis_tarihi']);
     }
 
-    public function test_enforce_kapsam_date_ranges_requires_dates_for_surec(): void
-    {
-        $this->expectException(ValidationException::class);
-
-        AylikFaaliyetResource::enforceKapsamDateRanges([
-            'faaliyetler' => [
-                [
-                    'kapsam_verileri' => [
-                        [
-                            'kalem' => 'Test kalem',
-                            'ongorulen' => 5,
-                            'islem_turu' => KapsamIslemTuru::SUREC,
-                        ],
-                    ],
-                ],
-            ],
-        ]);
-    }
-
-    public function test_enforce_kapsam_date_ranges_normalizes_valid_dates(): void
+    public function test_enforce_kapsam_date_ranges_normalizes_valid_process_dates(): void
     {
         $data = AylikFaaliyetResource::enforceKapsamDateRanges([
             'faaliyetler' => [
@@ -77,7 +58,7 @@ class AylikFaaliyetKapsamDatesTest extends TestCase
                         [
                             'kalem' => 'Test kalem',
                             'ongorulen' => 5,
-                            'islem_turu' => KapsamIslemTuru::GUNLUK,
+                            'islem_turu' => KapsamIslemTuru::SUREC,
                             'baslangic_tarihi' => '2026-08-01',
                             'bitis_tarihi' => '2026-08-05',
                         ],
@@ -89,7 +70,29 @@ class AylikFaaliyetKapsamDatesTest extends TestCase
         $line = $data['faaliyetler'][0]['kapsam_verileri'][0];
         $this->assertSame('2026-08-01', $line['baslangic_tarihi']);
         $this->assertSame('2026-08-05', $line['bitis_tarihi']);
-        $this->assertSame(KapsamIslemTuru::GUNLUK, $line['islem_turu']);
+        $this->assertSame(KapsamIslemTuru::SUREC, $line['islem_turu']);
+    }
+
+    public function test_enforce_kapsam_date_ranges_requires_single_date_for_gunluk(): void
+    {
+        $data = AylikFaaliyetResource::enforceKapsamDateRanges([
+            'faaliyetler' => [
+                [
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'Test kalem',
+                            'ongorulen' => 5,
+                            'islem_turu' => KapsamIslemTuru::GUNLUK,
+                            'baslangic_tarihi' => '2026-08-03',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $line = $data['faaliyetler'][0]['kapsam_verileri'][0];
+        $this->assertSame('2026-08-03', $line['baslangic_tarihi']);
+        $this->assertSame('2026-08-03', $line['bitis_tarihi']);
     }
 
     public function test_format_kapsam_date_range(): void
