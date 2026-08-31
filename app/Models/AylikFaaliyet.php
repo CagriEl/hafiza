@@ -132,9 +132,11 @@ class AylikFaaliyet extends Model
     {
         $yil = (int) ($this->yil ?? 0);
         $ay = (int) preg_replace('/\D/', '', (string) ($this->ay ?? ''));
-        $hafta = $this->hafta ?? null;
 
-        return \App\Support\ReportPeriodWeeks::periodLabelForRecord($yil, $ay, $hafta)
-            ?? (string) ($hafta ?? '—');
+        if ($yil > 0 && $ay >= 1 && $ay <= 12) {
+            return \App\Support\ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
+        }
+
+        return trim((string) (($this->yil ?? '—').' / '.str_pad((string) ($this->ay ?? '—'), 2, '0', STR_PAD_LEFT)));
     }
 }

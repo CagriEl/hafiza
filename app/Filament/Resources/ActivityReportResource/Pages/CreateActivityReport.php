@@ -41,27 +41,25 @@ class CreateActivityReport extends CreateRecord
         $userId = (int) (auth()->id() ?? 0);
         $yil = (int) ($data['yil'] ?? 0);
         $ay = AylikFaaliyetPeriodMerge::normalizeAy((string) ($data['ay'] ?? ''));
-        $hafta = ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null)
-            ?? (string) ReportPeriodWeeks::resolveWeekForReportPeriod($yil, (int) $ay);
+        $hafta = ReportPeriodWeeks::MONTHLY_VALUE;
 
         if ($userId > 0 && $yil > 0 && $ay !== ''
-            && AylikFaaliyet::existsForUserPeriodWeek($userId, $yil, $ay, $hafta)) {
+            && AylikFaaliyet::existsForUserPeriod($userId, $yil, $ay)) {
             $existing = AylikFaaliyet::query()
                 ->where('user_id', $userId)
                 ->where('yil', $yil)
                 ->whereIn('ay', AylikFaaliyet::ayQueryVariants($ay))
-                ->where('hafta', $hafta)
                 ->orderBy('id')
                 ->first();
 
             if ($existing instanceof AylikFaaliyet) {
                 $editUrl = ActivityReportResource::getUrl('edit', ['record' => $existing]);
-                $label = ReportPeriodWeeks::periodLabelForRecord($yil, (int) $ay, $hafta) ?? $hafta;
+                $label = ReportPeriodWeeks::monthPeriodLabel($yil, (int) $ay);
 
                 Notification::make()
                     ->warning()
-                    ->title('Bu hafta için rapor zaten var')
-                    ->body("{$yil}-{$ay} · {$label} için yeni rapor açılamaz. Mevcut hafta raporuna yönlendiriliyorsunuz.")
+                    ->title('Bu dönem için rapor zaten var')
+                    ->body("{$label} için yeni rapor açılamaz. Mevcut rapora yönlendiriliyorsunuz.")
                     ->actions([
                         Action::make('raporaGit')
                             ->label('Mevcut Raporu Aç')
@@ -94,7 +92,7 @@ class CreateActivityReport extends CreateRecord
         $mudurlukAdi = auth()->user()->name;
         $ay = $this->record->ay;
         $yil = $this->record->yil;
-        $haftaLabel = $this->record->raporHaftasiLabel();
+        $donemLabel = ReportPeriodWeeks::monthPeriodLabel($yil, (int) preg_replace('/\D/', '', (string) $ay));
 
         $admin = User::find(1);
 
@@ -106,8 +104,8 @@ class CreateActivityReport extends CreateRecord
                 ->title('Yeni Faaliyet Raporu Girildi')
                 ->body(
                     $escalation
-                        ? "$mudurlukAdi, $yil - $ay ($haftaLabel) raporunda üst yönetim bilgilendirmesi gereken sapma veya gecikme satırları var."
-                        : "$mudurlukAdi, $yil - $ay ($haftaLabel) faaliyet raporunu sisteme yükledi."
+                        ? "$mudurlukAdi, $donemLabel raporunda üst yönetim bilgilendirmesi gereken sapma veya gecikme satırları var."
+                        : "$mudurlukAdi, $donemLabel faaliyet raporunu sisteme yükledi."
                 )
                 ->success()
                 ->actions([

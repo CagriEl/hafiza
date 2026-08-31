@@ -175,11 +175,10 @@ final class AylikFaaliyetPdfHtml
                 ? e(ReportPeriodWeeks::monthPeriodLabel($yil, $ay))
                 : e((string) ($record->yil.' / '.$record->ay));
             $kayitTarihi = e(AylikFaaliyetResource::reportRecordSavedAtLabel($record) ?? '—');
-            $raporHaftalari = e(AylikFaaliyetResource::reportAssignedWeeksSummary($record, true) ?? '—');
 
             $html .= '<tr>
                         <td>'.e($record->user->name ?? 'Belirtilmemiş').'</td>
-                        <td>'.$donem.'<br><small>Kayıt: '.$kayitTarihi.'</small><br><small>Haftalar: '.$raporHaftalari.'</small></td>
+                        <td>'.$donem.'<br><small>Kayıt: '.$kayitTarihi.'</small></td>
                         <td>'.$isDetaylari.'</td>
                       </tr>';
         }

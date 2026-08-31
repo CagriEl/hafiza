@@ -39,27 +39,25 @@ class CreateAylikFaaliyet extends CreateRecord
         $userId = (int) (auth()->id() ?? 0);
         $yil = (int) ($data['yil'] ?? 0);
         $ay = \App\Support\AylikFaaliyetPeriodMerge::normalizeAy((string) ($data['ay'] ?? ''));
-        $hafta = \App\Support\ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null)
-            ?? (string) \App\Support\ReportPeriodWeeks::resolveWeekForReportPeriod($yil, (int) $ay);
+        $hafta = \App\Support\ReportPeriodWeeks::MONTHLY_VALUE;
 
         if ($userId > 0 && $yil > 0 && $ay !== ''
-            && AylikFaaliyet::existsForUserPeriodWeek($userId, $yil, $ay, $hafta)) {
+            && AylikFaaliyet::existsForUserPeriod($userId, $yil, $ay)) {
             $existing = AylikFaaliyet::query()
                 ->where('user_id', $userId)
                 ->where('yil', $yil)
                 ->whereIn('ay', AylikFaaliyet::ayQueryVariants($ay))
-                ->where('hafta', $hafta)
                 ->orderBy('id')
                 ->first();
 
             if ($existing instanceof AylikFaaliyet) {
                 $editUrl = ActivityReportResource::getUrl('edit', ['record' => $existing]);
-                $label = \App\Support\ReportPeriodWeeks::periodLabelForRecord($yil, (int) $ay, $hafta) ?? $hafta;
+                $label = \App\Support\ReportPeriodWeeks::monthPeriodLabel($yil, (int) $ay);
 
                 Notification::make()
                     ->warning()
-                    ->title('Bu hafta için rapor zaten var')
-                    ->body("{$yil}-{$ay} · {$label} için yeni rapor açılamaz. Mevcut hafta raporuna yönlendiriliyorsunuz.")
+                    ->title('Bu dönem için rapor zaten var')
+                    ->body("{$label} için yeni rapor açılamaz. Mevcut rapora yönlendiriliyorsunuz.")
                     ->actions([
                         Action::make('raporaGit')
                             ->label('Mevcut Raporu Aç')

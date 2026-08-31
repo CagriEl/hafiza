@@ -28,9 +28,6 @@
     <div class="bilgi-kutusu">
         <strong>Birim:</strong> {{ $rapor->user->name }} <br>
         <strong>Oluşturulma Tarihi:</strong> {{ $rapor->created_at->format('d.m.Y H:i') }} <br>
-        @if($raporYil > 0 && $raporAy >= 1 && filled($rapor->hafta ?? null))
-            <strong>Hafta:</strong> {{ ReportPeriodWeeks::weekShortLabel($raporYil, $raporAy, (int) $rapor->hafta) }}
-        @endif
     </div>
 
     <h3>1. Personel Durumu</h3>
@@ -63,22 +60,15 @@
     <table>
         <thead>
             <tr>
-                <th style="width: 10%;">Hafta / Tarih Aralığı</th>
                 <th style="width: 40%;">Konu / Yapılacak İş</th>
                 <th style="width: 15%;">Durum</th>
-                <th style="width: 35%;">Gerçekleşme Sonucu / Açıklama</th>
+                <th style="width: 45%;">Gerçekleşme Sonucu / Açıklama</th>
             </tr>
         </thead>
         <tbody>
             @if(is_array($rapor->faaliyetler))
                 @foreach($rapor->faaliyetler as $is)
                     <tr>
-                        <td style="text-align: center;">
-                            @php
-                                $haftaLabel = ReportPeriodWeeks::weekLabelForRecord($raporYil, $raporAy, $is['hafta'] ?? null);
-                            @endphp
-                            {{ $haftaLabel ?? (($is['hafta'] ?? '—').'. Hafta') }}
-                        </td>
                         <td>{{ $is['konu'] }}</td>
                         <td style="text-align: center;">
                             @php
