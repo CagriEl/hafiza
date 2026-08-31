@@ -193,6 +193,168 @@ class AylikFaaliyetResource extends Resource
         $set($hiddenKey, $state === '' || $state === null ? null : $state);
     }
 
+    /**
+     * @return array{min: Carbon, max: Carbon}|null
+     */
+    public static function kapsamReportWeekDateBounds(Get $get, mixed $livewire = null): ?array
+    {
+        [$yil, $ay] = static::resolveReportPeriodFromLivewire($livewire);
+        if ($yil <= 0 || $ay < 1 || $ay > 12) {
+            $yil = (int) ($get('yil') ?? $get('../../yil') ?? $get('../../../yil') ?? 0);
+            $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? $get('../../ay') ?? $get('../../../ay') ?? ''));
+        }
+
+        if ($yil <= 0 || $ay < 1 || $ay > 12) {
+            return null;
+        }
+
+        $selected = $get('hafta') ?? $get('../../hafta') ?? $get('../../../hafta') ?? null;
+        if (is_object($livewire) && property_exists($livewire, 'data') && is_array($livewire->data)) {
+            $selected ??= $livewire->data['hafta'] ?? null;
+        }
+
+        if (ReportPeriodWeeks::isMonthlyPeriod($selected)) {
+            $bounds = ReportPeriodWeeks::monthBounds($yil, $ay);
+
+            return [
+                'min' => $bounds['start']->copy()->startOfDay(),
+                'max' => $bounds['end']->copy()->startOfDay(),
+            ];
+        }
+
+        $week = static::currentReportWeekForForm($get, $livewire);
+        if ($week < 1) {
+            return null;
+        }
+
+        $range = ReportPeriodWeeks::weekByNumber($yil, $ay, $week);
+        if ($range === null) {
+            return null;
+        }
+
+        return [
+            'min' => $range['baslangic']->copy()->startOfDay(),
+            'max' => $range['bitis']->copy()->startOfDay(),
+        ];
+    }
+
+    public static function kapsamRequiresDateRange(Get $get): bool
+    {
+        if (static::hasProvidedNumericValue($get('ongorulen') ?? $get('deger'))) {
+            return true;
+        }
+
+        if (static::hasProvidedNumericValue($get('gerceklesen'))) {
+            return true;
+        }
+
+        if (static::hasProvidedNumericValue($get('bu_hafta_tamamlanan'))) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static function kapsamDateFieldsEditable(Get $get, mixed $livewire): bool
+    {
+        if (! static::kapsamKalemVisibleInCurrentWeek($get, $livewire)) {
+            return false;
+        }
+
+        if (! filled($get('baslangic_tarihi')) || ! filled($get('bitis_tarihi'))) {
+            return true;
+        }
+
+        if (static::kapsamShowsWeeklyEntryFields($get, $livewire)) {
+            return true;
+        }
+
+        $user = auth()->user();
+        if ($user instanceof User && $user->isReportingSuperAdmin()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static function normalizeKapsamDate(mixed $value): ?string
+    {
+        if (! filled($value)) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse((string) $value)->startOfDay()->toDateString();
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Miktar girilen kalemlerde başlangıç/bitiş tarihi zorunludur.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function enforceKapsamDateRanges(array $data): array
+    {
+        if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
+            return $data;
+        }
+
+        foreach ($data['faaliyetler'] as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $kv = $row['kapsam_verileri'] ?? null;
+            if (! is_array($kv)) {
+                continue;
+            }
+
+            foreach (array_keys($kv) as $j) {
+                if (! is_array($data['faaliyetler'][$i]['kapsam_verileri'][$j] ?? null)) {
+                    continue;
+                }
+
+                $line = &$data['faaliyetler'][$i]['kapsam_verileri'][$j];
+                $line['baslangic_tarihi'] = static::normalizeKapsamDate($line['baslangic_tarihi'] ?? null);
+                $line['bitis_tarihi'] = static::normalizeKapsamDate($line['bitis_tarihi'] ?? null);
+
+                $hasQuantity = static::hasProvidedNumericValue($line['ongorulen'] ?? $line['deger'] ?? null)
+                    || static::hasProvidedNumericValue($line['gerceklesen'] ?? null)
+                    || static::hasProvidedNumericValue($line['bu_hafta_tamamlanan'] ?? null);
+
+                if ($hasQuantity && (! filled($line['baslangic_tarihi']) || ! filled($line['bitis_tarihi']))) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'data.faaliyetler' => 'Miktar girilen her kalem için başlangıç ve bitiş tarihi zorunludur.',
+                    ]);
+                }
+
+                if (filled($line['baslangic_tarihi']) && filled($line['bitis_tarihi'])
+                    && $line['bitis_tarihi'] < $line['baslangic_tarihi']) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'data.faaliyetler' => 'Kalem bitiş tarihi başlangıçtan önce olamaz.',
+                    ]);
+                }
+            }
+            unset($line);
+        }
+
+        return $data;
+    }
+
+    public static function formatKapsamDateRange(?string $start, ?string $end): ?string
+    {
+        $startLabel = AylikFaaliyetWeeklyCarryover::formatDisplayDate($start);
+        $endLabel = AylikFaaliyetWeeklyCarryover::formatDisplayDate($end);
+        if ($startLabel && $endLabel) {
+            return $startLabel.' – '.$endLabel;
+        }
+
+        return $startLabel ?? $endLabel;
+    }
+
     public static function currentReportWeekForForm(Get $get, mixed $livewire = null): int
     {
         $yil = (int) ($get('yil') ?? $get('../../yil') ?? $get('../../../yil') ?? 0);
@@ -806,6 +968,7 @@ class AylikFaaliyetResource extends Resource
         $data = AylikFaaliyetRepeaterLock::relaxPerformansKilitWhilePending($data);
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
         $data = AylikFaaliyetWeeklyCarryover::applyAciktaKapatma($data);
+        $data = static::enforceKapsamDateRanges($data);
         $data = AylikFaaliyetWeeklyCarryover::applyWeeklyEntries($data);
         $data = AylikFaaliyetWeeklyCarryover::consolidateFaaliyetRowsByCatalog($data);
 
@@ -1393,7 +1556,7 @@ class AylikFaaliyetResource extends Resource
                                         return $base;
                                     })
                                     ->helperText(function (Get $get, $livewire): string {
-                                        return 'Bu rapor yalnızca seçili haftaya aittir. İş varsa miktarı girin; yoksa alanı boş bırakın (0 yazmayın). Kayıt sonrası tamamlanan iş alanı açılır.';
+                                        return 'Bu rapor yalnızca seçili haftaya aittir. İş varsa miktarı girin; yoksa alanı boş bırakın (0 yazmayın). Miktar girilen kalemlerde başlangıç ve bitiş tarihi zorunludur.';
                                     })
                                     ->dehydrated()
                                     ->schema([
@@ -1419,6 +1582,8 @@ class AylikFaaliyetResource extends Resource
                                             ->dehydrated(true),
                                         Forms\Components\Hidden::make('bu_hafta_aciklama')->dehydrated(true),
                                         Forms\Components\Hidden::make('bu_hafta_yapilma_tarihi')->dehydrated(true),
+                                        Forms\Components\Hidden::make('baslangic_tarihi')->dehydrated(true),
+                                        Forms\Components\Hidden::make('bitis_tarihi')->dehydrated(true),
                                         Forms\Components\Placeholder::make('kalem_bu_hafta_kapali')
                                             ->label(fn (Get $get): string => trim((string) ($get('kalem') ?? 'Kalem')))
                                             ->content('Bu kalem bu hafta rapor döneminde açıkta iş bulunmadığı için gizlidir. Veriler korunur.')
@@ -1526,6 +1691,53 @@ class AylikFaaliyetResource extends Resource
                                                         || static::kapsamShowsWeeklyFollowUpFields($get, $livewire)
                                                         || static::kapsamHasPendingWork($get))),
                                         ]),
+                                        Grid::make(2)->schema([
+                                            Forms\Components\DatePicker::make('baslangic_tarihi_ui')
+                                                ->label('Başlangıç Tarihi')
+                                                ->native(false)
+                                                ->displayFormat('d.m.Y')
+                                                ->minDate(function (Get $get, $livewire): mixed {
+                                                    $bounds = static::kapsamReportWeekDateBounds($get, $livewire);
+
+                                                    return $bounds['min'] ?? null;
+                                                })
+                                                ->maxDate(function (Get $get, $livewire): mixed {
+                                                    $bounds = static::kapsamReportWeekDateBounds($get, $livewire);
+
+                                                    return $bounds['max'] ?? null;
+                                                })
+                                                ->required(fn (Get $get): bool => static::kapsamRequiresDateRange($get))
+                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire))
+                                                ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
+                                                ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                                    $set('baslangic_tarihi', static::normalizeKapsamDate($state));
+                                                })
+                                                ->afterStateHydrated(fn (Set $set, Get $get, mixed $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'baslangic_tarihi', 'baslangic_tarihi_ui'))
+                                                ->dehydrated(false),
+                                            Forms\Components\DatePicker::make('bitis_tarihi_ui')
+                                                ->label('Bitiş Tarihi')
+                                                ->native(false)
+                                                ->displayFormat('d.m.Y')
+                                                ->minDate(function (Get $get, $livewire): mixed {
+                                                    $bounds = static::kapsamReportWeekDateBounds($get, $livewire);
+
+                                                    return $bounds['min'] ?? null;
+                                                })
+                                                ->maxDate(function (Get $get, $livewire): mixed {
+                                                    $bounds = static::kapsamReportWeekDateBounds($get, $livewire);
+
+                                                    return $bounds['max'] ?? null;
+                                                })
+                                                ->required(fn (Get $get): bool => static::kapsamRequiresDateRange($get))
+                                                ->afterOrEqual('baslangic_tarihi_ui')
+                                                ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire))
+                                                ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
+                                                ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                                    $set('bitis_tarihi', static::normalizeKapsamDate($state));
+                                                })
+                                                ->afterStateHydrated(fn (Set $set, Get $get, mixed $state): mixed => static::hydrateUiFromHiddenField($set, $get, $state, 'bitis_tarihi', 'bitis_tarihi_ui'))
+                                                ->dehydrated(false),
+                                        ])->columnSpanFull(),
                                         Section::make('Açıkta İş Kapat Revizesi')
                                             ->description('Her kalemde açık işi not ile kapatabilirsiniz. Örn: 10 işten 7 tamamlandı, 3 kaldı → bu hafta 2’sini not ile kapatıp 1’ini sonraki haftaya bırakın.')
                                             ->schema([
@@ -3693,6 +3905,13 @@ class AylikFaaliyetResource extends Resource
                         $pendingProvided
                     );
                     $weeklyNotes = '';
+                    $dateRange = static::formatKapsamDateRange(
+                        isset($kapsam['baslangic_tarihi']) ? (string) $kapsam['baslangic_tarihi'] : null,
+                        isset($kapsam['bitis_tarihi']) ? (string) $kapsam['bitis_tarihi'] : null
+                    );
+                    if ($dateRange) {
+                        $weeklyNotes .= '<div style="font-size:6px;color:#4b5563;margin-top:1px;">Süre: '.e($dateRange).'</div>';
+                    }
                     $kayitlar = $kapsam['haftalik_kayitlar'] ?? [];
                     if (is_array($kayitlar)) {
                         foreach ($kayitlar as $kayit) {
@@ -4093,6 +4312,8 @@ class AylikFaaliyetResource extends Resource
                 'acikta_kalan' => max(0.0, $pending),
                 'haftalik_kayitlar' => is_array($kapsamRow['haftalik_kayitlar'] ?? null) ? $kapsamRow['haftalik_kayitlar'] : [],
                 'son_yapilma_tarihi' => $kapsamRow['son_yapilma_tarihi'] ?? null,
+                'baslangic_tarihi' => $kapsamRow['baslangic_tarihi'] ?? null,
+                'bitis_tarihi' => $kapsamRow['bitis_tarihi'] ?? null,
                 'acikta_revize_tarihi' => $kapsamRow['acikta_revize_tarihi'] ?? null,
                 'acikta_revize_notu' => $kapsamRow['acikta_revize_notu'] ?? null,
             ];
@@ -4463,6 +4684,8 @@ class AylikFaaliyetResource extends Resource
                     'gerceklesen' => $satir['gerceklesen'] ?? null,
                     'haftalik_kayitlar' => is_array($satir['haftalik_kayitlar'] ?? null) ? $satir['haftalik_kayitlar'] : [],
                     'son_yapilma_tarihi' => $satir['son_yapilma_tarihi'] ?? null,
+                    'baslangic_tarihi' => $satir['baslangic_tarihi'] ?? null,
+                    'bitis_tarihi' => $satir['bitis_tarihi'] ?? null,
                     'acikta_revize_tarihi' => $satir['acikta_revize_tarihi'] ?? null,
                     'acikta_revize_notu' => $satir['acikta_revize_notu'] ?? null,
                     'acikta_kapatildi' => (bool) ($satir['acikta_kapatildi'] ?? false),
@@ -4478,6 +4701,8 @@ class AylikFaaliyetResource extends Resource
                 'gerceklesen' => null,
                 'haftalik_kayitlar' => [],
                 'son_yapilma_tarihi' => null,
+                'baslangic_tarihi' => null,
+                'bitis_tarihi' => null,
                 'acikta_revize_tarihi' => null,
                 'acikta_revize_notu' => null,
                 'acikta_kapatildi' => false,
@@ -4489,6 +4714,8 @@ class AylikFaaliyetResource extends Resource
                 'gerceklesen' => $prev['gerceklesen'],
                 'haftalik_kayitlar' => $prev['haftalik_kayitlar'],
                 'son_yapilma_tarihi' => $prev['son_yapilma_tarihi'],
+                'baslangic_tarihi' => $prev['baslangic_tarihi'],
+                'bitis_tarihi' => $prev['bitis_tarihi'],
                 'acikta_revize_tarihi' => $prev['acikta_revize_tarihi'],
                 'acikta_revize_notu' => $prev['acikta_revize_notu'],
                 'acikta_kapatildi' => $prev['acikta_kapatildi'],

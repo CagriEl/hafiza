@@ -712,6 +712,13 @@ final class AylikFaaliyetWeeklyCarryover
             $base['son_yapilma_tarihi'] = $incomingDate;
         }
 
+        foreach (['baslangic_tarihi', 'bitis_tarihi'] as $dateKey) {
+            $incomingValue = trim((string) ($incoming[$dateKey] ?? ''));
+            if ($incomingValue !== '') {
+                $base[$dateKey] = $incomingValue;
+            }
+        }
+
         if (trim((string) ($incoming['acikta_revize_notu'] ?? '')) !== '') {
             $base['acikta_revize_notu'] = $incoming['acikta_revize_notu'];
         }
