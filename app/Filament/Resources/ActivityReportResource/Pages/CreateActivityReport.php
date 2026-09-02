@@ -39,7 +39,7 @@ class CreateActivityReport extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $userId = (int) (auth()->id() ?? 0);
-        $data = AylikFaaliyetResource::applyReportDayFromForm($data);
+        $data = AylikFaaliyetResource::applyAutomaticReportDay($data);
         $yil = (int) ($data['yil'] ?? 0);
         $ay = AylikFaaliyetPeriodMerge::normalizeAy((string) ($data['ay'] ?? ''));
         $hafta = (string) ($data['hafta'] ?? '');

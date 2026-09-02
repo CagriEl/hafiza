@@ -590,23 +590,13 @@ class AylikFaaliyetResource extends Resource
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    public static function applyReportDayFromForm(array $data): array
+    public static function applyAutomaticReportDay(array $data): array
     {
-        $raporGunu = $data['rapor_gunu'] ?? null;
-        if (blank($raporGunu)) {
-            $raporGunu = now()->toDateString();
-        }
-
-        try {
-            $date = Carbon::parse($raporGunu)->startOfDay();
-        } catch (\Throwable) {
-            $date = now()->startOfDay();
-        }
+        $date = ReportPeriodWeeks::systemRecordDate();
 
         $data['yil'] = $date->year;
         $data['ay'] = $date->format('m');
         $data['hafta'] = $date->toDateString();
-        unset($data['rapor_gunu']);
 
         return $data;
     }
@@ -632,7 +622,7 @@ class AylikFaaliyetResource extends Resource
      */
     public static function hydrateFaaliyetHaftaFields(array $data): array
     {
-        unset($data['rapor_haftasi'], $data['rapor_gunu']);
+        unset($data['rapor_haftasi']);
 
         $reportHafta = ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null);
         if ($reportHafta === null) {
@@ -1334,28 +1324,6 @@ class AylikFaaliyetResource extends Resource
             ->schema([
                 Section::make('Rapor Dönemi')
                     ->schema([
-                        Forms\Components\DatePicker::make('rapor_gunu')
-                            ->label('Rapor Günü')
-                            ->default(now())
-                            ->required()
-                            ->live()
-                            ->disabled(fn ($livewire): bool => ! ($livewire instanceof CreateRecord))
-                            ->dehydrated(fn ($livewire): bool => $livewire instanceof CreateRecord)
-                            ->afterStateUpdated(function ($state, Set $set): void {
-                                if (blank($state)) {
-                                    return;
-                                }
-
-                                try {
-                                    $date = Carbon::parse($state)->startOfDay();
-                                } catch (\Throwable) {
-                                    return;
-                                }
-
-                                $set('yil', $date->year);
-                                $set('ay', $date->format('m'));
-                                $set('hafta', $date->toDateString());
-                            }),
                         Forms\Components\Hidden::make('yil')
                             ->default(now()->year)
                             ->dehydrated(true),
@@ -1366,8 +1334,14 @@ class AylikFaaliyetResource extends Resource
                             ->default(fn (): string => ReportPeriodWeeks::reportDayKeyFromDate())
                             ->dehydrated(true),
                         Forms\Components\Placeholder::make('donem_tarih_araligi')
-                            ->label('Seçili Dönem')
-                            ->content(function (Get $get): string {
+                            ->label('Rapor Tarihi')
+                            ->content(function (Get $get, $livewire): string {
+                                if ($livewire instanceof CreateRecord) {
+                                    return 'Kayıt anında bugünün tarihi otomatik atanır ('.ReportPeriodWeeks::dailyPeriodLabel(
+                                        ReportPeriodWeeks::reportDayKeyFromDate()
+                                    ).').';
+                                }
+
                                 $hafta = $get('hafta');
                                 $daily = ReportPeriodWeeks::normalizeReportHafta($hafta);
                                 if ($daily !== null && ReportPeriodWeeks::isDailyPeriod($daily)) {
@@ -1407,7 +1381,7 @@ class AylikFaaliyetResource extends Resource
                 Section::make('Uyarı')
                     ->schema([
                         Forms\Components\Placeholder::make('rapor_olusturma_uyarisi')
-                            ->content('Her müdürlük için aynı günde yalnızca bir rapor açılabilir. O gün için rapor varsa düzenleme ekranına yönlendirilirsiniz.')
+                            ->content('Her müdürlük günde bir kez rapor girebilir. Bugün için rapor varsa düzenleme ekranına yönlendirilirsiniz.')
                             ->extraAttributes(['class' => 'text-amber-700'])
                             ->columnSpanFull(),
                     ])
