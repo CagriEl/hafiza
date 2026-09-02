@@ -39,27 +39,29 @@ class CreateActivityReport extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $userId = (int) (auth()->id() ?? 0);
+        $data = AylikFaaliyetResource::applyReportDayFromForm($data);
         $yil = (int) ($data['yil'] ?? 0);
         $ay = AylikFaaliyetPeriodMerge::normalizeAy((string) ($data['ay'] ?? ''));
-        $hafta = ReportPeriodWeeks::MONTHLY_VALUE;
+        $hafta = (string) ($data['hafta'] ?? '');
 
-        if ($userId > 0 && $yil > 0 && $ay !== ''
-            && AylikFaaliyet::existsForUserPeriod($userId, $yil, $ay)) {
+        if ($userId > 0 && $yil > 0 && $ay !== '' && $hafta !== ''
+            && AylikFaaliyet::existsForUserPeriodWeek($userId, $yil, $ay, $hafta)) {
             $existing = AylikFaaliyet::query()
                 ->where('user_id', $userId)
                 ->where('yil', $yil)
                 ->whereIn('ay', AylikFaaliyet::ayQueryVariants($ay))
+                ->where('hafta', $hafta)
                 ->orderBy('id')
                 ->first();
 
             if ($existing instanceof AylikFaaliyet) {
                 $editUrl = ActivityReportResource::getUrl('edit', ['record' => $existing]);
-                $label = ReportPeriodWeeks::monthPeriodLabel($yil, (int) $ay);
+                $label = ReportPeriodWeeks::dailyPeriodLabel($hafta);
 
                 Notification::make()
                     ->warning()
-                    ->title('Bu dönem için rapor zaten var')
-                    ->body("{$label} için yeni rapor açılamaz. Mevcut rapora yönlendiriliyorsunuz.")
+                    ->title('Bu gün için rapor zaten var')
+                    ->body("{$label} tarihli rapor zaten mevcut. Düzenleme ekranına yönlendiriliyorsunuz.")
                     ->actions([
                         Action::make('raporaGit')
                             ->label('Mevcut Raporu Aç')
@@ -73,7 +75,6 @@ class CreateActivityReport extends CreateRecord
         }
 
         $data['ay'] = $ay;
-        $data['hafta'] = $hafta;
 
         $data = AylikFaaliyetResource::syncFaaliyetlerWithCurrentCatalog(
             $data,
@@ -92,7 +93,11 @@ class CreateActivityReport extends CreateRecord
         $mudurlukAdi = auth()->user()->name;
         $ay = $this->record->ay;
         $yil = $this->record->yil;
-        $donemLabel = ReportPeriodWeeks::monthPeriodLabel($yil, (int) preg_replace('/\D/', '', (string) $ay));
+        $donemLabel = ReportPeriodWeeks::recordPeriodLabelForReport(
+            (int) $yil,
+            $ay,
+            $this->record->hafta ?? null
+        ) ?? ReportPeriodWeeks::monthPeriodLabel((int) $yil, (int) preg_replace('/\D/', '', (string) $ay));
 
         $admin = User::find(1);
 

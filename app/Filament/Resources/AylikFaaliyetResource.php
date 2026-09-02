@@ -33,6 +33,7 @@ use Filament\Forms\Set;
 use Filament\Infolists\Components\Section as InfolistSection;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
+use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -216,29 +217,93 @@ class AylikFaaliyetResource extends Resource
         return static::kapsamKalemVisibleInCurrentWeek($get, null);
     }
 
-    public static function kapsamRequiresProcessDateRange(Get $get): bool
+    public static function kapsamRequiresProcessDateRange(Get $get, mixed $livewire = null): bool
     {
-        return KapsamIslemTuru::requiresProcessDateRange(static::resolveKapsamIslemTuru($get));
+        return KapsamIslemTuru::requiresProcessDateRange(static::resolveKapsamIslemTuru($get, $livewire));
     }
 
-    public static function kapsamRequiresDailyDate(Get $get): bool
+    public static function kapsamRequiresDailyDate(Get $get, mixed $livewire = null): bool
     {
-        return KapsamIslemTuru::requiresDailyDate(static::resolveKapsamIslemTuru($get));
+        return KapsamIslemTuru::requiresDailyDate(static::resolveKapsamIslemTuru($get, $livewire));
     }
 
-    public static function resolveKapsamIslemTuru(Get $get): ?string
+    public static function resolveKapsamIslemTuru(Get $get, mixed $livewire = null, bool $allowImzada = false): ?string
     {
-        return KapsamIslemTuru::normalize($get('islem_turu'));
+        if (! $allowImzada && $livewire !== null) {
+            $allowImzada = static::kapsamShowsImzadaIslemTuruOption($get, $livewire);
+        }
+
+        return KapsamIslemTuru::normalize($get('islem_turu'), $allowImzada);
     }
 
-    public static function kapsamShowsProcessDateFields(Get $get): bool
+    public static function isZabitaMudurlukName(?string $mudurlukAdi): bool
     {
-        return KapsamIslemTuru::requiresProcessDateRange(static::resolveKapsamIslemTuru($get));
+        if (! is_string($mudurlukAdi) || trim($mudurlukAdi) === '') {
+            return false;
+        }
+
+        return TurkishString::normalizeForFuzzyMatch($mudurlukAdi)
+            === TurkishString::normalizeForFuzzyMatch('Zabıta Müdürlüğü');
     }
 
-    public static function kapsamShowsDailyDateField(Get $get): bool
+    public static function kalemNameIsTutanak(?string $kalemAdi): bool
     {
-        return KapsamIslemTuru::requiresDailyDate(static::resolveKapsamIslemTuru($get));
+        $normalized = TurkishString::normalizeForFuzzyMatch((string) ($kalemAdi ?? ''));
+
+        return $normalized !== '' && str_contains($normalized, 'tutanak');
+    }
+
+    public static function resolveMudurlukForFormContext(mixed $livewire): ?string
+    {
+        if (is_object($livewire) && method_exists($livewire, 'getRecord')) {
+            $record = $livewire->getRecord();
+            if ($record instanceof AylikFaaliyet) {
+                $record->loadMissing('user');
+                $name = trim((string) ($record->user?->name ?? ''));
+                if ($name !== '') {
+                    return $name;
+                }
+            }
+        }
+
+        $authName = auth()->user()?->name;
+
+        return is_string($authName) && trim($authName) !== '' ? trim($authName) : null;
+    }
+
+    public static function kapsamShowsImzadaIslemTuruOption(Get $get, mixed $livewire): bool
+    {
+        return static::isZabitaMudurlukName(static::resolveMudurlukForFormContext($livewire))
+            && static::kalemNameIsTutanak((string) ($get('kalem') ?? ''));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function kapsamIslemTuruOptionsForForm(Get $get, mixed $livewire): array
+    {
+        return KapsamIslemTuru::options(static::kapsamShowsImzadaIslemTuruOption($get, $livewire));
+    }
+
+    public static function kapsamShowsImzadaQuantityField(Get $get, mixed $livewire): bool
+    {
+        return static::kapsamShowsImzadaIslemTuruOption($get, $livewire)
+            && KapsamIslemTuru::isImzada(static::resolveKapsamIslemTuru($get, $livewire));
+    }
+
+    public static function kapsamRequiresImzadaQuantity(Get $get, mixed $livewire): bool
+    {
+        return static::kapsamShowsImzadaQuantityField($get, $livewire);
+    }
+
+    public static function kapsamShowsProcessDateFields(Get $get, mixed $livewire = null): bool
+    {
+        return KapsamIslemTuru::requiresProcessDateRange(static::resolveKapsamIslemTuru($get, $livewire));
+    }
+
+    public static function kapsamShowsDailyDateField(Get $get, mixed $livewire = null): bool
+    {
+        return KapsamIslemTuru::requiresDailyDate(static::resolveKapsamIslemTuru($get, $livewire));
     }
 
     public static function kapsamDateFieldsEditable(Get $get, mixed $livewire): bool
@@ -247,7 +312,7 @@ class AylikFaaliyetResource extends Resource
             return false;
         }
 
-        if (static::kapsamShowsProcessDateFields($get) || static::kapsamShowsDailyDateField($get)) {
+        if (static::kapsamShowsProcessDateFields($get, $livewire) || static::kapsamShowsDailyDateField($get, $livewire)) {
             return true;
         }
 
@@ -286,7 +351,7 @@ class AylikFaaliyetResource extends Resource
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    public static function enforceKapsamDateRanges(array $data): array
+    public static function enforceKapsamDateRanges(array $data, ?string $mudurlukAdi = null): array
     {
         if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
             return $data;
@@ -308,7 +373,10 @@ class AylikFaaliyetResource extends Resource
                 }
 
                 $line = &$data['faaliyetler'][$i]['kapsam_verileri'][$j];
-                $line['islem_turu'] = KapsamIslemTuru::normalize($line['islem_turu'] ?? null);
+                $kalemAdi = trim((string) ($line['kalem'] ?? ''));
+                $allowImzada = static::isZabitaMudurlukName($mudurlukAdi)
+                    && static::kalemNameIsTutanak($kalemAdi);
+                $line['islem_turu'] = KapsamIslemTuru::normalize($line['islem_turu'] ?? null, $allowImzada);
                 $line['baslangic_tarihi'] = static::normalizeKapsamDate($line['baslangic_tarihi'] ?? null);
                 $line['bitis_tarihi'] = static::normalizeKapsamDate($line['bitis_tarihi'] ?? null);
                 $line['kalem_notu'] = trim((string) ($line['kalem_notu'] ?? '')) ?: null;
@@ -324,9 +392,17 @@ class AylikFaaliyetResource extends Resource
                     ]);
                 }
 
-                if ($line['islem_turu'] === KapsamIslemTuru::ANLIK) {
+                if ($line['islem_turu'] === KapsamIslemTuru::ANLIK
+                    || KapsamIslemTuru::isImzada($line['islem_turu'])) {
                     $line['baslangic_tarihi'] = null;
                     $line['bitis_tarihi'] = null;
+                }
+
+                if (KapsamIslemTuru::isImzada($line['islem_turu'])
+                    && ! static::hasProvidedNumericValue($line['ongorulen'] ?? $line['deger'] ?? null)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'data.faaliyetler' => 'İmzada tutanak kalemlerinde adet girilmelidir.',
+                    ]);
                 }
 
                 if (KapsamIslemTuru::requiresProcessDateRange($line['islem_turu'])
@@ -505,33 +581,69 @@ class AylikFaaliyetResource extends Resource
 
     public static function isMonthlyPeriodForRow(Get $get): bool
     {
-        return ReportPeriodWeeks::isMonthlyPeriod(
-            $get('hafta') ?? $get('../../hafta') ?? $get('../../../hafta') ?? null
-        );
+        $hafta = $get('hafta') ?? $get('../../hafta') ?? $get('../../../hafta') ?? null;
+
+        return ReportPeriodWeeks::isMonthlyPeriod($hafta);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function applyReportDayFromForm(array $data): array
+    {
+        $raporGunu = $data['rapor_gunu'] ?? null;
+        if (blank($raporGunu)) {
+            $raporGunu = now()->toDateString();
+        }
+
+        try {
+            $date = Carbon::parse($raporGunu)->startOfDay();
+        } catch (\Throwable) {
+            $date = now()->startOfDay();
+        }
+
+        $data['yil'] = $date->year;
+        $data['ay'] = $date->format('m');
+        $data['hafta'] = $date->toDateString();
+        unset($data['rapor_gunu']);
+
+        return $data;
     }
 
     public static function faaliyetHaftaSelectField(): Forms\Components\Hidden
     {
         return Forms\Components\Hidden::make('hafta')
-            ->default(ReportPeriodWeeks::MONTHLY_VALUE)
+            ->default(fn (): string => ReportPeriodWeeks::reportDayKeyFromDate())
             ->dehydrated(true);
     }
 
     private static function applyDefaultHaftaForRow(Set $set, Get $get, mixed $livewire = null): void
     {
-        $set('hafta', ReportPeriodWeeks::MONTHLY_VALUE);
+        $parentHafta = $get('../../hafta') ?? $get('../../../hafta') ?? ReportPeriodWeeks::reportDayKeyFromDate();
+        $set('hafta', $parentHafta);
     }
 
     /**
-     * Her iş listesi satırında hafta alanını rapor haftasına kilitler.
+     * Her iş listesi satırında hafta alanını rapor gününe kilitler.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     public static function hydrateFaaliyetHaftaFields(array $data): array
     {
-        unset($data['rapor_haftasi']);
-        $data['hafta'] = ReportPeriodWeeks::MONTHLY_VALUE;
+        unset($data['rapor_haftasi'], $data['rapor_gunu']);
+
+        $reportHafta = ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null);
+        if ($reportHafta === null) {
+            $reportHafta = ReportPeriodWeeks::reportDayKeyFromDate();
+            $data['hafta'] = $reportHafta;
+            $date = Carbon::parse($reportHafta)->startOfDay();
+            $data['yil'] = $date->year;
+            $data['ay'] = $date->format('m');
+        } else {
+            $data['hafta'] = $reportHafta;
+        }
 
         if (! isset($data['faaliyetler']) || ! is_array($data['faaliyetler'])) {
             return $data;
@@ -544,7 +656,7 @@ class AylikFaaliyetResource extends Resource
                 continue;
             }
 
-            $data['faaliyetler'][$i]['hafta'] = ReportPeriodWeeks::MONTHLY_VALUE;
+            $data['faaliyetler'][$i]['hafta'] = $reportHafta;
             unset($data['faaliyetler'][$i]['raporlama_sikligi'], $data['faaliyetler'][$i]['hafta_baslangic'], $data['faaliyetler'][$i]['hafta_bitis']);
         }
 
@@ -931,7 +1043,7 @@ class AylikFaaliyetResource extends Resource
         $data = AylikFaaliyetRepeaterLock::relaxPerformansKilitWhilePending($data);
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
         $data = AylikFaaliyetWeeklyCarryover::applyAciktaKapatma($data);
-        $data = static::enforceKapsamDateRanges($data);
+        $data = static::enforceKapsamDateRanges($data, is_string($mudurluk) ? $mudurluk : null);
         $data = AylikFaaliyetWeeklyCarryover::applyWeeklyEntries($data);
         $data = AylikFaaliyetWeeklyCarryover::consolidateFaaliyetRowsByCatalog($data);
 
@@ -1222,24 +1334,46 @@ class AylikFaaliyetResource extends Resource
             ->schema([
                 Section::make('Rapor Dönemi')
                     ->schema([
-                        Grid::make(2)->schema([
-                            Forms\Components\Select::make('yil')
-                                ->options([2025 => '2025', 2026 => '2026'])
-                                ->default(now()->year)
-                                ->required()
-                                ->live(),
-                            Forms\Components\Select::make('ay')
-                                ->options(['01' => 'Ocak', '02' => 'Şubat', '03' => 'Mart', '04' => 'Nisan', '05' => 'Mayıs', '06' => 'Haziran', '07' => 'Temmuz', '08' => 'Ağustos', '09' => 'Eylül', '10' => 'Ekim', '11' => 'Kasım', '12' => 'Aralık'])
-                                ->default(now()->format('m'))
-                                ->required()
-                                ->live(),
-                        ]),
+                        Forms\Components\DatePicker::make('rapor_gunu')
+                            ->label('Rapor Günü')
+                            ->default(now())
+                            ->required()
+                            ->live()
+                            ->disabled(fn ($livewire): bool => ! ($livewire instanceof CreateRecord))
+                            ->dehydrated(fn ($livewire): bool => $livewire instanceof CreateRecord)
+                            ->afterStateUpdated(function ($state, Set $set): void {
+                                if (blank($state)) {
+                                    return;
+                                }
+
+                                try {
+                                    $date = Carbon::parse($state)->startOfDay();
+                                } catch (\Throwable) {
+                                    return;
+                                }
+
+                                $set('yil', $date->year);
+                                $set('ay', $date->format('m'));
+                                $set('hafta', $date->toDateString());
+                            }),
+                        Forms\Components\Hidden::make('yil')
+                            ->default(now()->year)
+                            ->dehydrated(true),
+                        Forms\Components\Hidden::make('ay')
+                            ->default(now()->format('m'))
+                            ->dehydrated(true),
                         Forms\Components\Hidden::make('hafta')
-                            ->default(ReportPeriodWeeks::MONTHLY_VALUE)
+                            ->default(fn (): string => ReportPeriodWeeks::reportDayKeyFromDate())
                             ->dehydrated(true),
                         Forms\Components\Placeholder::make('donem_tarih_araligi')
                             ->label('Seçili Dönem')
                             ->content(function (Get $get): string {
+                                $hafta = $get('hafta');
+                                $daily = ReportPeriodWeeks::normalizeReportHafta($hafta);
+                                if ($daily !== null && ReportPeriodWeeks::isDailyPeriod($daily)) {
+                                    return ReportPeriodWeeks::dailyPeriodLabel($daily);
+                                }
+
                                 $yil = (int) ($get('yil') ?? now()->year);
                                 $ay = (int) preg_replace('/\D/', '', (string) ($get('ay') ?? now()->format('m')));
 
@@ -1273,11 +1407,11 @@ class AylikFaaliyetResource extends Resource
                 Section::make('Uyarı')
                     ->schema([
                         Forms\Components\Placeholder::make('rapor_olusturma_uyarisi')
-                            ->content('Her müdürlük için aynı yıl/ay döneminde yalnızca bir rapor açılabilir. Mevcut rapor varsa düzenleme ekranına yönlendirilirsiniz.')
+                            ->content('Her müdürlük için aynı günde yalnızca bir rapor açılabilir. O gün için rapor varsa düzenleme ekranına yönlendirilirsiniz.')
                             ->extraAttributes(['class' => 'text-amber-700'])
                             ->columnSpanFull(),
                     ])
-                    ->visible(fn ($livewire): bool => $livewire instanceof \Filament\Resources\Pages\CreateRecord)
+                    ->visible(fn ($livewire): bool => $livewire instanceof CreateRecord)
                     ->compact(),
                 Section::make('Ay Sonu Uyarısı')
                     ->schema([
@@ -1575,22 +1709,53 @@ class AylikFaaliyetResource extends Resource
                                         ]),
                                         Forms\Components\Select::make('islem_turu')
                                             ->label('İşlem Türü')
-                                            ->options(KapsamIslemTuru::options())
+                                            ->options(fn (Get $get, $livewire): array => static::kapsamIslemTuruOptionsForForm($get, $livewire))
                                             ->placeholder('Seçiniz')
                                             ->native(false)
                                             ->required(fn (Get $get): bool => static::kapsamRequiresIslemTuru($get))
                                             ->live()
                                             ->dehydrated(true)
                                             ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire))
-                                            ->afterStateUpdated(function (Set $set, ?string $state): void {
-                                                $normalized = KapsamIslemTuru::normalize($state);
+                                            ->afterStateUpdated(function (Set $set, Get $get, ?string $state, $livewire): void {
+                                                $allowImzada = static::kapsamShowsImzadaIslemTuruOption($get, $livewire);
+                                                $normalized = KapsamIslemTuru::normalize($state, $allowImzada);
                                                 $set('islem_turu', $normalized);
                                                 $set('baslangic_tarihi', null);
                                                 $set('bitis_tarihi', null);
                                                 $set('baslangic_tarihi_ui', null);
                                                 $set('bitis_tarihi_ui', null);
                                                 $set('gunluk_tarihi_ui', null);
+                                                if (! KapsamIslemTuru::isImzada($normalized)) {
+                                                    $set('imzada_adet_ui', null);
+                                                }
                                             })
+                                            ->columnSpanFull(),
+                                        Forms\Components\TextInput::make('imzada_adet_ui')
+                                            ->label('İmzada tutanak adedi')
+                                            ->numeric()
+                                            ->minValue(1)
+                                            ->rules(['nullable', 'integer', 'min:1'])
+                                            ->extraInputAttributes(['min' => 1, 'step' => 1, 'inputmode' => 'numeric', 'pattern' => '[0-9]*'])
+                                            ->required(fn (Get $get, $livewire): bool => static::kapsamRequiresImzadaQuantity($get, $livewire))
+                                            ->visible(fn (Get $get, $livewire): bool => static::kapsamShowsImzadaQuantityField($get, $livewire))
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(function (Set $set, Get $get, mixed $state): void {
+                                                static::syncHiddenFieldFromUi($set, $state, 'ongorulen');
+                                                $plan = static::toFloatNumber($state ?? 0);
+                                                $done = static::toFloatNumber($get('gerceklesen') ?? 0);
+                                                $pending = max(0.0, $plan - $done);
+                                                $set('acikta_kalan', floor($pending) === $pending ? (int) $pending : $pending);
+                                            })
+                                            ->afterStateHydrated(function (Set $set, Get $get, mixed $state): void {
+                                                if (static::uiFieldHasValue($state)) {
+                                                    return;
+                                                }
+                                                $stored = $get('ongorulen') ?? $get('deger');
+                                                if (filled($stored)) {
+                                                    $set('imzada_adet_ui', $stored);
+                                                }
+                                            })
+                                            ->dehydrated(false)
                                             ->columnSpanFull(),
                                         Section::make('Süreç Tarihleri')
                                             ->description('Başlangıç ve bitiş tarihi seçiniz.')
@@ -1600,7 +1765,7 @@ class AylikFaaliyetResource extends Resource
                                                         ->label('Başlangıç Tarihi')
                                                         ->native(false)
                                                         ->displayFormat('d.m.Y')
-                                                        ->required(fn (Get $get): bool => static::kapsamRequiresProcessDateRange($get))
+                                                        ->required(fn (Get $get, $livewire): bool => static::kapsamRequiresProcessDateRange($get, $livewire))
                                                         ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
                                                         ->afterStateUpdated(function (Set $set, mixed $state): void {
                                                             $set('baslangic_tarihi', static::normalizeKapsamDate($state));
@@ -1611,7 +1776,7 @@ class AylikFaaliyetResource extends Resource
                                                         ->label('Bitiş Tarihi')
                                                         ->native(false)
                                                         ->displayFormat('d.m.Y')
-                                                        ->required(fn (Get $get): bool => static::kapsamRequiresProcessDateRange($get))
+                                                        ->required(fn (Get $get, $livewire): bool => static::kapsamRequiresProcessDateRange($get, $livewire))
                                                         ->afterOrEqual('baslangic_tarihi_ui')
                                                         ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
                                                         ->afterStateUpdated(function (Set $set, mixed $state): void {
@@ -1622,16 +1787,16 @@ class AylikFaaliyetResource extends Resource
                                                 ]),
                                             ])
                                             ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
-                                                && static::kapsamShowsProcessDateFields($get))
+                                                && static::kapsamShowsProcessDateFields($get, $livewire))
                                             ->compact()
                                             ->columnSpanFull(),
                                         Forms\Components\DatePicker::make('gunluk_tarihi_ui')
                                             ->label('Tarih')
                                             ->native(false)
                                             ->displayFormat('d.m.Y')
-                                            ->required(fn (Get $get): bool => static::kapsamRequiresDailyDate($get))
+                                            ->required(fn (Get $get, $livewire): bool => static::kapsamRequiresDailyDate($get, $livewire))
                                             ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire)
-                                                && static::kapsamShowsDailyDateField($get))
+                                                && static::kapsamShowsDailyDateField($get, $livewire))
                                             ->disabled(fn (Get $get, $livewire): bool => ! static::kapsamDateFieldsEditable($get, $livewire))
                                             ->afterStateUpdated(function (Set $set, mixed $state): void {
                                                 $date = static::normalizeKapsamDate($state);
@@ -2285,9 +2450,10 @@ class AylikFaaliyetResource extends Resource
                 Tables\Columns\TextColumn::make('donem_tarih_araligi')
                     ->label('Dönem')
                     ->getStateUsing(function (AylikFaaliyet $record): string {
-                        return ReportPeriodWeeks::recordPeriodLabel(
+                        return ReportPeriodWeeks::recordPeriodLabelForReport(
                             (int) ($record->yil ?? 0),
-                            $record->ay ?? null
+                            $record->ay ?? null,
+                            $record->hafta ?? null
                         ) ?? trim((string) (($record->yil ?? '—').' / '.($record->ay ?? '—')));
                     })
                     ->wrap()
@@ -2829,14 +2995,11 @@ class AylikFaaliyetResource extends Resource
                                     return '—';
                                 }
 
-                                $yil = (int) ($record->yil ?? 0);
-                                $ay = (int) preg_replace('/\D/', '', (string) ($record->ay ?? ''));
-
-                                if ($yil <= 0 || $ay < 1 || $ay > 12) {
-                                    return '—';
-                                }
-
-                                return ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
+                                return ReportPeriodWeeks::recordPeriodLabelForReport(
+                                    (int) ($record->yil ?? 0),
+                                    $record->ay ?? null,
+                                    $record->hafta ?? null
+                                ) ?? '—';
                             }),
                     ])
                     ->columns(3),

@@ -154,7 +154,8 @@ final class AylikFaaliyetWeeklyCarryover
         }
 
         $isMonthlyReport = ReportPeriodWeeks::isMonthlyPeriod($reportHafta);
-        $reportWeek = $isMonthlyReport ? null : (int) $reportHafta;
+        $isDailyReport = ReportPeriodWeeks::isDailyPeriod($reportHafta);
+        $reportWeek = ($isMonthlyReport || $isDailyReport) ? null : (int) $reportHafta;
         $kept = [];
 
         foreach ($data['faaliyetler'] as $row) {
@@ -163,8 +164,8 @@ final class AylikFaaliyetWeeklyCarryover
             }
 
             $rowHafta = $row['hafta'] ?? null;
-            if ($isMonthlyReport) {
-                $row['hafta'] = ReportPeriodWeeks::MONTHLY_VALUE;
+            if ($isMonthlyReport || $isDailyReport) {
+                $row['hafta'] = $reportHafta;
             } else {
                 // Yabancı hafta satırlarını bu rapora alma.
                 if (filled($rowHafta)
@@ -192,8 +193,11 @@ final class AylikFaaliyetWeeklyCarryover
                             continue;
                         }
                         $kh = $kayit['hafta'] ?? null;
-                        if ($isMonthlyReport) {
-                            if (ReportPeriodWeeks::isMonthlyPeriod($kh) || $kh === null || $kh === '') {
+                        if ($isMonthlyReport || $isDailyReport) {
+                            if (ReportPeriodWeeks::isMonthlyPeriod($kh)
+                                || ReportPeriodWeeks::isDailyPeriod($kh)
+                                || $kh === null
+                                || $kh === '') {
                                 $filtered[] = $kayit;
                             }
                             continue;

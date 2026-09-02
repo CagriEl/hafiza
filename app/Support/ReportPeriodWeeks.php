@@ -342,8 +342,18 @@ final class ReportPeriodWeeks
         return self::weekShortLabel($yearNumber, $monthNumber, $weekNumber);
     }
 
-    public static function recordPeriodLabel(?int $year, mixed $month): ?string
+    public static function recordPeriodLabel(?int $year, mixed $month, mixed $hafta = null): ?string
     {
+        return self::recordPeriodLabelForReport($year, $month, $hafta);
+    }
+
+    public static function recordPeriodLabelForReport(?int $year, mixed $month, mixed $hafta = null): ?string
+    {
+        $dailyKey = self::normalizeReportHafta($hafta);
+        if ($dailyKey !== null && self::isDailyPeriod($dailyKey)) {
+            return self::dailyPeriodLabel($dailyKey);
+        }
+
         $yearNumber = (int) $year;
         $monthNumber = (int) preg_replace('/\D/', '', (string) $month);
 
@@ -352,6 +362,47 @@ final class ReportPeriodWeeks
         }
 
         return self::monthPeriodLabel($yearNumber, $monthNumber);
+    }
+
+    public static function isDailyPeriod(mixed $period): bool
+    {
+        if (! is_string($period)) {
+            return false;
+        }
+
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $period)) {
+            return false;
+        }
+
+        try {
+            Carbon::createFromFormat('Y-m-d', $period)->startOfDay();
+
+            return true;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    public static function reportDayKeyFromDate(Carbon|string|null $date = null): string
+    {
+        if ($date === null) {
+            return now()->toDateString();
+        }
+
+        if ($date instanceof Carbon) {
+            return $date->copy()->startOfDay()->toDateString();
+        }
+
+        return Carbon::parse($date)->startOfDay()->toDateString();
+    }
+
+    public static function dailyPeriodLabel(string $dateKey): string
+    {
+        try {
+            return Carbon::createFromFormat('Y-m-d', $dateKey)->format('d.m.Y');
+        } catch (Throwable) {
+            return $dateKey;
+        }
     }
 
     public static function isMonthlyPeriod(mixed $period): bool
@@ -364,12 +415,16 @@ final class ReportPeriodWeeks
     }
 
     /**
-     * Rapor kaydı düzeyindeki hafta değeri: "1".."5" veya "aylik".
+     * Rapor kaydı düzeyindeki hafta değeri: "1".."5", "aylik" veya "Y-m-d" (günlük).
      */
     public static function normalizeReportHafta(mixed $hafta): ?string
     {
         if (self::isMonthlyPeriod($hafta)) {
             return self::MONTHLY_VALUE;
+        }
+
+        if (is_string($hafta) && self::isDailyPeriod($hafta)) {
+            return $hafta;
         }
 
         if (! is_numeric($hafta)) {
@@ -452,6 +507,11 @@ final class ReportPeriodWeeks
 
         if (self::isMonthlyPeriod($period)) {
             return self::monthlyPeriodLabel($yearNumber, $monthNumber);
+        }
+
+        $normalized = self::normalizeReportHafta($period);
+        if ($normalized !== null && self::isDailyPeriod($normalized)) {
+            return self::dailyPeriodLabel($normalized);
         }
 
         $weekNumber = (int) $period;

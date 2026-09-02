@@ -154,4 +154,15 @@ class ReportPeriodWeeksTest extends TestCase
         $this->assertTrue(ReportPeriodWeeks::isWeeklyReportingFrequency('Haftalık / Aylık'));
         $this->assertFalse(ReportPeriodWeeks::isWeeklyReportingFrequency('Aylık'));
     }
+
+    public function test_normalizes_daily_report_hafta_as_date_key(): void
+    {
+        $this->assertTrue(ReportPeriodWeeks::isDailyPeriod('2026-09-02'));
+        $this->assertSame('2026-09-02', ReportPeriodWeeks::normalizeReportHafta('2026-09-02'));
+        $this->assertSame('02.09.2026', ReportPeriodWeeks::dailyPeriodLabel('2026-09-02'));
+        $this->assertSame(
+            '02.09.2026',
+            ReportPeriodWeeks::recordPeriodLabelForReport(2026, '09', '2026-09-02')
+        );
+    }
 }

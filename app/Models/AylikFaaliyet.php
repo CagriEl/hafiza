@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\AylikFaaliyetPeriodMerge;
 use App\Support\AylikFaaliyetRepeaterLock;
+use App\Support\ReportPeriodWeeks;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -130,11 +132,18 @@ class AylikFaaliyet extends Model
 
     public function raporHaftasiLabel(): string
     {
+        $hafta = $this->hafta ?? null;
+        $dailyLabel = ReportPeriodWeeks::normalizeReportHafta($hafta);
+        if ($dailyLabel !== null && ReportPeriodWeeks::isDailyPeriod($dailyLabel)) {
+            return ReportPeriodWeeks::dailyPeriodLabel($dailyLabel);
+        }
+
         $yil = (int) ($this->yil ?? 0);
         $ay = (int) preg_replace('/\D/', '', (string) ($this->ay ?? ''));
 
         if ($yil > 0 && $ay >= 1 && $ay <= 12) {
-            return \App\Support\ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
+            return ReportPeriodWeeks::recordPeriodLabelForReport($yil, $ay, $hafta)
+                ?? ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
         }
 
         return trim((string) (($this->yil ?? '—').' / '.str_pad((string) ($this->ay ?? '—'), 2, '0', STR_PAD_LEFT)));

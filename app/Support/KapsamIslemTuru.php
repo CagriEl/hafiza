@@ -10,19 +10,27 @@ final class KapsamIslemTuru
 
     public const GUNLUK = 'gunluk';
 
+    public const IMZADA = 'imzada';
+
     /**
      * @return array<string, string>
      */
-    public static function options(): array
+    public static function options(bool $includeImzada = false): array
     {
-        return [
+        $options = [
             self::SUREC => 'Süreç gerektirir',
             self::ANLIK => 'Anlık',
             self::GUNLUK => 'Günlük',
         ];
+
+        if ($includeImzada) {
+            $options[self::IMZADA] = 'İmzada';
+        }
+
+        return $options;
     }
 
-    public static function normalize(mixed $value): ?string
+    public static function normalize(mixed $value, bool $allowImzada = false): ?string
     {
         if (! is_string($value)) {
             return null;
@@ -30,7 +38,7 @@ final class KapsamIslemTuru
 
         $key = trim($value);
 
-        return array_key_exists($key, self::options()) ? $key : null;
+        return array_key_exists($key, self::options($allowImzada)) ? $key : null;
     }
 
     public static function requiresProcessDateRange(?string $tur): bool
@@ -41,6 +49,11 @@ final class KapsamIslemTuru
     public static function requiresDailyDate(?string $tur): bool
     {
         return $tur === self::GUNLUK;
+    }
+
+    public static function isImzada(?string $tur): bool
+    {
+        return $tur === self::IMZADA;
     }
 
     public static function requiresDateRange(?string $tur): bool
@@ -54,6 +67,6 @@ final class KapsamIslemTuru
             return null;
         }
 
-        return self::options()[$tur] ?? null;
+        return self::options(true)[$tur] ?? null;
     }
 }

@@ -111,6 +111,46 @@ class AylikFaaliyetKapsamDatesTest extends TestCase
         $this->assertSame('2026-08-03', $line['bitis_tarihi']);
     }
 
+    public function test_enforce_kapsam_date_ranges_requires_imzada_quantity_for_zabita_tutanak(): void
+    {
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        AylikFaaliyetResource::enforceKapsamDateRanges([
+            'faaliyetler' => [
+                [
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'Tutanak',
+                            'islem_turu' => KapsamIslemTuru::IMZADA,
+                        ],
+                    ],
+                ],
+            ],
+        ], 'Zabıta Müdürlüğü');
+    }
+
+    public function test_enforce_kapsam_date_ranges_accepts_imzada_with_quantity(): void
+    {
+        $data = AylikFaaliyetResource::enforceKapsamDateRanges([
+            'faaliyetler' => [
+                [
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'Tutanak',
+                            'islem_turu' => KapsamIslemTuru::IMZADA,
+                            'ongorulen' => 5,
+                        ],
+                    ],
+                ],
+            ],
+        ], 'Zabıta Müdürlüğü');
+
+        $line = $data['faaliyetler'][0]['kapsam_verileri'][0];
+        $this->assertSame(KapsamIslemTuru::IMZADA, $line['islem_turu']);
+        $this->assertSame(5, $line['ongorulen']);
+        $this->assertNull($line['baslangic_tarihi']);
+    }
+
     public function test_format_kapsam_date_range(): void
     {
         $this->assertSame(
