@@ -39,6 +39,7 @@ class User extends Authenticatable
         'directorate_id',
         'role',
         'include_in_performance_charts',
+        'can_manage_rapor_haftalari',
     ];
 
     /**
@@ -65,6 +66,7 @@ class User extends Authenticatable
             'vekalet_bitis' => 'date',
             'vekalet_tam_yetki' => 'boolean',
             'include_in_performance_charts' => 'boolean',
+            'can_manage_rapor_haftalari' => 'boolean',
         ];
     }
 
@@ -114,7 +116,12 @@ class User extends Authenticatable
                 'Mudurluk',
                 'müdürlük',
                 'MÜDÜRLÜK',
-            ]);
+            ])
+            // Gelirler Müdürlüğü rapor setinden çıkarılır (talimat).
+            ->where(function (Builder $q): void {
+                $q->whereDoesntHave('directorate', fn (Builder $d) => $d->where('code', 'GM'))
+                    ->orWhereDoesntHave('directorate');
+            });
 
         if ($viceIds->isNotEmpty()) {
             $query->whereNotIn($query->qualifyColumn('id'), $viceIds->all());
@@ -276,6 +283,10 @@ class User extends Authenticatable
 
     public function isMaliHizmetlerAccount(): bool
     {
+        if ($this->directorate?->code === 'MHM') {
+            return true;
+        }
+
         $name = mb_strtolower(trim((string) ($this->name ?? '')));
 
         return str_contains($name, 'mali hizmetler');
@@ -291,5 +302,14 @@ class User extends Authenticatable
     public function isControlTeam(): bool
     {
         return trim((string) $this->role) === self::ROLE_ANALIZ_EKIBI;
+    }
+
+    public function canManageRaporHaftalari(): bool
+    {
+        if ($this->isReportingSuperAdmin()) {
+            return true;
+        }
+
+        return $this->isControlTeam() && (bool) $this->can_manage_rapor_haftalari;
     }
 }

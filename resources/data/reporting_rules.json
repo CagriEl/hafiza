@@ -5,7 +5,7 @@
             "label": "Katman 1 — Operasyonel takip",
             "description": "Haftalık hedef, gerçekleşme ve temel KPI alanları",
             "enabled": true,
-            "required_fields": ["activity_catalog_id", "hafta", "hedef", "gerceklesen"]
+            "required_fields": ["activity_catalog_id", "hedef", "gerceklesen"]
         },
         "2": {
             "label": "Katman 2 — Sapma ve risk",

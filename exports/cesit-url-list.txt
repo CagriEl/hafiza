@@ -1,0 +1,33 @@
+Toplam sayfa: 20
+Toplam haber: 7
+
+SAYFALAR:
+https://www.cesit.com/index.cfm
+https://www.cesit.com/index.cfm?action=index&id=10&page=uzman-eki%CC%87p
+https://www.cesit.com/index.cfm?action=index&id=11&menu=insan-kaynaklari
+https://www.cesit.com/index.cfm?action=index&id=11&page=kus-onleme-fi%CC%87lesi%CC%87-%2F-agi
+https://www.cesit.com/index.cfm?action=index&id=12&menu=iletisim
+https://www.cesit.com/index.cfm?action=index&id=12&page=tarim-agi-ve-golgeli%CC%87kler
+https://www.cesit.com/index.cfm?action=index&id=13&page=akdeni%CC%87z-bolgesi%CC%87
+https://www.cesit.com/index.cfm?action=index&id=14&page=ege-bolgesi%CC%87
+https://www.cesit.com/index.cfm?action=index&id=15&page=karadeni%CC%87z-bolgesi%CC%87
+https://www.cesit.com/index.cfm?action=index&id=16&page=marmara-bolgesi%CC%87
+https://www.cesit.com/index.cfm?action=index&id=17&page=naylon-i%CC%87pli%CC%87k
+https://www.cesit.com/index.cfm?action=index&id=18&page=satis-eki%CC%87bi%CC%87
+https://www.cesit.com/index.cfm?action=index&id=19&page=balikcilik-malzemeleri%CC%87
+https://www.cesit.com/index.cfm?action=index&id=20&page=kali%CC%87te-poli%CC%87ti%CC%87kamiz
+https://www.cesit.com/index.cfm?action=index&id=21&page=ki%CC%87si%CC%87sel-veri%CC%87leri%CC%87n-korunmasi
+https://www.cesit.com/index.cfm?action=index&id=5&page=tari%CC%87hce
+https://www.cesit.com/index.cfm?action=index&id=6&page=yoneti%CC%87m-kurulu
+https://www.cesit.com/index.cfm?action=index&id=7&page=balik-agi
+https://www.cesit.com/index.cfm?action=index&id=8&page=spor-agi
+https://www.cesit.com/index.cfm?action=index&id=9&page=guvenli%CC%87k-agi
+
+HABERLER:
+- TSEN 1263-1 -> https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=9
+- Fabrikamız büyüyor -> https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=6
+- Düğümsüz 5 göz imalatımız başlamıştır -> https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=7
+- Pendik -> https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=4
+- Yüksek Mukavemet Testi -> https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=1
+- Yeni makinalarımız -> https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=2
+- Müşteri Bilgilendirme Platformu -> https://www.cesit.com/index.cfm?action=index&id=99&menu=haberler&no=5

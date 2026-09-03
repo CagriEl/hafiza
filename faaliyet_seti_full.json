@@ -7,7 +7,8 @@
         "Kapsam": "Randevu, kabul, ziyaret, tören ve protokol koordinasyonu",
         "Ölçü Birimi": "adet / hafta",
         "Ana KPI / SLA": "zamanında gerçekleşme oranı",
-        "Veri Kaynağı": "Başkanlık takvimi / EBYS"
+        "Veri Kaynağı": "Başkanlık takvimi / EBYS",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Özel Kalem Müdürlüğü",
@@ -17,7 +18,8 @@
         "Kapsam": "Çağrı-çözüm, başvuru izleme, memnuniyet analizi",
         "Ölçü Birimi": "başvuru / memnuniyet %",
         "Ana KPI / SLA": "kapanış oranı, memnuniyet",
-        "Veri Kaynağı": "CRM / anket"
+        "Veri Kaynağı": "CRM / anket",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Özel Kalem Müdürlüğü",
@@ -27,7 +29,8 @@
         "Kapsam": "Paydaş haritalama, görüşme, toplantı ve çıktı takibi",
         "Ölçü Birimi": "toplantı / çıktı",
         "Ana KPI / SLA": "eylem planına bağlanan çıktı",
-        "Veri Kaynağı": "EBYS / toplantı notu"
+        "Veri Kaynağı": "EBYS / toplantı notu",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Özel Kalem Müdürlüğü",
@@ -37,7 +40,8 @@
         "Kapsam": "Basın bülteni, sosyal medya, kriz iletişimi",
         "Ölçü Birimi": "içerik / erişim",
         "Ana KPI / SLA": "yayın planı gerçekleşme",
-        "Veri Kaynağı": "BYHİK kayıtları"
+        "Veri Kaynağı": "BYHİK kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Özel Kalem Müdürlüğü",
@@ -47,7 +51,8 @@
         "Kapsam": "AB/hibe veya tematik proje fikri, konsept notu, paydaş listesi",
         "Ölçü Birimi": "proje notu / adet",
         "Ana KPI / SLA": "tamamlanan konsept notu",
-        "Veri Kaynağı": "EBYS / proje klasörü"
+        "Veri Kaynağı": "EBYS / proje klasörü",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Yazı İşleri Müdürlüğü",
@@ -57,7 +62,8 @@
         "Kapsam": "Meclis toplantı sayısı, Meclis karar sayısı, Encümen toplantı sayısı, Encümen karar sayısı",
         "Ölçü Birimi": "toplantı / karar",
         "Ana KPI / SLA": "kararların aynı gün ilgili müdürlüklere iletim oranı",
-        "Veri Kaynağı": "EBYS / meclis kayıtları"
+        "Veri Kaynağı": "EBYS / meclis kayıtları",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Yazı İşleri Müdürlüğü",
@@ -67,17 +73,19 @@
         "Kapsam": "Gelen evrak sayısı, Posta/KEP giden evrak sayısı",
         "Ölçü Birimi": "evrak sayısı",
         "Ana KPI / SLA": "zamanında havale ve gönderim oranı",
-        "Veri Kaynağı": "EBYS / KEP"
+        "Veri Kaynağı": "EBYS / KEP",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Yazı İşleri Müdürlüğü",
         "Faaliyet Kodu": "YZM-03",
         "Faaliyet Ailesi": "CİMER / 4982 / 3071 Başvuruları",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "CİMER gelen, CİMER yönlendirilen",
+        "Kapsam": "CİMER gelen, CİMER yönlendirilen, Başvuru tarihi, Konu, Koordinasyon müdürlüğü, Başlangıç tarihi, Bitiş tarihi, Süre uzatım nedeni",
         "Ölçü Birimi": "başvuru sayısı",
         "Ana KPI / SLA": "SLA içinde sonuçlandırılan başvuru oranı",
-        "Veri Kaynağı": "EBYS / başvuru sistemi"
+        "Veri Kaynağı": "EBYS / başvuru sistemi",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Yazı İşleri Müdürlüğü",
@@ -87,7 +95,8 @@
         "Kapsam": "Arşiv devir yapılan müdürlük sayısı, Dosyalanan evrak sayısı, Dosya/Klasör sayısı, Arşiv erişim talebi sayısı, İmha işlemi (yıllık)",
         "Ölçü Birimi": "müdürlük / evrak / dosya / talep",
         "Ana KPI / SLA": "arşiv işlemlerinde kayıt tamlığı ve zamanında erişim oranı",
-        "Veri Kaynağı": "Arşiv kayıtları"
+        "Veri Kaynağı": "Arşiv kayıtları",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Yazı İşleri Müdürlüğü",
@@ -97,7 +106,8 @@
         "Kapsam": "Başvuru, nikâh ve nüfus bildirim süreci",
         "Ölçü Birimi": "başvuru / nikâh",
         "Ana KPI / SLA": "zamanında sonuçlanan işlem",
-        "Veri Kaynağı": "Evlendirme kayıtları"
+        "Veri Kaynağı": "Evlendirme kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İnsan Kaynakları ve Eğitim Müdürlüğü",
@@ -107,7 +117,8 @@
         "Kapsam": "Atama, intibak, sicil, görevlendirme",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "tamamlanan işlem süresi",
-        "Veri Kaynağı": "Personel sistemi / EBYS"
+        "Veri Kaynağı": "Personel sistemi / EBYS",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "İnsan Kaynakları ve Eğitim Müdürlüğü",
@@ -117,7 +128,8 @@
         "Kapsam": "İzin, disiplin, rapor, mesai takipleri",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "SLA içinde kapanış",
-        "Veri Kaynağı": "Personel sistemi"
+        "Veri Kaynağı": "Personel sistemi",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "İnsan Kaynakları ve Eğitim Müdürlüğü",
@@ -138,7 +150,8 @@
         "Kapsam": "Hizmet içi eğitim, oryantasyon, staj",
         "Ölçü Birimi": "eğitim / katılımcı",
         "Ana KPI / SLA": "kişi başı eğitim saati",
-        "Veri Kaynağı": "Eğitim planı"
+        "Veri Kaynağı": "Eğitim planı",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İnsan Kaynakları ve Eğitim Müdürlüğü",
@@ -148,7 +161,8 @@
         "Kapsam": "Değerlendirme, gelişim ve kariyer süreçleri",
         "Ölçü Birimi": "değerlendirme / rapor",
         "Ana KPI / SLA": "tamamlanan değerlendirme oranı",
-        "Veri Kaynağı": "İK kayıtları"
+        "Veri Kaynağı": "İK kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İnsan Kaynakları ve Eğitim Müdürlüğü",
@@ -169,7 +183,8 @@
         "Kapsam": "Yol, kaldırım, bordür, kavşak, yaya geçidi, üstyapı onarımı",
         "Ölçü Birimi": "m / m2 / adet",
         "Ana KPI / SLA": "tamamlanan imalat miktarı",
-        "Veri Kaynağı": "İş emri / saha tutanağı"
+        "Veri Kaynağı": "İş emri / saha tutanağı",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Fen İşleri Müdürlüğü",
@@ -179,7 +194,8 @@
         "Kapsam": "Teknik dosya, yaklaşık maliyet, ataşman, hakediş",
         "Ölçü Birimi": "dosya / hakediş",
         "Ana KPI / SLA": "tamamlanan teknik dosya süresi",
-        "Veri Kaynağı": "EBYS / proje klasörü"
+        "Veri Kaynağı": "EBYS / proje klasörü",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Fen İşleri Müdürlüğü",
@@ -189,7 +205,8 @@
         "Kapsam": "Şantiye, üretim sahası, stok ve ekip planı",
         "Ölçü Birimi": "iş emri / üretim",
         "Ana KPI / SLA": "şantiye verimliliği",
-        "Veri Kaynağı": "Şantiye kayıtları"
+        "Veri Kaynağı": "Şantiye kayıtları",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Fen İşleri Müdürlüğü",
@@ -199,7 +216,8 @@
         "Kapsam": "Belediye tesisleri, menfez, istinat, küçük köprü işleri",
         "Ölçü Birimi": "iş / adet",
         "Ana KPI / SLA": "zamanında tamamlanan iş",
-        "Veri Kaynağı": "Saha kontrol"
+        "Veri Kaynağı": "Saha kontrol",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Fen İşleri Müdürlüğü",
@@ -209,7 +227,8 @@
         "Kapsam": "Park altyapısı, temel, ankraj, sulama hattı altlığı",
         "Ölçü Birimi": "m / adet",
         "Ana KPI / SLA": "tamamlanan iş miktarı",
-        "Veri Kaynağı": "İş emri"
+        "Veri Kaynağı": "İş emri",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Fen İşleri Müdürlüğü",
@@ -219,7 +238,19 @@
         "Kapsam": "Kar-buz, sel, acil onarım, erişim açma",
         "Ölçü Birimi": "olay / müdahale",
         "Ana KPI / SLA": "müdahale süresi",
-        "Veri Kaynağı": "Acil durum kayıtları"
+        "Veri Kaynağı": "Acil durum kayıtları",
+        "Raporlama Sıklığı": "Haftalık / olay anında"
+    },
+    {
+        "Müdürlük": "Fen İşleri Müdürlüğü",
+        "Faaliyet Kodu": "FNM-08",
+        "Faaliyet Ailesi": "Peyzaj İşleri",
+        "Kategori": "Proje / Yatırım / Sözleşme",
+        "Kapsam": "Peyzaj uygulama, bakım, ağaçlandırma, yeşil alan düzenleme",
+        "Ölçü Birimi": "m² / adet",
+        "Ana KPI / SLA": "planlanan/gerçekleşen peyzaj",
+        "Veri Kaynağı": "Fen İşleri saha kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Su ve Kanalizasyon Müdürlüğü",
@@ -229,7 +260,8 @@
         "Kapsam": "Arıtma, dezenfeksiyon, analiz ve depolama",
         "Ölçü Birimi": "numune / adet",
         "Ana KPI / SLA": "uygun numune oranı",
-        "Veri Kaynağı": "SCADA / laboratuvar"
+        "Veri Kaynağı": "SCADA / laboratuvar",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Su ve Kanalizasyon Müdürlüğü",
@@ -239,17 +271,19 @@
         "Kapsam": "Su arızası, isale hattı, pompa ve bakım işleri",
         "Ölçü Birimi": "arıza / müdahale",
         "Ana KPI / SLA": "ortalama müdahale süresi",
-        "Veri Kaynağı": "185 hattı / saha kayıt"
+        "Veri Kaynağı": "185 hattı / saha kayıt",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Su ve Kanalizasyon Müdürlüğü",
         "Faaliyet Kodu": "SKM-03",
         "Faaliyet Ailesi": "Abonelik ve Tahakkuk İşlemleri",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Abonelik açma-kapama, değişiklik, bildirim",
+        "Kapsam": "Abonelik açma-kapama, değişiklik, Arıza kontrol",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "sonuçlanan başvuru oranı",
-        "Veri Kaynağı": "Abone sistemi"
+        "Veri Kaynağı": "Abone sistemi",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Su ve Kanalizasyon Müdürlüğü",
@@ -257,9 +291,10 @@
         "Faaliyet Ailesi": "Sayaç, Endeks ve Kaçak Su",
         "Kategori": "Denetim / Uyum",
         "Kapsam": "Sayaç kontrol, endeks, kaçak tespiti",
-        "Ölçü Birimi": "işlem / tutanak",
+        "Ölçü Birimi": "adet / tutanak",
         "Ana KPI / SLA": "kaçak tespit kapanış süresi",
-        "Veri Kaynağı": "Sayaç kayıtları"
+        "Veri Kaynağı": "Sayaç kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Su ve Kanalizasyon Müdürlüğü",
@@ -269,7 +304,8 @@
         "Kapsam": "Kayıp-kaçak analizi, verimlilik, eğitim",
         "Ölçü Birimi": "oran / faaliyet",
         "Ana KPI / SLA": "kayıp-kaçak oranı",
-        "Veri Kaynağı": "Analiz raporu"
+        "Veri Kaynağı": "Analiz raporu",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Su ve Kanalizasyon Müdürlüğü",
@@ -279,67 +315,85 @@
         "Kapsam": "Kanal, yağmursuyu, kuka, vidanjör operasyonları",
         "Ölçü Birimi": "iş emri / müdahale",
         "Ana KPI / SLA": "kapanış süresi",
-        "Veri Kaynağı": "Saha kayıtları"
+        "Veri Kaynağı": "Saha kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Makine İkmal Bakım ve Onarım Müdürlüğü",
         "Faaliyet Kodu": "MKM-01",
         "Faaliyet Ailesi": "Planlı Bakım",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Periyodik bakım, muayene, kalibrasyon hazırlığı",
+        "Kapsam": "Periyodik bakım, muayene",
         "Ölçü Birimi": "araç / ekipman",
         "Ana KPI / SLA": "planlı bakım uyum oranı",
-        "Veri Kaynağı": "Bakım planı"
+        "Veri Kaynağı": "Bakım planı",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Makine İkmal Bakım ve Onarım Müdürlüğü",
         "Faaliyet Kodu": "MKM-02",
         "Faaliyet Ailesi": "Arıza Bakım ve Revizyon",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Arıza giderme, motor, kaporta, kaynak, HVAC",
+        "Kapsam": "Arıza giderme, motor, kaporta, kaynak, HVAC, Lastik ve boya atölyeleri, yıkama-yağlama işlemleri",
         "Ölçü Birimi": "iş emri",
         "Ana KPI / SLA": "ortalama onarım süresi",
-        "Veri Kaynağı": "Atölye kayıtları"
+        "Veri Kaynağı": "Atölye kayıtları",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Makine İkmal Bakım ve Onarım Müdürlüğü",
         "Faaliyet Kodu": "MKM-03",
         "Faaliyet Ailesi": "Garaj ve Saha Operasyonları",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Görev sevk, dönüş kontrolü, şoför ve nöbet planı",
-        "Ölçü Birimi": "sevk / araç",
+        "Kapsam": "Görev sevk, dönüş kontrolü, şoför ve nöbet planı, Engelli ve hasta taşıma aracı, Araç talepleri, araç kiralama süreçleri",
+        "Ölçü Birimi": "sevk",
         "Ana KPI / SLA": "araç kullanılabilirlik oranı",
-        "Veri Kaynağı": "Garaj kayıtları"
+        "Veri Kaynağı": "Garaj kayıtları",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Makine İkmal Bakım ve Onarım Müdürlüğü",
         "Faaliyet Kodu": "MKM-04",
         "Faaliyet Ailesi": "Yakıt ve Telematik Verimliliği",
         "Kategori": "Strateji / İyileştirme / Eğitim",
-        "Kapsam": "Yakıt tüketimi, rölanti, kilometre, verimlilik analizi",
-        "Ölçü Birimi": "lt / km / saat",
+        "Kapsam": "Yakıt tüketimi",
+        "Ölçü Birimi": "lt",
         "Ana KPI / SLA": "yakıt sapma oranı",
-        "Veri Kaynağı": "ATS"
+        "Veri Kaynağı": "ATS",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Makine İkmal Bakım ve Onarım Müdürlüğü",
         "Faaliyet Kodu": "MKM-05",
         "Faaliyet Ailesi": "Yedek Parça ve Teknik Stok",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Kritik parça, stok, garanti ve iade süreçleri",
+        "Kapsam": "Kritik parça, stok, Malzeme girişi",
         "Ölçü Birimi": "stok kartı / parça",
         "Ana KPI / SLA": "kritik stok altı kalem",
-        "Veri Kaynağı": "Stok sistemi"
+        "Veri Kaynağı": "Stok sistemi",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Makine İkmal Bakım ve Onarım Müdürlüğü",
         "Faaliyet Kodu": "MKM-06",
         "Faaliyet Ailesi": "Teknik Temin ve Servis Yönetimi",
         "Kategori": "Proje / Yatırım / Sözleşme",
-        "Kapsam": "Servis, muayene-kabul, garanti, teknik alım süreçleri",
+        "Kapsam": "Servis, Avans işlemleri",
         "Ölçü Birimi": "dosya / servis işi",
         "Ana KPI / SLA": "zamanında kapanış oranı",
-        "Veri Kaynağı": "EBYS / servis dosyası"
+        "Veri Kaynağı": "EBYS / servis dosyası",
+        "Raporlama Sıklığı": "Haftalık"
+    },
+    {
+        "Müdürlük": "Makine İkmal Bakım ve Onarım Müdürlüğü",
+        "Faaliyet Kodu": "MKM-07",
+        "Faaliyet Ailesi": "İmalat İşlemleri",
+        "Kategori": "Destek / İç İşleyiş",
+        "Kapsam": "Atölye imalatı, kaynak imalatı, kaporta imalatı, özel imalat işleri",
+        "Ölçü Birimi": "adet / iş",
+        "Ana KPI / SLA": "tamamlanan imalat oranı",
+        "Veri Kaynağı": "Atölye kayıtları",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Hukuk İşleri Müdürlüğü",
@@ -349,7 +403,8 @@
         "Kapsam": "Adli, idari ve icra dosyaları",
         "Ölçü Birimi": "dosya sayısı",
         "Ana KPI / SLA": "aktif dosya / sonuçlanan dosya",
-        "Veri Kaynağı": "Dava takip listesi"
+        "Veri Kaynağı": "Dava takip listesi",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Hukuk İşleri Müdürlüğü",
@@ -359,7 +414,8 @@
         "Kapsam": "Birimlerden gelen görüş ve değerlendirme talepleri",
         "Ölçü Birimi": "talep sayısı",
         "Ana KPI / SLA": "ortalama cevap süresi",
-        "Veri Kaynağı": "EBYS"
+        "Veri Kaynağı": "EBYS",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Hukuk İşleri Müdürlüğü",
@@ -369,7 +425,8 @@
         "Kapsam": "Taslak inceleme ve önleyici hukuk süreçleri",
         "Ölçü Birimi": "inceleme sayısı",
         "Ana KPI / SLA": "uygunluk görüş süresi",
-        "Veri Kaynağı": "EBYS / sözleşme klasörü"
+        "Veri Kaynağı": "EBYS / sözleşme klasörü",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Hukuk İşleri Müdürlüğü",
@@ -379,7 +436,8 @@
         "Kapsam": "Tebligat, müzekkere, bilgi-belge cevabı",
         "Ölçü Birimi": "tebligat / yazı",
         "Ana KPI / SLA": "zamanında cevap oranı",
-        "Veri Kaynağı": "EBYS / UYAP"
+        "Veri Kaynağı": "EBYS / UYAP",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Hukuk İşleri Müdürlüğü",
@@ -389,7 +447,8 @@
         "Kapsam": "Alternatif uyuşmazlık çözümü ve sonuçları",
         "Ölçü Birimi": "dosya / toplantı",
         "Ana KPI / SLA": "anlaşma oranı",
-        "Veri Kaynağı": "Dosya kayıtları"
+        "Veri Kaynağı": "Dosya kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Hukuk İşleri Müdürlüğü",
@@ -399,7 +458,8 @@
         "Kapsam": "Mevzuat değişikliği, risk ve uyum notları",
         "Ölçü Birimi": "bilgi notu / adet",
         "Ana KPI / SLA": "yayınlanan uyum notu",
-        "Veri Kaynağı": "Mevzuat takip listesi"
+        "Veri Kaynağı": "Mevzuat takip listesi",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Bilgi İşlem Müdürlüğü",
@@ -409,7 +469,8 @@
         "Kapsam": "Yazıcı, bilgisayar, projeksiyon, kurulum ve destek talepleri",
         "Ölçü Birimi": "talep sayısı",
         "Ana KPI / SLA": "ilk temas çözüm oranı",
-        "Veri Kaynağı": "Yardım masası"
+        "Veri Kaynağı": "Yardım masası",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Bilgi İşlem Müdürlüğü",
@@ -419,7 +480,8 @@
         "Kapsam": "Ağ, veri merkezi, yedekleme ve e-posta işletimi",
         "Ölçü Birimi": "olay / süre",
         "Ana KPI / SLA": "kesinti süresi",
-        "Veri Kaynağı": "İzleme sistemi"
+        "Veri Kaynağı": "İzleme sistemi",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Bilgi İşlem Müdürlüğü",
@@ -429,7 +491,8 @@
         "Kapsam": "EBYS, YBS, web, mobil ve entegrasyon değişiklikleri",
         "Ölçü Birimi": "talep / sürüm",
         "Ana KPI / SLA": "tamamlanan talep süresi",
-        "Veri Kaynağı": "Uygulama kayıtları"
+        "Veri Kaynağı": "Uygulama kayıtları",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Bilgi İşlem Müdürlüğü",
@@ -439,7 +502,8 @@
         "Kapsam": "SOME, log, SIEM, phishing, zafiyet ve olay kaydı",
         "Ölçü Birimi": "olay / uyarı",
         "Ana KPI / SLA": "kapanış süresi",
-        "Veri Kaynağı": "Güvenlik kayıtları"
+        "Veri Kaynağı": "Güvenlik kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Bilgi İşlem Müdürlüğü",
@@ -449,7 +513,8 @@
         "Kapsam": "Kullanıcı yetkisi, maskeleme, erişim matrisi",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "zamanında yetki kapatma",
-        "Veri Kaynağı": "IAM kayıtları"
+        "Veri Kaynağı": "IAM kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Bilgi İşlem Müdürlüğü",
@@ -459,37 +524,41 @@
         "Kapsam": "BT varlık, lisans, kiosk, yazıcı, zimmet",
         "Ölçü Birimi": "envanter / lisans",
         "Ana KPI / SLA": "güncel envanter oranı",
-        "Veri Kaynağı": "Envanter sistemi"
+        "Veri Kaynağı": "Envanter sistemi",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "İmar ve Şehircilik Müdürlüğü",
         "Faaliyet Kodu": "IMM-01",
         "Faaliyet Ailesi": "Ruhsat ve Proje Tasdik",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "Yapı ruhsatı, tadilat, proje inceleme",
+        "Kapsam": "Yapı ruhsatı, tadilat, proje inceleme, Ön kontrol-cevaplama kabul sayısı, Ön kontrol-cevaplama ret sayısı",
         "Ölçü Birimi": "başvuru / dosya",
         "Ana KPI / SLA": "sonuçlanan dosya süresi",
-        "Veri Kaynağı": "Ruhsat kayıtları"
+        "Veri Kaynağı": "Ruhsat kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İmar ve Şehircilik Müdürlüğü",
         "Faaliyet Kodu": "IMM-02",
         "Faaliyet Ailesi": "İskan ve Kat Mülkiyeti",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "İskan, kat irtifakı/mülkiyeti proje onayları",
+        "Kapsam": "İskan, kat irtifakı/mülkiyeti proje onayları, Vizeleme, Bina kontrolü",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "tamamlama süresi",
-        "Veri Kaynağı": "İmar sistemi"
+        "Veri Kaynağı": "İmar sistemi",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İmar ve Şehircilik Müdürlüğü",
         "Faaliyet Kodu": "IMM-03",
         "Faaliyet Ailesi": "İmar Durumu ve Başvuru İşlemleri",
         "Kategori": "Başvuru / İşlem",
-        "Kapsam": "İmar durumu, yazılı teknik görüşler",
+        "Kapsam": "İmar durumu, yazılı teknik görüşler, Basit tadilat",
         "Ölçü Birimi": "başvuru sayısı",
         "Ana KPI / SLA": "SLA içinde sonuçlanan oran",
-        "Veri Kaynağı": "EBYS"
+        "Veri Kaynağı": "EBYS",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İmar ve Şehircilik Müdürlüğü",
@@ -499,17 +568,19 @@
         "Kapsam": "Yapı tatil, aykırılık, metruk yapı, yıkım takip",
         "Ölçü Birimi": "tutanak / işlem",
         "Ana KPI / SLA": "uygunsuzluk kapanış oranı",
-        "Veri Kaynağı": "Saha tutanakları"
+        "Veri Kaynağı": "Saha tutanakları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İmar ve Şehircilik Müdürlüğü",
         "Faaliyet Kodu": "IMM-05",
         "Faaliyet Ailesi": "Planlama ve Kentsel Dönüşüm",
         "Kategori": "Strateji / İyileştirme / Eğitim",
-        "Kapsam": "Plan değişikliği, komisyon, riskli yapı süreçleri",
+        "Kapsam": "Plan değişikliği, komisyon, riskli yapı süreçleri, Plan yapımı, Plan revizyonu, Plan uygulama",
         "Ölçü Birimi": "dosya / teklif",
         "Ana KPI / SLA": "mile-stone gerçekleşme",
-        "Veri Kaynağı": "Plan klasörü"
+        "Veri Kaynağı": "Plan klasörü",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İmar ve Şehircilik Müdürlüğü",
@@ -519,7 +590,8 @@
         "Kapsam": "İfraz-tevhit, aplikasyon, numarataj, CBS güncelleme",
         "Ölçü Birimi": "işlem / parsel",
         "Ana KPI / SLA": "güncel veri oranı",
-        "Veri Kaynağı": "CBS / harita kayıtları"
+        "Veri Kaynağı": "CBS / harita kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İtfaiye Müdürlüğü",
@@ -529,7 +601,8 @@
         "Kapsam": "Ev yangınları, Araç yangınları, Trafo yangınları, Çöp yangınları, Anız/arazi yangınları, Tesis yangınları (fabrika/işyeri)",
         "Ölçü Birimi": "vaka sayısı",
         "Ana KPI / SLA": "ortalama çıkış-varış süresi",
-        "Veri Kaynağı": "112 / vaka kayıtları"
+        "Veri Kaynağı": "112 / vaka kayıtları",
+        "Raporlama Sıklığı": "Haftalık / olay anında"
     },
     {
         "Müdürlük": "İtfaiye Müdürlüğü",
@@ -539,7 +612,8 @@
         "Kapsam": "Kaza, mahsur kalma, su baskını, hayvan kurtarma",
         "Ölçü Birimi": "vaka sayısı",
         "Ana KPI / SLA": "müdahale süresi",
-        "Veri Kaynağı": "Vaka kayıtları"
+        "Veri Kaynağı": "Vaka kayıtları",
+        "Raporlama Sıklığı": "Haftalık / olay anında"
     },
     {
         "Müdürlük": "İtfaiye Müdürlüğü",
@@ -549,7 +623,8 @@
         "Kapsam": "Yangın güvenliği denetimi, uygunluk raporu",
         "Ölçü Birimi": "denetim sayısı",
         "Ana KPI / SLA": "uygunsuzluk kapanış oranı",
-        "Veri Kaynağı": "Denetim kayıtları"
+        "Veri Kaynağı": "Denetim kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İtfaiye Müdürlüğü",
@@ -559,7 +634,8 @@
         "Kapsam": "Kurum, okul, işletme eğitimi ve tatbikat",
         "Ölçü Birimi": "etkinlik / katılımcı",
         "Ana KPI / SLA": "katılımcı sayısı",
-        "Veri Kaynağı": "Eğitim kayıtları"
+        "Veri Kaynağı": "Eğitim kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İtfaiye Müdürlüğü",
@@ -569,7 +645,8 @@
         "Kapsam": "Çağrı, Sevk, Danışma bilgi",
         "Ölçü Birimi": "çağrı / sevk",
         "Ana KPI / SLA": "zaman damgası doğruluk oranı",
-        "Veri Kaynağı": "ATS / 112"
+        "Veri Kaynağı": "ATS / 112",
+        "Raporlama Sıklığı": "Haftalık / olay anında"
     },
     {
         "Müdürlük": "İtfaiye Müdürlüğü",
@@ -579,7 +656,8 @@
         "Kapsam": "Bakım, kalibrasyon, stok ve hazır olma",
         "Ölçü Birimi": "araç / cihaz",
         "Ana KPI / SLA": "hazır araç oranı",
-        "Veri Kaynağı": "Bakım kayıtları"
+        "Veri Kaynağı": "Bakım kayıtları",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "İtfaiye Müdürlüğü",
@@ -589,7 +667,8 @@
         "Kapsam": "Yangın eğitimi, tatbikat, itfaiye araç bedeli, su verme, Yangın Güvenlik Raporu Belgesi Hizmet Ücreti ve benzeri ücretli hizmetlerin tahakkuk/tahsilat takibi",
         "Ölçü Birimi": "işlem / tahakkuk",
         "Ana KPI / SLA": "tahsilat oranı",
-        "Veri Kaynağı": "Tahakkuk kayıtları"
+        "Veri Kaynağı": "Tahakkuk kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İtfaiye Müdürlüğü",
@@ -599,7 +678,8 @@
         "Kapsam": "Araç Destek Talepleri, Bayrak asma ve Kontrolü, Merdiven açma talepleri, Su verme, Yol sulama",
         "Ölçü Birimi": "görev sayısı",
         "Ana KPI / SLA": "zamanında tamamlanan görev oranı",
-        "Veri Kaynağı": "Saha görev kayıtları"
+        "Veri Kaynağı": "Saha görev kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Afet İşleri ve Risk Yönetimi Müdürlüğü",
@@ -609,7 +689,8 @@
         "Kapsam": "Risk kaydı, KRI, risk haritası, DÖF",
         "Ölçü Birimi": "risk / DÖF",
         "Ana KPI / SLA": "açık yüksek risk sayısı",
-        "Veri Kaynağı": "Risk kayıtları"
+        "Veri Kaynağı": "Risk kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Afet İşleri ve Risk Yönetimi Müdürlüğü",
@@ -619,7 +700,8 @@
         "Kapsam": "BIA, BCP/DRP, sivil savunma ve plan güncellemeleri",
         "Ölçü Birimi": "plan / güncelleme",
         "Ana KPI / SLA": "tamamlanan plan oranı",
-        "Veri Kaynağı": "Plan klasörü"
+        "Veri Kaynağı": "Plan klasörü",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Afet İşleri ve Risk Yönetimi Müdürlüğü",
@@ -629,7 +711,8 @@
         "Kapsam": "Afet farkındalık, tatbikat, gönüllü programları",
         "Ölçü Birimi": "etkinlik / katılımcı",
         "Ana KPI / SLA": "katılımcı sayısı",
-        "Veri Kaynağı": "Eğitim kayıtları"
+        "Veri Kaynağı": "Eğitim kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Afet İşleri ve Risk Yönetimi Müdürlüğü",
@@ -639,7 +722,8 @@
         "Kapsam": "Ekip, teçhizat, lojistik, intikal hazırlığı",
         "Ölçü Birimi": "ekipman / görev",
         "Ana KPI / SLA": "hazır ekip oranı",
-        "Veri Kaynağı": "Lojistik kayıtları"
+        "Veri Kaynağı": "Lojistik kayıtları",
+        "Raporlama Sıklığı": "Haftalık / olay anında"
     },
     {
         "Müdürlük": "Afet İşleri ve Risk Yönetimi Müdürlüğü",
@@ -649,7 +733,8 @@
         "Kapsam": "İkaz-alarm, sığınak, KBRN ve seferberlik süreçleri",
         "Ölçü Birimi": "test / plan",
         "Ana KPI / SLA": "test başarı oranı",
-        "Veri Kaynağı": "Sistem kayıtları"
+        "Veri Kaynağı": "Sistem kayıtları",
+        "Raporlama Sıklığı": "Haftalık / olay anında"
     },
     {
         "Müdürlük": "Afet İşleri ve Risk Yönetimi Müdürlüğü",
@@ -659,7 +744,8 @@
         "Kapsam": "AYDES veri girişi, AFAD/Valilik koordinasyonu",
         "Ölçü Birimi": "toplantı / veri seti",
         "Ana KPI / SLA": "zamanında veri gönderimi",
-        "Veri Kaynağı": "AYDES / EBYS"
+        "Veri Kaynağı": "AYDES / EBYS",
+        "Raporlama Sıklığı": "Haftalık / olay anında"
     },
     {
         "Müdürlük": "Temizlik İşleri Müdürlüğü",
@@ -669,7 +755,8 @@
         "Kapsam": "Rota bazlı atık toplama ve sevk",
         "Ölçü Birimi": "ton / sefer",
         "Ana KPI / SLA": "gerçekleşen rota oranı",
-        "Veri Kaynağı": "ATS / sevk kayıtları"
+        "Veri Kaynağı": "ATS / sevk kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Temizlik İşleri Müdürlüğü",
@@ -679,7 +766,8 @@
         "Kapsam": "Cadde, sokak, meydan ve ortak alan temizliği",
         "Ölçü Birimi": "rota / km / alan",
         "Ana KPI / SLA": "zamanında tamamlanan rota",
-        "Veri Kaynağı": "Saha planı"
+        "Veri Kaynağı": "Saha planı",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Temizlik İşleri Müdürlüğü",
@@ -689,7 +777,8 @@
         "Kapsam": "Pazar, etkinlik ve yoğun alan temizlikleri",
         "Ölçü Birimi": "iş / alan",
         "Ana KPI / SLA": "tamamlanan iş süresi",
-        "Veri Kaynağı": "Saha kayıtları"
+        "Veri Kaynağı": "Saha kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Temizlik İşleri Müdürlüğü",
@@ -699,7 +788,8 @@
         "Kapsam": "Yıkama, dezenfeksiyon, boya, tamir",
         "Ölçü Birimi": "adet",
         "Ana KPI / SLA": "temizlenen konteyner sayısı",
-        "Veri Kaynağı": "Saha kayıtları"
+        "Veri Kaynağı": "Saha kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Temizlik İşleri Müdürlüğü",
@@ -709,7 +799,8 @@
         "Kapsam": "Larvasit/ULV saha uygulama desteği",
         "Ölçü Birimi": "uygulama alanı / adet",
         "Ana KPI / SLA": "plan gerçekleşme oranı",
-        "Veri Kaynağı": "Saha planı"
+        "Veri Kaynağı": "Saha planı",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Temizlik İşleri Müdürlüğü",
@@ -719,7 +810,8 @@
         "Kapsam": "Talep, şikâyet, SLA ve DÖF",
         "Ölçü Birimi": "başvuru / kapanış",
         "Ana KPI / SLA": "SLA içinde kapanış oranı",
-        "Veri Kaynağı": "CRM / EBYS"
+        "Veri Kaynağı": "CRM / EBYS",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İklim Değişikliği ve Sıfır Atık Müdürlüğü",
@@ -729,7 +821,8 @@
         "Kapsam": "AAT işletimi, analiz, deşarj ve bakım",
         "Ölçü Birimi": "numune / adet",
         "Ana KPI / SLA": "uygun deşarj oranı",
-        "Veri Kaynağı": "SCADA / laboratuvar"
+        "Veri Kaynağı": "SCADA / laboratuvar",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İklim Değişikliği ve Sıfır Atık Müdürlüğü",
@@ -739,7 +832,8 @@
         "Kapsam": "Ayrı toplama, AGM, EÇBS beyan, performans",
         "Ölçü Birimi": "kg / ton / işlem",
         "Ana KPI / SLA": "toplanan atık miktarı",
-        "Veri Kaynağı": "EÇBS / saha kayıt"
+        "Veri Kaynağı": "EÇBS / saha kayıt",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İklim Değişikliği ve Sıfır Atık Müdürlüğü",
@@ -749,7 +843,8 @@
         "Kapsam": "AEEE, atık ilaç, bitkisel yağ, pil, ÖTL vb.",
         "Ölçü Birimi": "teslim / kg",
         "Ana KPI / SLA": "lisanslı teslim sayısı",
-        "Veri Kaynağı": "Protokol / tutanak"
+        "Veri Kaynağı": "Protokol / tutanak",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İklim Değişikliği ve Sıfır Atık Müdürlüğü",
@@ -759,7 +854,8 @@
         "Kapsam": "İzin, saha denetimi, sevk ve kontrol",
         "Ölçü Birimi": "izin / denetim",
         "Ana KPI / SLA": "kaçak döküm kapanış oranı",
-        "Veri Kaynağı": "İzin kayıtları"
+        "Veri Kaynağı": "İzin kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İklim Değişikliği ve Sıfır Atık Müdürlüğü",
@@ -769,7 +865,8 @@
         "Kapsam": "Sera gazı envanteri, enerji-su verimliliği, yenilenebilir enerji",
         "Ölçü Birimi": "rapor / proje",
         "Ana KPI / SLA": "tamamlanan aksiyon oranı",
-        "Veri Kaynağı": "GHG / proje kayıtları"
+        "Veri Kaynağı": "GHG / proje kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "İklim Değişikliği ve Sıfır Atık Müdürlüğü",
@@ -779,7 +876,8 @@
         "Kapsam": "Eğitim, kampanya, proje başvuruları",
         "Ölçü Birimi": "etkinlik / proje",
         "Ana KPI / SLA": "katılımcı sayısı / proje sayısı",
-        "Veri Kaynağı": "Etkinlik kayıtları"
+        "Veri Kaynağı": "Etkinlik kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Veteriner İşleri Müdürlüğü",
@@ -789,7 +887,8 @@
         "Kapsam": "Sahipsiz hayvan yakalama, kabul ve kayıt",
         "Ölçü Birimi": "hayvan sayısı",
         "Ana KPI / SLA": "kabul edilen hayvan sayısı",
-        "Veri Kaynağı": "Bakımevi kayıtları"
+        "Veri Kaynağı": "Bakımevi kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Veteriner İşleri Müdürlüğü",
@@ -799,7 +898,8 @@
         "Kapsam": "Muayene, ameliyat, pansuman, aşılama",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "kısırlaştırma / tedavi sayısı",
-        "Veri Kaynağı": "Klinik kayıtları"
+        "Veri Kaynağı": "Klinik kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Veteriner İşleri Müdürlüğü",
@@ -809,7 +909,8 @@
         "Kapsam": "Sahiplendirme, geri salım, doğal yaşam alanı sevki",
         "Ölçü Birimi": "hayvan sayısı",
         "Ana KPI / SLA": "sahiplendirme oranı",
-        "Veri Kaynağı": "PETVET / bakımevi"
+        "Veri Kaynağı": "PETVET / bakımevi",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Veteriner İşleri Müdürlüğü",
@@ -819,7 +920,8 @@
         "Kapsam": "Zoonoz hastalık bildirimi ve karantina",
         "Ölçü Birimi": "olay / bildirim",
         "Ana KPI / SLA": "zamanında bildirim oranı",
-        "Veri Kaynağı": "Resmî bildirim kayıtları"
+        "Veri Kaynağı": "Resmî bildirim kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Veteriner İşleri Müdürlüğü",
@@ -829,7 +931,8 @@
         "Kapsam": "Artık yemek toplama, mama üretim ve dağıtım",
         "Ölçü Birimi": "kg / rota",
         "Ana KPI / SLA": "üretilen mama miktarı",
-        "Veri Kaynağı": "Tesis kayıtları"
+        "Veri Kaynağı": "Tesis kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Veteriner İşleri Müdürlüğü",
@@ -839,7 +942,8 @@
         "Kapsam": "Ölü hayvan ve tıbbi atık süreçleri",
         "Ölçü Birimi": "teslim / işlem",
         "Ana KPI / SLA": "uygun teslim oranı",
-        "Veri Kaynağı": "Tutanak / lisanslı firma"
+        "Veri Kaynağı": "Tutanak / lisanslı firma",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Zabıta Müdürlüğü",
@@ -849,7 +953,8 @@
         "Kapsam": "Ruhsat uyumu, Verilen ruhsat, Kapanan işyerleri",
         "Ölçü Birimi": "denetim sayısı",
         "Ana KPI / SLA": "uygunsuzluk kapanış oranı",
-        "Veri Kaynağı": "Denetim tutanakları"
+        "Veri Kaynağı": "Denetim tutanakları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Zabıta Müdürlüğü",
@@ -857,9 +962,10 @@
         "Faaliyet Ailesi": "Mıntıka, Seyyar ve İşgaliye",
         "Kategori": "Denetim / Uyum",
         "Kapsam": "Seyyar, işgaliye, çevre-gürültü ve saha şikâyetleri",
-        "Ölçü Birimi": "olay / tutanak",
+        "Ölçü Birimi": "Gün Sayısı",
         "Ana KPI / SLA": "kapanış süresi",
-        "Veri Kaynağı": "Saha ekip kayıtları"
+        "Veri Kaynağı": "Saha ekip kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Zabıta Müdürlüğü",
@@ -869,7 +975,8 @@
         "Kapsam": "Pazar düzeni, terazi, etiket, terminal kontrolleri",
         "Ölçü Birimi": "denetim sayısı",
         "Ana KPI / SLA": "tespit edilen aykırılık",
-        "Veri Kaynağı": "Denetim planı"
+        "Veri Kaynağı": "Denetim planı",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Zabıta Müdürlüğü",
@@ -877,9 +984,10 @@
         "Faaliyet Ailesi": "Trafik ve Alan Yönetimi Saha İcrası",
         "Kategori": "Operasyonel Hizmet",
         "Kapsam": "Bariyer, cadde kapama-açma, hafriyat saha kontrolü",
-        "Ölçü Birimi": "uygulama sayısı",
+        "Ölçü Birimi": "Gün Sayısı",
         "Ana KPI / SLA": "uygulama süresinde tamamlama",
-        "Veri Kaynağı": "Saha kayıtları"
+        "Veri Kaynağı": "Saha kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Zabıta Müdürlüğü",
@@ -889,17 +997,30 @@
         "Kapsam": "Ölçü ve tartı aleti muayene/damga süreçleri",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "tamamlanan muayene oranı",
-        "Veri Kaynağı": "Ölçüler kayıtları"
+        "Veri Kaynağı": "Ölçüler kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Zabıta Müdürlüğü",
         "Faaliyet Kodu": "ZBM-06",
         "Faaliyet Ailesi": "Tespit, Tebligat ve İdari Yaptırım",
         "Kategori": "Denetim / Uyum",
-        "Kapsam": "Tutanak, tebliğ, yaptırım teklif/uygulama",
+        "Kapsam": "Tutanak, tebliğ, İdari Yaptırımlar",
         "Ölçü Birimi": "tutanak / tebliğ",
         "Ana KPI / SLA": "tebliğ süresi",
-        "Veri Kaynağı": "EBYS / saha tutanağı"
+        "Veri Kaynağı": "EBYS / saha tutanağı",
+        "Raporlama Sıklığı": "Haftalık"
+    },
+    {
+        "Müdürlük": "Zabıta Müdürlüğü",
+        "Faaliyet Kodu": "ZBM-07",
+        "Faaliyet Ailesi": "Ruhsatsız Faaliyet ve Toplu Şikâyet Takibi",
+        "Kategori": "Denetim / Uyum",
+        "Kapsam": "Ruhsatsız faaliyet, 153 ve Mavi Masa Şikayetleri, Kamu düzeni gerektiren süreçler",
+        "Ölçü Birimi": "olay / tutanak",
+        "Ana KPI / SLA": "kapanış süresi",
+        "Veri Kaynağı": "",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Mezarlıklar Müdürlüğü",
@@ -909,7 +1030,8 @@
         "Kapsam": "Defin, Cenaze açma",
         "Ölçü Birimi": "defin sayısı",
         "Ana KPI / SLA": "talebin zamanında karşılanması",
-        "Veri Kaynağı": "Defin kayıtları"
+        "Veri Kaynağı": "Defin kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Mezarlıklar Müdürlüğü",
@@ -919,7 +1041,8 @@
         "Kapsam": "Tahsis, defin kütüğü, belge düzeni",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "güncel kayıt oranı",
-        "Veri Kaynağı": "DMBS / EBYS"
+        "Veri Kaynağı": "DMBS / EBYS",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Mezarlıklar Müdürlüğü",
@@ -929,7 +1052,8 @@
         "Kapsam": "Nakil planlama ve sevk",
         "Ölçü Birimi": "nakil sayısı",
         "Ana KPI / SLA": "zamanında nakil oranı",
-        "Veri Kaynağı": "Sevk kayıtları"
+        "Veri Kaynağı": "Sevk kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Mezarlıklar Müdürlüğü",
@@ -939,7 +1063,8 @@
         "Kapsam": "Ot biçimi, temizlik, budama, çeşme ve yol bakım",
         "Ölçü Birimi": "iş emri / alan",
         "Ana KPI / SLA": "tamamlanan iş sayısı",
-        "Veri Kaynağı": "Saha kayıtları"
+        "Veri Kaynağı": "Saha kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Mezarlıklar Müdürlüğü",
@@ -949,7 +1074,8 @@
         "Kapsam": "Ada-parsel, defin kütüğü ve sorgu sistemi",
         "Ölçü Birimi": "güncelleme / kayıt",
         "Ana KPI / SLA": "güncel veri oranı",
-        "Veri Kaynağı": "DMBS"
+        "Veri Kaynağı": "DMBS",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Mezarlıklar Müdürlüğü",
@@ -959,7 +1085,8 @@
         "Kapsam": "Bilgi alma, yönlendirme, memnuniyet, şikâyet",
         "Ölçü Birimi": "başvuru sayısı",
         "Ana KPI / SLA": "kapanış süresi",
-        "Veri Kaynağı": "Başvuru kayıtları"
+        "Veri Kaynağı": "Başvuru kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Ulaşım Hizmetleri Müdürlüğü",
@@ -969,7 +1096,8 @@
         "Kapsam": "Kart başvuru, basım, vize, iptal, usulsüz kullanım",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "sonuçlanan başvuru süresi",
-        "Veri Kaynağı": "Kart sistemi"
+        "Veri Kaynağı": "Kart sistemi",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Ulaşım Hizmetleri Müdürlüğü",
@@ -979,7 +1107,8 @@
         "Kapsam": "T/S/HO izin, tahsis, devir, vize dosyaları",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "tamamlanan dosya süresi",
-        "Veri Kaynağı": "Ulaşım kayıtları"
+        "Veri Kaynağı": "Ulaşım kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Ulaşım Hizmetleri Müdürlüğü",
@@ -989,7 +1118,8 @@
         "Kapsam": "Hat-güzergâh-durak ve GTFS/AVL verisi",
         "Ölçü Birimi": "hat / veri seti",
         "Ana KPI / SLA": "güncel veri oranı",
-        "Veri Kaynağı": "AVL / GTFS"
+        "Veri Kaynağı": "AVL / GTFS",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Ulaşım Hizmetleri Müdürlüğü",
@@ -999,17 +1129,19 @@
         "Kapsam": "Arıza, bakım, yatay-dikey işaretleme",
         "Ölçü Birimi": "arıza / iş",
         "Ana KPI / SLA": "müdahale süresi",
-        "Veri Kaynağı": "Sinyalizasyon kayıtları"
+        "Veri Kaynağı": "Sinyalizasyon kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Ulaşım Hizmetleri Müdürlüğü",
         "Faaliyet Kodu": "ULM-05",
         "Faaliyet Ailesi": "Geçici Trafik Düzeni ve Şantiye Güvenliği",
         "Kategori": "Denetim / Uyum",
-        "Kapsam": "Geçici trafik planı ve saha uygulama takibi",
+        "Kapsam": "Geçici trafik planı",
         "Ölçü Birimi": "uygulama sayısı",
         "Ana KPI / SLA": "planlı kapanış süresi",
-        "Veri Kaynağı": "EBYS / saha planı"
+        "Veri Kaynağı": "EBYS / saha planı",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Ulaşım Hizmetleri Müdürlüğü",
@@ -1019,7 +1151,19 @@
         "Kapsam": "Terminal akışı, peron, talep-şikâyet",
         "Ölçü Birimi": "talep / gözlem",
         "Ana KPI / SLA": "kapanış oranı",
-        "Veri Kaynağı": "Terminal kayıtları"
+        "Veri Kaynağı": "Terminal kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
+    },
+    {
+        "Müdürlük": "Ulaşım Hizmetleri Müdürlüğü",
+        "Faaliyet Kodu": "ULM-07",
+        "Faaliyet Ailesi": "Toplu Taşıma Planlama ve Talep Yönetimi",
+        "Kategori": "İletişim / Memnuniyet / Paydaş",
+        "Kapsam": "Toplu taşıma planlanması, izlenmesi, talep yönetimi, şikayet yönetimi",
+        "Ölçü Birimi": "adet / hat / talep",
+        "Ana KPI / SLA": "talep kapanış oranı",
+        "Veri Kaynağı": "Ulaşım kayıtları / şikayet sistemi",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Kültür, Sanat ve Sosyal İşler Müdürlüğü",
@@ -1029,7 +1173,8 @@
         "Kapsam": "Etkinlik takvimi, sergi, konser, atölye",
         "Ölçü Birimi": "etkinlik / katılımcı",
         "Ana KPI / SLA": "katılımcı sayısı",
-        "Veri Kaynağı": "Etkinlik kayıtları"
+        "Veri Kaynağı": "Etkinlik kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Kültür, Sanat ve Sosyal İşler Müdürlüğü",
@@ -1039,7 +1184,8 @@
         "Kapsam": "Sosyal inceleme, ayni/nakdi destek, sıcak yemek",
         "Ölçü Birimi": "başvuru / sonuç",
         "Ana KPI / SLA": "sonuçlanan başvuru oranı",
-        "Veri Kaynağı": "SHM kayıtları"
+        "Veri Kaynağı": "SHM kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Kültür, Sanat ve Sosyal İşler Müdürlüğü",
@@ -1049,7 +1195,8 @@
         "Kapsam": "Danışmanlık, yönlendirme, erişilebilirlik desteği",
         "Ölçü Birimi": "vaka / etkinlik",
         "Ana KPI / SLA": "kapanış veya yönlendirme süresi",
-        "Veri Kaynağı": "Başvuru / etkinlik kaydı"
+        "Veri Kaynağı": "Başvuru / etkinlik kaydı",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Kültür, Sanat ve Sosyal İşler Müdürlüğü",
@@ -1059,7 +1206,8 @@
         "Kapsam": "Kurs, turnuva, gençlik ve spor etkinlikleri",
         "Ölçü Birimi": "etkinlik / kursiyer",
         "Ana KPI / SLA": "katılımcı sayısı",
-        "Veri Kaynağı": "Kurs kayıtları"
+        "Veri Kaynağı": "Kurs kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Kültür, Sanat ve Sosyal İşler Müdürlüğü",
@@ -1069,7 +1217,8 @@
         "Kapsam": "Muhtar taleplerinin kayıt, yönlendirme ve kapanışı",
         "Ölçü Birimi": "talep sayısı",
         "Ana KPI / SLA": "kapanış oranı",
-        "Veri Kaynağı": "MBS / EBYS"
+        "Veri Kaynağı": "MBS / EBYS",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Kültür, Sanat ve Sosyal İşler Müdürlüğü",
@@ -1079,7 +1228,8 @@
         "Kapsam": "Hibe çağrısı, başvuru, uygulama, raporlama",
         "Ölçü Birimi": "proje / çağrı",
         "Ana KPI / SLA": "başvuru ve gerçekleşme",
-        "Veri Kaynağı": "Proje dosyası"
+        "Veri Kaynağı": "Proje dosyası",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Gelirler Müdürlüğü",
@@ -1089,7 +1239,8 @@
         "Kapsam": "Sicil açılış, beyan, düzeltme",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "zamanında işlenen kayıt oranı",
-        "Veri Kaynağı": "Gelir sistemi"
+        "Veri Kaynağı": "Gelir sistemi",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Gelirler Müdürlüğü",
@@ -1099,7 +1250,9 @@
         "Kapsam": "İlan Reklam, Eğlence, Para Cezası, Emlak, ÇTV, Harç, Ücret",
         "Ölçü Birimi": "tahakkuk / sicil",
         "Ana KPI / SLA": "tahakkuk tutarı / sayısı",
-        "Veri Kaynağı": "Gelir sistemi"
+        "Veri Kaynağı": "Gelir sistemi",
+        "Raporlama Sıklığı": "Haftalık",
+        "Başkanlık Bilgilendirme Seviyesi": "Kritik"
     },
     {
         "Müdürlük": "Gelirler Müdürlüğü",
@@ -1107,9 +1260,11 @@
         "Faaliyet Ailesi": "Tahsilat ve Mutabakat",
         "Kategori": "Başvuru / İşlem",
         "Kapsam": "Vezne, banka, POS, e-ödeme ve gün sonu işlemleri",
-        "Ölçü Birimi": "tahsilat / TL",
+        "Ölçü Birimi": "İşlem Sayısı",
         "Ana KPI / SLA": "gün sonu mutabakatı",
-        "Veri Kaynağı": "Tahsilat sistemi"
+        "Veri Kaynağı": "Tahsilat sistemi",
+        "Raporlama Sıklığı": "Haftalık",
+        "Başkanlık Bilgilendirme Seviyesi": "Kritik"
     },
     {
         "Müdürlük": "Gelirler Müdürlüğü",
@@ -1119,7 +1274,8 @@
         "Kapsam": "Ödeme emri, haciz, tecil, yapılandırma",
         "Ölçü Birimi": "dosya / işlem",
         "Ana KPI / SLA": "tahsil edilen takip dosyası oranı",
-        "Veri Kaynağı": "Takip sistemi"
+        "Veri Kaynağı": "Takip sistemi",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Gelirler Müdürlüğü",
@@ -1129,7 +1285,8 @@
         "Kapsam": "Kira, Ecrimisil, İşgaliye, Sicil açılış",
         "Ölçü Birimi": "dosya / TL",
         "Ana KPI / SLA": "tahsilat performansı",
-        "Veri Kaynağı": "Gelir sistemi / tutanak"
+        "Veri Kaynağı": "Gelir sistemi / tutanak",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Gelirler Müdürlüğü",
@@ -1139,7 +1296,8 @@
         "Kapsam": "İade/mahsup, gelir raporları ve kesin hesap veri üretimi",
         "Ölçü Birimi": "işlem / rapor",
         "Ana KPI / SLA": "tamamlanan iade süresi",
-        "Veri Kaynağı": "EBYS / gelir raporu"
+        "Veri Kaynağı": "EBYS / gelir raporu",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Mali Hizmetler Müdürlüğü",
@@ -1149,7 +1307,8 @@
         "Kapsam": "Ödeme emri adedi, Muhasebe işlem fişi, Banka mutabakatları, Ödeme emri olmayan muhasebe işlemleri, Muhasebe işlem fişi",
         "Ölçü Birimi": "adet",
         "Ana KPI / SLA": "zamanında tamamlanan işlem oranı",
-        "Veri Kaynağı": "Muhasebe sistemi"
+        "Veri Kaynağı": "Muhasebe sistemi",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Mali Hizmetler Müdürlüğü",
@@ -1159,7 +1318,8 @@
         "Kapsam": "Ödenek kontrolü, Ödenek aktarma, Taahhüt kartı işlemleri",
         "Ölçü Birimi": "haftalık işlem / adet",
         "Ana KPI / SLA": "zamanında ödenek kontrol ve aktarma oranı",
-        "Veri Kaynağı": "Bütçe sistemi"
+        "Veri Kaynağı": "Bütçe sistemi",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Mali Hizmetler Müdürlüğü",
@@ -1169,7 +1329,8 @@
         "Kapsam": "6 aylık gerçekleşen performans yüzdesi, 12 aylık gerçekleşen performans yüzdesi",
         "Ölçü Birimi": "yüzde (%)",
         "Ana KPI / SLA": "6/12 aylık performans gerçekleşme yüzdesi",
-        "Veri Kaynağı": "EBYS / strateji dosyası"
+        "Veri Kaynağı": "EBYS / strateji dosyası",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Mali Hizmetler Müdürlüğü",
@@ -1179,7 +1340,8 @@
         "Kapsam": "Doğrudan temin sayısı",
         "Ölçü Birimi": "adet",
         "Ana KPI / SLA": "doğrudan temin işlemlerinin zamanında kontrol oranı",
-        "Veri Kaynağı": "ÖMK kayıtları"
+        "Veri Kaynağı": "ÖMK kayıtları",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Mali Hizmetler Müdürlüğü",
@@ -1189,7 +1351,8 @@
         "Kapsam": "Avans-kredi işlemleri, Mahsup işlemleri, Kesin teminat, Geçici teminat",
         "Ölçü Birimi": "işlem sayısı",
         "Ana KPI / SLA": "zamanında mahsup oranı",
-        "Veri Kaynağı": "Muhasebe sistemi"
+        "Veri Kaynağı": "Muhasebe sistemi",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Mali Hizmetler Müdürlüğü",
@@ -1210,7 +1373,8 @@
         "Kapsam": "İhale dosyası, ilan, teklif, karar ve sözleşme",
         "Ölçü Birimi": "dosya / ihale",
         "Ana KPI / SLA": "tamamlanan ihale süresi",
-        "Veri Kaynağı": "EKAP / EBYS"
+        "Veri Kaynağı": "EKAP / EBYS",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Destek Hizmetleri Müdürlüğü",
@@ -1220,7 +1384,8 @@
         "Kapsam": "Piyasa araştırması, sipariş, teslim, muayene-kabul",
         "Ölçü Birimi": "dosya sayısı",
         "Ana KPI / SLA": "tamamlanan temin süresi",
-        "Veri Kaynağı": "EBYS"
+        "Veri Kaynağı": "EBYS",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Destek Hizmetleri Müdürlüğü",
@@ -1230,36 +1395,63 @@
         "Kapsam": "Teminat, süre uzatımı, yaptırım, garanti, iade",
         "Ölçü Birimi": "sözleşme / işlem",
         "Ana KPI / SLA": "uygunsuzluk kapanış oranı",
-        "Veri Kaynağı": "Sözleşme klasörü"
+        "Veri Kaynağı": "Sözleşme klasörü",
+        "Raporlama Sıklığı": "Haftalık"
     },
     {
         "Müdürlük": "Destek Hizmetleri Müdürlüğü",
         "Faaliyet Kodu": "DHM-04",
         "Faaliyet Ailesi": "Depo, Lojistik ve Stok",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Mal kabul, stok, dağıtım, minimum stok, sayım",
+        "Kapsam": "Mal kabul, stok, dağıtım, minimum stok, sayım, Ambar giriş, Ambar çıkış, Tüketim",
         "Ölçü Birimi": "stok kalemi / dağıtım",
         "Ana KPI / SLA": "kritik stok altı kalem",
-        "Veri Kaynağı": "Depo sistemi"
+        "Veri Kaynağı": "Depo sistemi",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     },
     {
         "Müdürlük": "Destek Hizmetleri Müdürlüğü",
         "Faaliyet Kodu": "DHM-05",
         "Faaliyet Ailesi": "Yemekhane ve Bütçe İçi İşletmeler",
         "Kategori": "Destek / İç İşleyiş",
-        "Kapsam": "Yemekhane, Cenaze, İkramlar",
+        "Kapsam": "Yemekhane, Cenaze, İkramlar, Sosyal Tesis ve İşletmeler",
         "Ölçü Birimi": "öğün / satış",
         "Ana KPI / SLA": "maliyet ve hizmet sürekliliği",
-        "Veri Kaynağı": "İşletme kayıtları"
+        "Veri Kaynağı": "İşletme kayıtları",
+        "Raporlama Sıklığı": "Haftalık",
+        "Başkanlık Bilgilendirme Seviyesi": "Kritik"
     },
     {
         "Müdürlük": "Destek Hizmetleri Müdürlüğü",
         "Faaliyet Kodu": "DHM-06",
         "Faaliyet Ailesi": "Taşınmaz ve Otopark İşlemleri",
         "Kategori": "Proje / Yatırım / Sözleşme",
-        "Kapsam": "Taşınmaz ihalesi, ecrimisil, otopark/parkmetre",
+        "Kapsam": "Taşınmaz ihalesi, ecrimisil, otopark/parkmetre, Devir, Tahsis",
         "Ölçü Birimi": "dosya / alan",
         "Ana KPI / SLA": "tahsis/işletme kapanış oranı",
-        "Veri Kaynağı": "Taşınmaz portföyü"
+        "Veri Kaynağı": "Taşınmaz portföyü",
+        "Raporlama Sıklığı": "Haftalık"
+    },
+    {
+        "Müdürlük": "Destek Hizmetleri Müdürlüğü",
+        "Faaliyet Kodu": "DHM-08",
+        "Faaliyet Ailesi": "Aylık Fatura ve Ödeme Emri İşlemleri",
+        "Kategori": "Destek / İç İşleyiş",
+        "Kapsam": "Doğalgaz, internet, data hattı, SMS, Turkcell, TTNET, kira ödemeleri, yemekhane faturaları, ödeme emri",
+        "Ölçü Birimi": "adet",
+        "Ana KPI / SLA": "zamanında ödeme oranı",
+        "Veri Kaynağı": "Fatura / ödeme emri kayıtları",
+        "Raporlama Sıklığı": "Aylık"
+    },
+    {
+        "Müdürlük": "Destek Hizmetleri Müdürlüğü",
+        "Faaliyet Kodu": "DHM-09",
+        "Faaliyet Ailesi": "Hizmet Alımı Personel Takibi",
+        "Kategori": "Destek / İç İşleyiş",
+        "Kapsam": "Parmak okuma, sağlık raporu, aylık puantaj, maaş işlemleri, kıdem tazminatı, ödeme emri dosyaları",
+        "Ölçü Birimi": "adet / personel",
+        "Ana KPI / SLA": "eksiksiz takip oranı",
+        "Veri Kaynağı": "İK / destek hizmetleri kayıtları",
+        "Raporlama Sıklığı": "Haftalık / Aylık"
     }
 ]

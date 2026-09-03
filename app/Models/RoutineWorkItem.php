@@ -15,7 +15,8 @@ class RoutineWorkItem extends Model
 
     protected $fillable = [
         'user_id',
-        'work_date',
+        'start_date',
+        'end_date',
         'work_item',
         'status',
     ];
@@ -23,7 +24,8 @@ class RoutineWorkItem extends Model
     protected function casts(): array
     {
         return [
-            'work_date' => 'date',
+            'start_date' => 'date',
+            'end_date' => 'date',
         ];
     }
 

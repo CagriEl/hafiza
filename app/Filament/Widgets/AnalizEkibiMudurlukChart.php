@@ -57,24 +57,31 @@ class AnalizEkibiMudurlukChart extends ChartWidget
             ->orderBy('users.name')
             ->get(['users.id', 'users.name']);
 
+        $ids = $directorates->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $periodReports = $ids === []
+            ? collect()
+            : AylikFaaliyet::query()
+                ->whereIn('user_id', $ids)
+                ->where('yil', $year)
+                ->whereIn('ay', $monthVariants)
+                ->get(['user_id', 'faaliyetler'])
+                ->groupBy(fn (AylikFaaliyet $r) => (int) $r->user_id);
+
         $labels = [];
         $doneTotals = [];
         $remainingTotals = [];
 
         foreach ($directorates as $directorateUser) {
-            $records = AylikFaaliyet::query()
-                ->where('user_id', (int) $directorateUser->id)
-                ->where('yil', $year)
-                ->whereIn('ay', $monthVariants)
-                ->get(['faaliyetler']);
+            $uid = (int) $directorateUser->id;
+            $records = $periodReports->get($uid, collect());
 
             if ($records->isEmpty()) {
                 $records = AylikFaaliyet::query()
-                    ->where('user_id', (int) $directorateUser->id)
-                    ->get(['yil', 'ay', 'faaliyetler'])
-                    ->sortByDesc(fn (AylikFaaliyet $record): int => static::reportPeriodSortKey($record))
-                    ->take(1)
-                    ->values();
+                    ->where('user_id', $uid)
+                    ->orderByDesc('yil')
+                    ->orderByDesc('ay')
+                    ->limit(1)
+                    ->get(['yil', 'ay', 'faaliyetler']);
             }
 
             $planned = 0;

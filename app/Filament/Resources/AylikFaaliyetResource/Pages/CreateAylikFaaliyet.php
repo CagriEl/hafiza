@@ -8,7 +8,9 @@ use App\Filament\Resources\AylikFaaliyetResource;
 use App\Models\AylikFaaliyet;
 use App\Models\User;
 use App\Support\AylikFaaliyetEscalation;
+use App\Support\AylikFaaliyetPeriodMerge;
 use App\Support\AylikFaaliyetRepeaterLock;
+use App\Support\ReportPeriodWeeks;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -37,23 +39,29 @@ class CreateAylikFaaliyet extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $userId = (int) (auth()->id() ?? 0);
+        $data = AylikFaaliyetResource::applyAutomaticReportDay($data);
         $yil = (int) ($data['yil'] ?? 0);
-        $ay = str_pad(trim((string) ($data['ay'] ?? '')), 2, '0', STR_PAD_LEFT);
+        $ay = AylikFaaliyetPeriodMerge::normalizeAy((string) ($data['ay'] ?? ''));
+        $hafta = (string) ($data['hafta'] ?? '');
 
-        if ($userId > 0 && $yil > 0 && $ay !== '') {
+        if ($userId > 0 && $yil > 0 && $ay !== '' && $hafta !== ''
+            && AylikFaaliyet::existsForUserPeriodWeek($userId, $yil, $ay, $hafta)) {
             $existing = AylikFaaliyet::query()
                 ->where('user_id', $userId)
                 ->where('yil', $yil)
-                ->where('ay', $ay)
+                ->whereIn('ay', AylikFaaliyet::ayQueryVariants($ay))
+                ->where('hafta', $hafta)
+                ->orderBy('id')
                 ->first();
 
             if ($existing instanceof AylikFaaliyet) {
                 $editUrl = ActivityReportResource::getUrl('edit', ['record' => $existing]);
+                $label = ReportPeriodWeeks::dailyPeriodLabel($hafta);
 
                 Notification::make()
                     ->warning()
-                    ->title('Bu ay için rapor zaten var')
-                    ->body("{$yil}-{$ay} dönemi için yeni rapor açılamaz. Mevcut rapora yönlendiriliyorsunuz; İş Listesi alanına ekleme yapabilirsiniz.")
+                    ->title('Bu gün için rapor zaten var')
+                    ->body("{$label} tarihli rapor zaten mevcut. Düzenleme ekranına yönlendiriliyorsunuz.")
                     ->actions([
                         Action::make('raporaGit')
                             ->label('Mevcut Raporu Aç')
@@ -66,9 +74,19 @@ class CreateAylikFaaliyet extends CreateRecord
             }
         }
 
+        $data['ay'] = $ay;
+
+        $data = AylikFaaliyetResource::syncFaaliyetlerWithCurrentCatalog(
+            $data,
+            auth()->user()?->name
+        );
         $data = AylikFaaliyetRepeaterLock::clampNonNegativeNumericFaaliyetler($data);
 
-        return AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data);
+        return AylikFaaliyetResource::prepareFaaliyetlerForSave(
+            AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data),
+            null,
+            auth()->user() instanceof User ? auth()->user() : null
+        );
     }
 
     // --- BU FONKSİYONU EKLEYİN ---
@@ -78,6 +96,11 @@ class CreateAylikFaaliyet extends CreateRecord
         $mudurlukAdi = auth()->user()->name;
         $ay = $this->record->ay;
         $yil = $this->record->yil;
+        $donemLabel = ReportPeriodWeeks::recordPeriodLabelForReport(
+            (int) $yil,
+            $ay,
+            $this->record->hafta ?? null
+        ) ?? "{$yil} - {$ay}";
 
         // 2. Admin kullanıcısını bul (Genelde ID'si 1'dir)
         $admin = User::find(1);
@@ -90,8 +113,8 @@ class CreateAylikFaaliyet extends CreateRecord
                 ->title('Yeni Faaliyet Raporu Girildi')
                 ->body(
                     $escalation
-                        ? "$mudurlukAdi, $yil - $ay ayı raporunda üst yönetim bilgilendirmesi gereken sapma veya gecikme satırları var."
-                        : "$mudurlukAdi, $yil - $ay ayı faaliyet planını sisteme yükledi."
+                        ? "$mudurlukAdi, $donemLabel raporunda üst yönetim bilgilendirmesi gereken sapma veya gecikme satırları var."
+                        : "$mudurlukAdi, $donemLabel faaliyet raporunu sisteme yükledi."
                 )
                 ->success()
                 ->actions([

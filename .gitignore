@@ -15,6 +15,11 @@
 /node_modules
 /public/build
 /public/hot
+/public/activity_catalogs.sql
+/public/activity_catalog_raporlama_sikligi.csv
+/faal_faal.sql
+/faal_faal_*.sql
+.env.bak-*
 /public/storage
 /storage/*.key
 /storage/pail

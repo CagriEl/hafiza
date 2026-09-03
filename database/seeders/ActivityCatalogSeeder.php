@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Services\ActivityCatalogSqlImportService;
 use App\Services\ActivityCatalogSyncService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
@@ -9,25 +10,25 @@ use Illuminate\Support\Facades\File;
 class ActivityCatalogSeeder extends Seeder
 {
     /**
-     * faaliyet_seti_full.json üzerinden upsert (silme yok).
-     * Dosya kök dizinde veya resources/data/ altında aranır.
+     * Sunucu snapshot JSON üzerinden mevcut faaliyet kodlarını günceller (yeni kod eklemez).
      */
     public function run(): void
     {
+        $import = app(ActivityCatalogSqlImportService::class);
         $sync = app(ActivityCatalogSyncService::class);
-        $path = $sync->resolveFullJsonPath();
+        $path = $import->resolveDefaultSnapshotPath();
 
         if (! File::isReadable($path)) {
-            $this->command?->warn("faaliyet_seti_full.json bulunamadı ({$path}); ActivityCatalog tohumlaması atlandı.");
+            $this->command?->warn("activity_catalog_server_snapshot.json bulunamadı ({$path}); ActivityCatalog tohumlaması atlandı.");
 
             return;
         }
 
-        $stats = $sync->syncFromFile($path);
-        $sync->regenerateActivitySetsJson($path);
+        $stats = $import->updateExistingFromSnapshotFile($path);
+        $sync->regenerateActivitySetsJsonFromServerSnapshot($path);
 
         $this->command?->info(
-            "ActivityCatalog upsert: {$stats['created']} eklendi, {$stats['updated']} güncellendi, {$stats['skipped']} atlandı. activity_sets.json yenilendi."
+            "ActivityCatalog (sunucu snapshot): {$stats['updated']} güncellendi, {$stats['unchanged']} değişmedi, {$stats['skipped_new']} yeni kod atlandı. activity_sets.json yenilendi."
         );
     }
 }

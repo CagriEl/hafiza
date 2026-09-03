@@ -19,6 +19,9 @@ final class ActivityCatalogFormatter
         'MHM-09',
     ];
 
+    /** @var array<int, string|null> */
+    private static array $labelCache = [];
+
     public static function selectOptionsForMudurluk(string $mudurlukAdi): array
     {
         $raw = app(ActivityService::class)->getCatalogOptionsForMudurluk($mudurlukAdi);
@@ -29,7 +32,7 @@ final class ActivityCatalogFormatter
         $ids = array_map('intval', array_keys($raw));
         $rows = ActivityCatalog::query()
             ->whereIn('id', $ids)
-            ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi', 'raporlama_sikligi']);
+            ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi']);
 
         $out = [];
         foreach ($rows as $row) {
@@ -37,10 +40,45 @@ final class ActivityCatalogFormatter
             if ($code !== '' && in_array($code, self::HIDDEN_ACTIVITY_CODES, true)) {
                 continue;
             }
-            $out[(int) $row->id] = static::buildCatalogLabel($row);
+            $label = self::buildCatalogLabel($row);
+            $out[(int) $row->id] = $label;
+            self::$labelCache[(int) $row->id] = $label;
         }
 
         return $out;
+    }
+
+    /**
+     * @param  list<int>  $ids
+     */
+    public static function warmLabelCache(array $ids): void
+    {
+        $missing = [];
+        foreach ($ids as $id) {
+            $id = (int) $id;
+            if ($id > 0 && ! array_key_exists($id, self::$labelCache)) {
+                $missing[] = $id;
+            }
+        }
+        if ($missing === []) {
+            return;
+        }
+
+        $rows = ActivityCatalog::query()
+            ->whereIn('id', array_values(array_unique($missing)))
+            ->get(['id', 'faaliyet_kodu', 'faaliyet_ailesi']);
+
+        $found = [];
+        foreach ($rows as $row) {
+            $label = self::buildCatalogLabel($row);
+            self::$labelCache[(int) $row->id] = $label;
+            $found[(int) $row->id] = true;
+        }
+        foreach ($missing as $id) {
+            if (! isset($found[$id])) {
+                self::$labelCache[$id] = null;
+            }
+        }
     }
 
     public static function labelForCatalogId(?int $id): ?string
@@ -48,12 +86,18 @@ final class ActivityCatalogFormatter
         if ($id === null || $id <= 0) {
             return null;
         }
+        if (array_key_exists($id, self::$labelCache)) {
+            return self::$labelCache[$id];
+        }
+
         $row = ActivityCatalog::query()->find($id);
         if (! $row) {
+            self::$labelCache[$id] = null;
+
             return null;
         }
 
-        return static::buildCatalogLabel($row);
+        return self::$labelCache[$id] = self::buildCatalogLabel($row);
     }
 
     /**
@@ -105,7 +149,6 @@ final class ActivityCatalogFormatter
         $base = trim((string) $row->faaliyet_kodu).' - '.trim((string) $row->faaliyet_ailesi);
         $olcuBirimi = trim((string) ($row->olcu_birimi ?? ''));
         $kpiSla = trim((string) ($row->kpi_sla ?? ''));
-        $freq = trim((string) ($row->raporlama_sikligi ?? ''));
         $infoLevel = trim((string) ($row->baskanlik_bilgilendirme_seviyesi ?? ''));
 
         $parts = [];
@@ -114,9 +157,6 @@ final class ActivityCatalogFormatter
         }
         if ($kpiSla !== '') {
             $parts[] = 'KPI/SLA: '.$kpiSla;
-        }
-        if ($freq !== '') {
-            $parts[] = 'Raporlama: '.$freq;
         }
         if ($infoLevel !== '') {
             $parts[] = 'Bilgilendirme: '.$infoLevel;
