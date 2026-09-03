@@ -233,7 +233,9 @@ class AylikFaaliyetResource extends Resource
             $allowImzada = static::kapsamShowsImzadaIslemTuruOption($get, $livewire);
         }
 
-        return KapsamIslemTuru::normalize($get('islem_turu'), $allowImzada);
+        $allowHaftalik = static::kapsamShowsHaftalikIslemTuruOption($get);
+
+        return KapsamIslemTuru::normalize($get('islem_turu'), $allowImzada, $allowHaftalik);
     }
 
     public static function isZabitaMudurlukName(?string $mudurlukAdi): bool
@@ -251,6 +253,21 @@ class AylikFaaliyetResource extends Resource
         $normalized = TurkishString::normalizeForFuzzyMatch((string) ($kalemAdi ?? ''));
 
         return $normalized !== '' && str_contains($normalized, 'tutanak');
+    }
+
+    public static function faaliyetKoduIsItm05(mixed $faaliyetKodu): bool
+    {
+        return strtoupper(trim((string) ($faaliyetKodu ?? ''))) === 'ITM-05';
+    }
+
+    public static function resolveFaaliyetKoduForKapsamGet(Get $get): string
+    {
+        return trim((string) (
+            $get('../../faaliyet_kodu')
+            ?? $get('../../../faaliyet_kodu')
+            ?? $get('faaliyet_kodu')
+            ?? ''
+        ));
     }
 
     public static function resolveMudurlukForFormContext(mixed $livewire): ?string
@@ -277,12 +294,20 @@ class AylikFaaliyetResource extends Resource
             && static::kalemNameIsTutanak((string) ($get('kalem') ?? ''));
     }
 
+    public static function kapsamShowsHaftalikIslemTuruOption(Get $get): bool
+    {
+        return static::faaliyetKoduIsItm05(static::resolveFaaliyetKoduForKapsamGet($get));
+    }
+
     /**
      * @return array<string, string>
      */
     public static function kapsamIslemTuruOptionsForForm(Get $get, mixed $livewire): array
     {
-        return KapsamIslemTuru::options(static::kapsamShowsImzadaIslemTuruOption($get, $livewire));
+        return KapsamIslemTuru::options(
+            static::kapsamShowsImzadaIslemTuruOption($get, $livewire),
+            static::kapsamShowsHaftalikIslemTuruOption($get)
+        );
     }
 
     public static function kapsamShowsImzadaQuantityField(Get $get, mixed $livewire): bool
@@ -376,14 +401,21 @@ class AylikFaaliyetResource extends Resource
                 $kalemAdi = trim((string) ($line['kalem'] ?? ''));
                 $allowImzada = static::isZabitaMudurlukName($mudurlukAdi)
                     && static::kalemNameIsTutanak($kalemAdi);
-                $line['islem_turu'] = KapsamIslemTuru::normalize($line['islem_turu'] ?? null, $allowImzada);
+                $allowHaftalik = static::faaliyetKoduIsItm05($row['faaliyet_kodu'] ?? null);
+                $line['islem_turu'] = KapsamIslemTuru::normalize(
+                    $line['islem_turu'] ?? null,
+                    $allowImzada,
+                    $allowHaftalik
+                );
                 $line['baslangic_tarihi'] = static::normalizeKapsamDate($line['baslangic_tarihi'] ?? null);
                 $line['bitis_tarihi'] = static::normalizeKapsamDate($line['bitis_tarihi'] ?? null);
                 $line['kalem_notu'] = trim((string) ($line['kalem_notu'] ?? '')) ?: null;
 
                 if ($line['islem_turu'] === null
                     && filled($line['baslangic_tarihi']) && filled($line['bitis_tarihi'])) {
-                    $line['islem_turu'] = KapsamIslemTuru::SUREC;
+                    $line['islem_turu'] = $allowHaftalik
+                        ? KapsamIslemTuru::HAFTALIK
+                        : KapsamIslemTuru::SUREC;
                 }
 
                 if ($line['islem_turu'] === null) {
@@ -407,8 +439,11 @@ class AylikFaaliyetResource extends Resource
 
                 if (KapsamIslemTuru::requiresProcessDateRange($line['islem_turu'])
                     && (! filled($line['baslangic_tarihi']) || ! filled($line['bitis_tarihi']))) {
+                    $message = KapsamIslemTuru::isHaftalik($line['islem_turu'])
+                        ? 'Haftalık kalemlerde başlangıç ve bitiş tarihi zorunludur.'
+                        : 'Süreç gerektirir kalemlerde başlangıç ve bitiş tarihi zorunludur.';
                     throw \Illuminate\Validation\ValidationException::withMessages([
-                        'data.faaliyetler' => 'Süreç gerektirir kalemlerde başlangıç ve bitiş tarihi zorunludur.',
+                        'data.faaliyetler' => $message,
                     ]);
                 }
 
@@ -1546,7 +1581,7 @@ class AylikFaaliyetResource extends Resource
 
                                 Repeater::make('kapsam_verileri')
                                     ->label('Kapsam kalemleri')
-                                    ->helperText('Her kalemde işlem türü zorunludur. Süreç gerektirir seçildiğinde başlangıç/bitiş tarihi, günlük seçildiğinde tarih girilir. İş yoksa miktar alanını boş bırakın (0 yazmayın).')
+                                    ->helperText('Her kalemde işlem türü zorunludur. Süreç gerektirir / haftalık seçildiğinde başlangıç/bitiş tarihi, günlük seçildiğinde tarih girilir. İş yoksa miktar alanını boş bırakın (0 yazmayın).')
                                     ->dehydrated()
                                     ->schema([
                                         Forms\Components\Hidden::make('kalem')->dehydrated(true),
@@ -1692,7 +1727,8 @@ class AylikFaaliyetResource extends Resource
                                             ->visible(fn (Get $get, $livewire): bool => static::kapsamKalemVisibleInCurrentWeek($get, $livewire))
                                             ->afterStateUpdated(function (Set $set, Get $get, ?string $state, $livewire): void {
                                                 $allowImzada = static::kapsamShowsImzadaIslemTuruOption($get, $livewire);
-                                                $normalized = KapsamIslemTuru::normalize($state, $allowImzada);
+                                                $allowHaftalik = static::kapsamShowsHaftalikIslemTuruOption($get);
+                                                $normalized = KapsamIslemTuru::normalize($state, $allowImzada, $allowHaftalik);
                                                 $set('islem_turu', $normalized);
                                                 $set('baslangic_tarihi', null);
                                                 $set('bitis_tarihi', null);
@@ -1731,7 +1767,7 @@ class AylikFaaliyetResource extends Resource
                                             })
                                             ->dehydrated(false)
                                             ->columnSpanFull(),
-                                        Section::make('Süreç Tarihleri')
+                                        Section::make('Süreç / Hafta Tarihleri')
                                             ->description('Başlangıç ve bitiş tarihi seçiniz.')
                                             ->schema([
                                                 Grid::make(2)->schema([
@@ -3955,7 +3991,7 @@ class AylikFaaliyetResource extends Resource
                     );
                     $weeklyNotes = '';
                     $islemTuruLabel = KapsamIslemTuru::label(
-                        KapsamIslemTuru::normalize($kapsam['islem_turu'] ?? null)
+                        KapsamIslemTuru::normalizeStored($kapsam['islem_turu'] ?? null)
                     );
                     if ($islemTuruLabel) {
                         $weeklyNotes .= '<div style="font-size:6px;color:#4b5563;margin-top:1px;">İşlem türü: '.e($islemTuruLabel).'</div>';
@@ -4366,7 +4402,7 @@ class AylikFaaliyetResource extends Resource
                 'son_yapilma_tarihi' => $kapsamRow['son_yapilma_tarihi'] ?? null,
                 'baslangic_tarihi' => $kapsamRow['baslangic_tarihi'] ?? null,
                 'bitis_tarihi' => $kapsamRow['bitis_tarihi'] ?? null,
-                'islem_turu' => KapsamIslemTuru::normalize($kapsamRow['islem_turu'] ?? null),
+                'islem_turu' => KapsamIslemTuru::normalizeStored($kapsamRow['islem_turu'] ?? null),
                 'kalem_notu' => filled($kapsamRow['kalem_notu'] ?? null) ? trim((string) $kapsamRow['kalem_notu']) : null,
                 'acikta_revize_tarihi' => $kapsamRow['acikta_revize_tarihi'] ?? null,
                 'acikta_revize_notu' => $kapsamRow['acikta_revize_notu'] ?? null,
@@ -4740,7 +4776,7 @@ class AylikFaaliyetResource extends Resource
                     'son_yapilma_tarihi' => $satir['son_yapilma_tarihi'] ?? null,
                     'baslangic_tarihi' => $satir['baslangic_tarihi'] ?? null,
                     'bitis_tarihi' => $satir['bitis_tarihi'] ?? null,
-                    'islem_turu' => KapsamIslemTuru::normalize($satir['islem_turu'] ?? null),
+                    'islem_turu' => KapsamIslemTuru::normalizeStored($satir['islem_turu'] ?? null),
                     'kalem_notu' => filled($satir['kalem_notu'] ?? null) ? trim((string) $satir['kalem_notu']) : null,
                     'acikta_revize_tarihi' => $satir['acikta_revize_tarihi'] ?? null,
                     'acikta_revize_notu' => $satir['acikta_revize_notu'] ?? null,

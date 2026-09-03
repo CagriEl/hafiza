@@ -160,8 +160,8 @@ final class AylikFaaliyetRepeaterLock
                     }
                 }
                 if (array_key_exists('islem_turu', $incomingKv[$idx])) {
-                    $incomingTur = KapsamIslemTuru::normalize($incomingKv[$idx]['islem_turu'] ?? null);
-                    $existingTur = KapsamIslemTuru::normalize($original['kapsam_verileri'][$idx]['islem_turu'] ?? null);
+                    $incomingTur = KapsamIslemTuru::normalizeStored($incomingKv[$idx]['islem_turu'] ?? null);
+                    $existingTur = KapsamIslemTuru::normalizeStored($original['kapsam_verileri'][$idx]['islem_turu'] ?? null);
                     if ($existingTur === null || $incomingTur !== null) {
                         $original['kapsam_verileri'][$idx]['islem_turu'] = $incomingTur;
                     }
