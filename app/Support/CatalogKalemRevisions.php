@@ -131,6 +131,13 @@ final class CatalogKalemRevisions
         self::$ensuredThisRequest = true;
 
         try {
+            // Cache version eşleşiyorsa tüm raporları tarama — edit/save timeout’unun ana nedeni.
+            if (\Illuminate\Support\Facades\Cache::get('catalog_kalem_revisions_applied') === self::VERSION) {
+                self::ensureMkm04VerimlilikRemoved();
+
+                return;
+            }
+
             self::ensureMkm04VerimlilikRemoved();
 
             if (! self::needsApply()) {

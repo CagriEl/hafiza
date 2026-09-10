@@ -21,6 +21,10 @@ class EditActivityReport extends EditRecord
 
     public function mount(int|string $record): void
     {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(180);
+        }
+
         parent::mount($record);
         $this->getRecord()->loadMissing('user');
         $mudurluk = $this->getRecord()->user?->name ?? auth()->user()?->name ?? '';
@@ -64,6 +68,7 @@ class EditActivityReport extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $user = auth()->user();
+        $data = AylikFaaliyetResource::preserveReportPeriodFromRecord($data, $this->record);
 
         if (! $user instanceof User) {
             return AylikFaaliyetResource::prepareFaaliyetlerForSave($data, $this->record, null);

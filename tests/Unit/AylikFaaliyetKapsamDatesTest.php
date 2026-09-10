@@ -9,21 +9,42 @@ use Tests\TestCase;
 
 class AylikFaaliyetKapsamDatesTest extends TestCase
 {
-    public function test_enforce_kapsam_date_ranges_requires_islem_turu_for_every_kalem(): void
+    public function test_enforce_kapsam_date_ranges_skips_empty_kalems_without_islem_turu(): void
     {
-        $this->expectException(ValidationException::class);
-
-        AylikFaaliyetResource::enforceKapsamDateRanges([
+        $data = AylikFaaliyetResource::enforceKapsamDateRanges([
             'faaliyetler' => [
                 [
                     'kapsam_verileri' => [
                         [
-                            'kalem' => 'Test kalem',
+                            'kalem' => 'Boş kalem',
                         ],
                     ],
                 ],
             ],
         ]);
+
+        $line = $data['faaliyetler'][0]['kapsam_verileri'][0];
+        $this->assertNull($line['islem_turu']);
+    }
+
+    public function test_enforce_kapsam_date_ranges_defaults_legacy_quantity_rows_to_anlik(): void
+    {
+        $data = AylikFaaliyetResource::enforceKapsamDateRanges([
+            'faaliyetler' => [
+                [
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'Eski kalem',
+                            'ongorulen' => 10,
+                            'gerceklesen' => 4,
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $line = $data['faaliyetler'][0]['kapsam_verileri'][0];
+        $this->assertSame(KapsamIslemTuru::ANLIK, $line['islem_turu']);
     }
 
     public function test_enforce_kapsam_date_ranges_allows_anlik_without_dates(): void

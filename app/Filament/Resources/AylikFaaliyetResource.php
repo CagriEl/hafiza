@@ -214,7 +214,50 @@ class AylikFaaliyetResource extends Resource
 
     public static function kapsamRequiresIslemTuru(Get $get): bool
     {
-        return static::kapsamKalemVisibleInCurrentWeek($get, null);
+        if (! static::kapsamKalemVisibleInCurrentWeek($get, null)) {
+            return false;
+        }
+
+        if (filled($get('islem_turu'))) {
+            return true;
+        }
+
+        return static::kapsamHasEnteredQuantity($get)
+            || filled($get('kalem_notu'))
+            || filled($get('baslangic_tarihi'))
+            || filled($get('bitis_tarihi'))
+            || filled($get('kalem_notu_ui'))
+            || filled($get('baslangic_tarihi_ui'))
+            || filled($get('bitis_tarihi_ui'))
+            || filled($get('gunluk_tarihi_ui'));
+    }
+
+    /**
+     * @param  array<string, mixed>  $line
+     */
+    public static function kapsamLineNeedsIslemTuru(array $line): bool
+    {
+        if (filled($line['islem_turu'] ?? null)) {
+            return true;
+        }
+
+        if (static::hasProvidedNumericValue($line['ongorulen'] ?? $line['deger'] ?? null)) {
+            return true;
+        }
+
+        if (static::hasProvidedNumericValue($line['gerceklesen'] ?? null)) {
+            return true;
+        }
+
+        if (static::hasProvidedNumericValue($line['bu_hafta_tamamlanan'] ?? null)) {
+            return true;
+        }
+
+        if (trim((string) ($line['kalem_notu'] ?? '')) !== '') {
+            return true;
+        }
+
+        return filled($line['baslangic_tarihi'] ?? null) || filled($line['bitis_tarihi'] ?? null);
     }
 
     public static function kapsamRequiresProcessDateRange(Get $get, mixed $livewire = null): bool
@@ -372,6 +415,7 @@ class AylikFaaliyetResource extends Resource
 
     /**
      * Her kapsam kaleminde işlem türü zorunludur; süreç/günlük türlerinde tarih zorunludur.
+     * Boş (kullanılmayan) kalemlerde işlem türü istenmez; eski kayıtlarda eksik tür Anlık kabul edilir.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -418,10 +462,17 @@ class AylikFaaliyetResource extends Resource
                         : KapsamIslemTuru::SUREC;
                 }
 
+                if ($line['islem_turu'] === null && ! static::kapsamLineNeedsIslemTuru($line)) {
+                    $line['baslangic_tarihi'] = null;
+                    $line['bitis_tarihi'] = null;
+                    unset($line);
+
+                    continue;
+                }
+
+                // Eski raporlarda işlem türü yoktu; miktar/not olan kalemleri Anlık kabul et.
                 if ($line['islem_turu'] === null) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'data.faaliyetler' => 'Her kalem için işlem türü seçilmelidir.',
-                    ]);
+                    $line['islem_turu'] = KapsamIslemTuru::ANLIK;
                 }
 
                 if ($line['islem_turu'] === KapsamIslemTuru::ANLIK
@@ -650,7 +701,8 @@ class AylikFaaliyetResource extends Resource
     }
 
     /**
-     * Her iş listesi satırında hafta alanını rapor gününe kilitler.
+     * Her iş listesi satırında hafta alanını rapor dönemine kilitler.
+     * Mevcut kaydın yil/ay/hafta değerlerini bugüne çekmez.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -661,11 +713,18 @@ class AylikFaaliyetResource extends Resource
 
         $reportHafta = ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null);
         if ($reportHafta === null) {
-            $reportHafta = ReportPeriodWeeks::reportDayKeyFromDate();
-            $data['hafta'] = $reportHafta;
-            $date = Carbon::parse($reportHafta)->startOfDay();
-            $data['yil'] = $date->year;
-            $data['ay'] = $date->format('m');
+            // Dönem bilgisi yoksa bugünü kullan (yalnızca yeni/boş form).
+            $hasPeriod = (int) ($data['yil'] ?? 0) > 0 && trim((string) ($data['ay'] ?? '')) !== '';
+            if (! $hasPeriod) {
+                $reportHafta = ReportPeriodWeeks::reportDayKeyFromDate();
+                $data['hafta'] = $reportHafta;
+                $date = Carbon::parse($reportHafta)->startOfDay();
+                $data['yil'] = $date->year;
+                $data['ay'] = $date->format('m');
+            } else {
+                // Eski/bozuk hafta değerini olduğu gibi bırak; yil/ay’a dokunma.
+                $reportHafta = (string) ($data['hafta'] ?? '');
+            }
         } else {
             $data['hafta'] = $reportHafta;
         }
@@ -674,15 +733,44 @@ class AylikFaaliyetResource extends Resource
             return $data;
         }
 
-        $data = AylikFaaliyetWeeklyCarryover::restrictFaaliyetlerToReportHafta($data);
+        if ($reportHafta !== '') {
+            $data = AylikFaaliyetWeeklyCarryover::restrictFaaliyetlerToReportHafta($data);
+        }
 
         foreach ($data['faaliyetler'] as $i => $row) {
             if (! is_array($row)) {
                 continue;
             }
 
-            $data['faaliyetler'][$i]['hafta'] = $reportHafta;
+            if ($reportHafta !== '') {
+                $data['faaliyetler'][$i]['hafta'] = $reportHafta;
+            }
             unset($data['faaliyetler'][$i]['raporlama_sikligi'], $data['faaliyetler'][$i]['hafta_baslangic'], $data['faaliyetler'][$i]['hafta_bitis']);
+        }
+
+        return $data;
+    }
+
+    /**
+     * Düzenlemede dönem alanlarının form default’larıyla ezilmesini engeller.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function preserveReportPeriodFromRecord(array $data, ?AylikFaaliyet $record): array
+    {
+        if (! $record instanceof AylikFaaliyet) {
+            return $data;
+        }
+
+        if (filled($record->yil)) {
+            $data['yil'] = (int) $record->yil;
+        }
+        if (filled($record->ay)) {
+            $data['ay'] = AylikFaaliyetPeriodMerge::normalizeAy((string) $record->ay);
+        }
+        if (filled($record->hafta)) {
+            $data['hafta'] = (string) $record->hafta;
         }
 
         return $data;
@@ -1581,7 +1669,7 @@ class AylikFaaliyetResource extends Resource
 
                                 Repeater::make('kapsam_verileri')
                                     ->label('Kapsam kalemleri')
-                                    ->helperText('Her kalemde işlem türü zorunludur. Süreç gerektirir / haftalık seçildiğinde başlangıç/bitiş tarihi, günlük seçildiğinde tarih girilir. İş yoksa miktar alanını boş bırakın (0 yazmayın).')
+                                    ->helperText('İşlem türü yalnızca miktar, not veya tarih girilen kalemlerde zorunludur. Süreç/haftalık için başlangıç-bitiş, günlük için tarih girilir. İş yoksa miktar alanını boş bırakın (0 yazmayın).')
                                     ->dehydrated()
                                     ->schema([
                                         Forms\Components\Hidden::make('kalem')->dehydrated(true),
