@@ -673,18 +673,48 @@ class AylikFaaliyetResource extends Resource
     }
 
     /**
+     * Formdaki rapor gününden (veya bugünden) yil/ay/hafta üretir.
+     * Cumartesi–Pazar dahil gerçek takvim günü kullanılır; Cuma’ya kaydırılmaz.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function applyReportDayFromForm(array $data): array
+    {
+        $raporGunu = $data['rapor_gunu'] ?? null;
+        if (blank($raporGunu)) {
+            $raporGunu = ReportPeriodWeeks::systemRecordDateString();
+        }
+
+        try {
+            $date = Carbon::parse($raporGunu)->startOfDay();
+        } catch (\Throwable) {
+            $date = ReportPeriodWeeks::systemRecordDate();
+        }
+
+        // Gelecek gün seçilemez.
+        $today = ReportPeriodWeeks::systemRecordDate();
+        if ($date->gt($today)) {
+            $date = $today->copy();
+        }
+
+        $data['yil'] = $date->year;
+        $data['ay'] = $date->format('m');
+        $data['hafta'] = $date->toDateString();
+        unset($data['rapor_gunu']);
+
+        return $data;
+    }
+
+    /**
+     * @deprecated Use applyReportDayFromForm()
+     *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     public static function applyAutomaticReportDay(array $data): array
     {
-        $date = ReportPeriodWeeks::systemRecordDate();
-
-        $data['yil'] = $date->year;
-        $data['ay'] = $date->format('m');
-        $data['hafta'] = $date->toDateString();
-
-        return $data;
+        return static::applyReportDayFromForm($data);
     }
 
     public static function faaliyetHaftaSelectField(): Forms\Components\Hidden
@@ -1447,6 +1477,41 @@ class AylikFaaliyetResource extends Resource
             ->schema([
                 Section::make('Rapor Dönemi')
                     ->schema([
+                        Forms\Components\DatePicker::make('rapor_gunu')
+                            ->label('Rapor Günü')
+                            ->helperText('Geçmiş bir gün veya bugün seçebilirsiniz. Cumartesi ve Pazar dahil her gün için rapor girilebilir.')
+                            ->default(fn (): string => ReportPeriodWeeks::systemRecordDateString())
+                            ->native(false)
+                            ->displayFormat('d.m.Y')
+                            ->closeOnDateSelection()
+                            ->required()
+                            ->live()
+                            ->minDate(Carbon::create(2025, 1, 1)->startOfDay())
+                            ->maxDate(fn (): Carbon => ReportPeriodWeeks::systemRecordDate())
+                            ->disabled(fn ($livewire): bool => ! ($livewire instanceof CreateRecord))
+                            ->dehydrated(fn ($livewire): bool => $livewire instanceof CreateRecord)
+                            ->visible(fn ($livewire): bool => $livewire instanceof CreateRecord)
+                            ->afterStateUpdated(function ($state, Set $set): void {
+                                if (blank($state)) {
+                                    return;
+                                }
+
+                                try {
+                                    $date = Carbon::parse($state)->startOfDay();
+                                } catch (\Throwable) {
+                                    return;
+                                }
+
+                                $today = ReportPeriodWeeks::systemRecordDate();
+                                if ($date->gt($today)) {
+                                    $date = $today->copy();
+                                    $set('rapor_gunu', $date->toDateString());
+                                }
+
+                                $set('yil', $date->year);
+                                $set('ay', $date->format('m'));
+                                $set('hafta', $date->toDateString());
+                            }),
                         Forms\Components\Hidden::make('yil')
                             ->default(now()->year)
                             ->dehydrated(true),
@@ -1460,9 +1525,15 @@ class AylikFaaliyetResource extends Resource
                             ->label('Rapor Tarihi')
                             ->content(function (Get $get, $livewire): string {
                                 if ($livewire instanceof CreateRecord) {
-                                    return 'Kayıt anında bugünün tarihi otomatik atanır ('.ReportPeriodWeeks::dailyPeriodLabel(
+                                    $hafta = $get('hafta');
+                                    $daily = ReportPeriodWeeks::normalizeReportHafta($hafta);
+                                    if ($daily !== null && ReportPeriodWeeks::isDailyPeriod($daily)) {
+                                        return ReportPeriodWeeks::dailyPeriodLabel($daily);
+                                    }
+
+                                    return ReportPeriodWeeks::dailyPeriodLabel(
                                         ReportPeriodWeeks::reportDayKeyFromDate()
-                                    ).').';
+                                    );
                                 }
 
                                 $hafta = $get('hafta');
@@ -1479,7 +1550,8 @@ class AylikFaaliyetResource extends Resource
                                 }
 
                                 return ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
-                            }),
+                            })
+                            ->visible(fn ($livewire): bool => ! ($livewire instanceof CreateRecord)),
                         Forms\Components\Placeholder::make('rapor_kayit_bilgisi')
                             ->label('Sisteme Kayıt')
                             ->content(function ($livewire): string {
@@ -1504,7 +1576,7 @@ class AylikFaaliyetResource extends Resource
                 Section::make('Uyarı')
                     ->schema([
                         Forms\Components\Placeholder::make('rapor_olusturma_uyarisi')
-                            ->content('Her müdürlük günde bir kez rapor girebilir. Bugün için rapor varsa düzenleme ekranına yönlendirilirsiniz.')
+                            ->content('Her müdürlük aynı gün için bir rapor girebilir (Cumartesi–Pazar dahil). Seçilen gün için rapor varsa düzenleme ekranına yönlendirilirsiniz.')
                             ->extraAttributes(['class' => 'text-amber-700'])
                             ->columnSpanFull(),
                     ])
