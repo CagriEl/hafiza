@@ -218,12 +218,24 @@ class AylikFaaliyetResource extends Resource
             return false;
         }
 
-        if (filled($get('islem_turu'))) {
-            return true;
+        // Açık iş kapatma işleminde işlem türü zorunlu olmasın.
+        if ((bool) ($get('acikta_is_kapatiliyor') ?? false)
+            || static::hasProvidedNumericValue($get('acikta_kapanis_miktar') ?? $get('acikta_kapanis_miktar_ui'))
+            || static::hasProvidedNumericValue($get('acikta_not_kapat_miktar') ?? null)
+            || (bool) ($get('kalan_acik_tamamla') ?? false)) {
+            return false;
         }
 
-        return static::kapsamHasEnteredQuantity($get)
-            || filled($get('kalem_notu'))
+        // Eski kayıtlarda miktar varken tür yoksa form engellemesin; kayıtta Anlık kabul edilir.
+        if (static::kapsamHasEnteredQuantity($get) && ! filled($get('islem_turu'))) {
+            return false;
+        }
+
+        if (filled($get('islem_turu'))) {
+            return false;
+        }
+
+        return filled($get('kalem_notu'))
             || filled($get('baslangic_tarihi'))
             || filled($get('bitis_tarihi'))
             || filled($get('kalem_notu_ui'))
@@ -237,6 +249,14 @@ class AylikFaaliyetResource extends Resource
      */
     public static function kapsamLineNeedsIslemTuru(array $line): bool
     {
+        // Yalnızca açık iş kapatma alanları doluysa işlem türü gerekmez.
+        if ((bool) ($line['acikta_is_kapatiliyor'] ?? false)
+            || static::hasProvidedNumericValue($line['acikta_kapanis_miktar'] ?? null)
+            || static::hasProvidedNumericValue($line['acikta_not_kapat_miktar'] ?? null)
+            || (bool) ($line['kalan_acik_tamamla'] ?? false)) {
+            return false;
+        }
+
         if (filled($line['islem_turu'] ?? null)) {
             return true;
         }
@@ -462,17 +482,24 @@ class AylikFaaliyetResource extends Resource
                         : KapsamIslemTuru::SUREC;
                 }
 
-                if ($line['islem_turu'] === null && ! static::kapsamLineNeedsIslemTuru($line)) {
-                    $line['baslangic_tarihi'] = null;
-                    $line['bitis_tarihi'] = null;
-                    unset($line);
-
-                    continue;
-                }
-
-                // Eski raporlarda işlem türü yoktu; miktar/not olan kalemleri Anlık kabul et.
+                // Eski raporlarda / açık iş kapatmada işlem türü yoksa Anlık kabul et.
                 if ($line['islem_turu'] === null) {
-                    $line['islem_turu'] = KapsamIslemTuru::ANLIK;
+                    $closingOnly = (bool) ($line['acikta_is_kapatiliyor'] ?? false)
+                        || static::hasProvidedNumericValue($line['acikta_kapanis_miktar'] ?? null)
+                        || static::hasProvidedNumericValue($line['acikta_not_kapat_miktar'] ?? null)
+                        || (bool) ($line['kalan_acik_tamamla'] ?? false);
+
+                    if ($closingOnly || static::kapsamLineNeedsIslemTuru($line)
+                        || static::hasProvidedNumericValue($line['ongorulen'] ?? $line['deger'] ?? null)
+                        || static::hasProvidedNumericValue($line['gerceklesen'] ?? null)) {
+                        $line['islem_turu'] = KapsamIslemTuru::ANLIK;
+                    } else {
+                        $line['baslangic_tarihi'] = null;
+                        $line['bitis_tarihi'] = null;
+                        unset($line);
+
+                        continue;
+                    }
                 }
 
                 if ($line['islem_turu'] === KapsamIslemTuru::ANLIK
@@ -1576,7 +1603,7 @@ class AylikFaaliyetResource extends Resource
                 Section::make('Uyarı')
                     ->schema([
                         Forms\Components\Placeholder::make('rapor_olusturma_uyarisi')
-                            ->content('Her müdürlük aynı gün için bir rapor girebilir (Cumartesi–Pazar dahil). Seçilen gün için rapor varsa düzenleme ekranına yönlendirilirsiniz.')
+                            ->content('Rapor gününü takvimden seçin (geçmiş günler ve Cumartesi–Pazar dahil). Aynı güne birden fazla rapor girilebilir.')
                             ->extraAttributes(['class' => 'text-amber-700'])
                             ->columnSpanFull(),
                     ])
@@ -1741,7 +1768,7 @@ class AylikFaaliyetResource extends Resource
 
                                 Repeater::make('kapsam_verileri')
                                     ->label('Kapsam kalemleri')
-                                    ->helperText('İşlem türü yalnızca miktar, not veya tarih girilen kalemlerde zorunludur. Süreç/haftalık için başlangıç-bitiş, günlük için tarih girilir. İş yoksa miktar alanını boş bırakın (0 yazmayın).')
+                                    ->helperText('İşlem türü isteğe bağlıdır; açık iş kapatırken zorunlu değildir. Süreç/haftalık için başlangıç-bitiş, günlük için tarih girilir. İş yoksa miktar alanını boş bırakın (0 yazmayın).')
                                     ->dehydrated()
                                     ->schema([
                                         Forms\Components\Hidden::make('kalem')->dehydrated(true),

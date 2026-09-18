@@ -5,7 +5,6 @@ namespace App\Filament\Resources\ActivityReportResource\Pages;
 use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
 use App\Filament\Resources\AylikFaaliyetResource;
-use App\Models\AylikFaaliyet;
 use App\Models\User;
 use App\Support\AylikFaaliyetEscalation;
 use App\Support\AylikFaaliyetPeriodMerge;
@@ -38,43 +37,8 @@ class CreateActivityReport extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $userId = (int) (auth()->id() ?? 0);
         $data = AylikFaaliyetResource::applyReportDayFromForm($data);
-        $yil = (int) ($data['yil'] ?? 0);
-        $ay = AylikFaaliyetPeriodMerge::normalizeAy((string) ($data['ay'] ?? ''));
-        $hafta = (string) ($data['hafta'] ?? '');
-
-        if ($userId > 0 && $yil > 0 && $ay !== '' && $hafta !== ''
-            && AylikFaaliyet::existsForUserPeriodWeek($userId, $yil, $ay, $hafta)) {
-            $existing = AylikFaaliyet::query()
-                ->where('user_id', $userId)
-                ->where('yil', $yil)
-                ->whereIn('ay', AylikFaaliyet::ayQueryVariants($ay))
-                ->where('hafta', $hafta)
-                ->orderBy('id')
-                ->first();
-
-            if ($existing instanceof AylikFaaliyet) {
-                $editUrl = ActivityReportResource::getUrl('edit', ['record' => $existing]);
-                $label = ReportPeriodWeeks::dailyPeriodLabel($hafta);
-
-                Notification::make()
-                    ->warning()
-                    ->title('Bu gün için rapor zaten var')
-                    ->body("{$label} tarihli rapor zaten mevcut. Düzenleme ekranına yönlendiriliyorsunuz.")
-                    ->actions([
-                        Action::make('raporaGit')
-                            ->label('Mevcut Raporu Aç')
-                            ->url($editUrl),
-                    ])
-                    ->send();
-
-                $this->redirect($editUrl);
-                $this->halt();
-            }
-        }
-
-        $data['ay'] = $ay;
+        $data['ay'] = AylikFaaliyetPeriodMerge::normalizeAy((string) ($data['ay'] ?? ''));
 
         $data = AylikFaaliyetResource::syncFaaliyetlerWithCurrentCatalog(
             $data,

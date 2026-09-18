@@ -72,7 +72,11 @@ final class AylikFaaliyetWeeklyCarryover
     public static function currentWeekForReportData(array $data): int
     {
         $reportHafta = ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null);
-        if ($reportHafta !== null && ! ReportPeriodWeeks::isMonthlyPeriod($reportHafta)) {
+        if ($reportHafta !== null) {
+            if (ReportPeriodWeeks::isMonthlyPeriod($reportHafta) || ReportPeriodWeeks::isDailyPeriod($reportHafta)) {
+                return 0;
+            }
+
             return (int) $reportHafta;
         }
 
@@ -95,14 +99,15 @@ final class AylikFaaliyetWeeklyCarryover
         // Rapor düzeyindeki hafta egemendir: 2. hafta raporuna 1. hafta yazılmaz.
         $reportHafta = ReportPeriodWeeks::normalizeReportHafta($data['hafta'] ?? null);
         if ($reportHafta !== null) {
-            if (ReportPeriodWeeks::isMonthlyPeriod($reportHafta)) {
+            if (ReportPeriodWeeks::isMonthlyPeriod($reportHafta) || ReportPeriodWeeks::isDailyPeriod($reportHafta)) {
                 return 0;
             }
 
             return (int) $reportHafta;
         }
 
-        if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
+        if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)
+            || ReportPeriodWeeks::isDailyPeriod($row['hafta'] ?? null)) {
             return 0;
         }
 
@@ -241,10 +246,7 @@ final class AylikFaaliyetWeeklyCarryover
                 continue;
             }
 
-            if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
-                continue;
-            }
-
+            // Aylık / günlük raporlarda da açık iş kapatılabilir (haftalık kısıt kaldırıldı).
             $currentWeek = self::resolveWeekForFaaliyetRow($row, $data);
 
             $kv = $row['kapsam_verileri'] ?? null;
@@ -495,10 +497,6 @@ final class AylikFaaliyetWeeklyCarryover
                 continue;
             }
 
-            if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
-                continue;
-            }
-
             $kv = $row['kapsam_verileri'] ?? null;
             if (! is_array($kv)) {
                 continue;
@@ -538,14 +536,7 @@ final class AylikFaaliyetWeeklyCarryover
                 continue;
             }
 
-            if (ReportPeriodWeeks::isMonthlyPeriod($row['hafta'] ?? null)) {
-                continue;
-            }
-
             $currentWeek = self::resolveWeekForFaaliyetRow($row, $data);
-            if ($currentWeek < 1) {
-                continue;
-            }
 
             $kv = $row['kapsam_verileri'] ?? null;
             if (! is_array($kv) || $kv === []) {

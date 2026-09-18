@@ -47,6 +47,29 @@ class AylikFaaliyetKapsamDatesTest extends TestCase
         $this->assertSame(KapsamIslemTuru::ANLIK, $line['islem_turu']);
     }
 
+    public function test_enforce_allows_pending_close_without_explicit_islem_turu(): void
+    {
+        $data = AylikFaaliyetResource::enforceKapsamDateRanges([
+            'faaliyetler' => [
+                [
+                    'kapsam_verileri' => [
+                        [
+                            'kalem' => 'Açık kalem',
+                            'ongorulen' => 10,
+                            'gerceklesen' => 4,
+                            'acikta_is_kapatiliyor' => true,
+                            'acikta_kapatma_notu' => 'Kapatıldı',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+
+        $line = $data['faaliyetler'][0]['kapsam_verileri'][0];
+        $this->assertSame(KapsamIslemTuru::ANLIK, $line['islem_turu']);
+        $this->assertTrue($line['acikta_is_kapatiliyor']);
+    }
+
     public function test_enforce_kapsam_date_ranges_allows_anlik_without_dates(): void
     {
         $data = AylikFaaliyetResource::enforceKapsamDateRanges([
