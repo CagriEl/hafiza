@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\PersonelDurumResource\Pages;
 use App\Models\PersonelDurum;
+use App\Models\User;
 use App\Models\ViceMayor;
 use App\Support\NonNegativeInput;
 use App\Support\QuerySafety;
@@ -25,6 +26,16 @@ class PersonelDurumResource extends Resource
     protected static ?string $navigationLabel = 'Personel Sayıları';
 
     protected static ?string $navigationGroup = 'Tanımlamalar';
+
+    public static function canViewAny(): bool
+    {
+        $user = auth()->user();
+        if ($user instanceof User && $user->isMaliHizmetlerAccount() && ! $user->isReportingSuperAdmin()) {
+            return false;
+        }
+
+        return auth()->check();
+    }
 
     public static function form(Form $form): Form
     {

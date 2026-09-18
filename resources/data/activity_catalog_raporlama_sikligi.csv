@@ -1,0 +1,148 @@
+Faaliyet Kodu,Kategori,Raporlama Sıklığı
+AFM-01,Strateji / İyileştirme / Eğitim,Haftalık
+AFM-02,Strateji / İyileştirme / Eğitim,Haftalık
+AFM-03,Strateji / İyileştirme / Eğitim,Haftalık
+AFM-04,Olağanüstü / Kriz / Acil,Haftalık / olay anında
+AFM-05,Olağanüstü / Kriz / Acil,Haftalık / olay anında
+AFM-06,Olağanüstü / Kriz / Acil,Haftalık / olay anında
+AFM-07,Destek / İç İşleyiş,Haftalık
+BLM-01,Destek / İç İşleyiş,Haftalık / Aylık
+BLM-02,Destek / İç İşleyiş,Haftalık / Aylık
+BLM-03,Destek / İç İşleyiş,Haftalık / Aylık
+BLM-04,Denetim / Uyum,Haftalık
+BLM-05,Denetim / Uyum,Haftalık
+BLM-06,Destek / İç İşleyiş,Haftalık / Aylık
+BLM-07,Olağanüstü / Kriz / Acil,Haftalık / olay anında
+BLM-08,Olağanüstü / Kriz / Acil,Haftalık / olay anında
+BLM-09,Denetim / Uyum,Haftalık / olay anında
+DHM-01,Proje / Yatırım / Sözleşme,Haftalık
+DHM-02,Proje / Yatırım / Sözleşme,Haftalık
+DHM-03,Proje / Yatırım / Sözleşme,Haftalık
+DHM-04,Destek / İç İşleyiş,Haftalık / Aylık
+DHM-05,Destek / İç İşleyiş,Haftalık
+DHM-06,Proje / Yatırım / Sözleşme,Haftalık
+DHM-07,Proje / Yatırım / Sözleşme,Haftalık
+FNM-01,Operasyonel Hizmet,Haftalık
+FNM-02,Proje / Yatırım / Sözleşme,Haftalık
+FNM-03,Destek / İç İşleyiş,Haftalık / Aylık
+FNM-04,Proje / Yatırım / Sözleşme,Haftalık
+FNM-05,Operasyonel Hizmet,Haftalık
+FNM-06,Olağanüstü / Kriz / Acil,Haftalık / olay anında
+FNM-07,Proje / Yatırım / Sözleşme,Haftalık
+GLR-01,Başvuru / İşlem,Haftalık
+GLR-02,Başvuru / İşlem,Haftalık
+GLR-03,Başvuru / İşlem,Haftalık
+GLR-04,Denetim / Uyum,Haftalık
+GLR-05,Başvuru / İşlem,Haftalık
+GLR-06,Destek / İç İşleyiş,Haftalık / Aylık
+GLR-07,Denetim / Uyum,Haftalık
+GLR-08,Denetim / Uyum,Haftalık
+GLR-09,Denetim / Uyum,Haftalık
+HKM-01,Denetim / Uyum,Haftalık
+HKM-02,Destek / İç İşleyiş,Haftalık / Aylık
+HKM-03,Proje / Yatırım / Sözleşme,Haftalık
+HKM-04,Başvuru / İşlem,Haftalık
+HKM-05,Başvuru / İşlem,Haftalık
+HKM-06,Denetim / Uyum,Haftalık
+HKM-07,Denetim / Uyum,3 Aylık
+HKM-08,Denetim / Uyum,Aylık
+HKM-09,Denetim / Uyum,6 Aylık
+IKL-01,Operasyonel Hizmet,Haftalık
+IKL-02,Operasyonel Hizmet,Haftalık
+IKL-03,Operasyonel Hizmet,Haftalık
+IKL-04,Denetim / Uyum,Haftalık
+IKL-05,Strateji / İyileştirme / Eğitim,Haftalık
+IKL-06,Strateji / İyileştirme / Eğitim,Haftalık
+IKM-01,Destek / İç İşleyiş,Haftalık / Aylık
+IKM-02,Destek / İç İşleyiş,Haftalık / Aylık
+IKM-03,Destek / İç İşleyiş,Aylık
+IKM-04,Strateji / İyileştirme / Eğitim,Haftalık
+IKM-05,Strateji / İyileştirme / Eğitim,Haftalık
+IKM-06,Denetim / Uyum,Haftalık / Aylık
+IKM-07,Denetim / Uyum,Haftalık
+IKM-08,Denetim / Uyum,Aylık / kritik sapma halinde
+IMM-01,Başvuru / İşlem,Haftalık
+IMM-02,Başvuru / İşlem,Haftalık
+IMM-03,Başvuru / İşlem,Haftalık
+IMM-04,Denetim / Uyum,Haftalık
+IMM-05,Strateji / İyileştirme / Eğitim,Haftalık
+IMM-06,Başvuru / İşlem,Haftalık
+IMM-07,Denetim / Uyum,Haftalık / olay anında
+ITM-01,Olağanüstü / Kriz / Acil,Haftalık / olay anında
+ITM-02,Olağanüstü / Kriz / Acil,Haftalık / olay anında
+ITM-03,Denetim / Uyum,Haftalık
+ITM-04,Strateji / İyileştirme / Eğitim,Haftalık
+ITM-05,Olağanüstü / Kriz / Acil,Haftalık / olay anında
+ITM-06,Destek / İç İşleyiş,Haftalık / Aylık
+ITM-07,Başvuru / İşlem,Haftalık
+ITM-08,Operasyonel Hizmet,Haftalık
+KSS-01,Operasyonel Hizmet,Haftalık
+KSS-02,Başvuru / İşlem,Haftalık
+KSS-03,Operasyonel Hizmet,Haftalık
+KSS-04,Operasyonel Hizmet,Haftalık
+KSS-05,İletişim / Memnuniyet / Paydaş,Haftalık
+KSS-06,Proje / Yatırım / Sözleşme,Haftalık
+MHM-01,Destek / İç İşleyiş,Haftalık / Aylık
+MHM-02,Destek / İç İşleyiş,Haftalık / Aylık
+MHM-03,Strateji / İyileştirme / Eğitim,Haftalık
+MHM-04,Denetim / Uyum,Haftalık
+MHM-05,Destek / İç İşleyiş,Haftalık / Aylık
+MHM-06,Destek / İç İşleyiş,Yıllık
+MHM-07,Denetim / Uyum,Haftalık
+MHM-08,Denetim / Uyum,Haftalık
+MHM-09,Denetim / Uyum,Haftalık
+MKM-01,Destek / İç İşleyiş,Haftalık / Aylık
+MKM-02,Destek / İç İşleyiş,Haftalık / Aylık
+MKM-03,Destek / İç İşleyiş,Haftalık / Aylık
+MKM-04,Strateji / İyileştirme / Eğitim,Haftalık
+MKM-05,Destek / İç İşleyiş,Haftalık / Aylık
+MKM-06,Proje / Yatırım / Sözleşme,Haftalık
+MZM-01,Operasyonel Hizmet,Haftalık
+MZM-02,Başvuru / İşlem,Haftalık
+MZM-03,Operasyonel Hizmet,Haftalık
+MZM-04,Operasyonel Hizmet,Haftalık
+MZM-05,Destek / İç İşleyiş,Haftalık / Aylık
+MZM-06,İletişim / Memnuniyet / Paydaş,Haftalık
+MZM-07,Başvuru / İşlem,Haftalık
+OKM-01,İletişim / Memnuniyet / Paydaş,Haftalık
+OKM-02,İletişim / Memnuniyet / Paydaş,Haftalık
+OKM-03,İletişim / Memnuniyet / Paydaş,Haftalık
+OKM-04,İletişim / Memnuniyet / Paydaş,Haftalık
+OKM-05,Proje / Yatırım / Sözleşme,Haftalık
+SKM-01,Operasyonel Hizmet,Haftalık
+SKM-02,Operasyonel Hizmet,Haftalık
+SKM-03,Başvuru / İşlem,Haftalık
+SKM-04,Denetim / Uyum,Haftalık
+SKM-05,Strateji / İyileştirme / Eğitim,Haftalık
+SKM-06,Operasyonel Hizmet,Haftalık
+SKM-07,Denetim / Uyum,Haftalık
+TEM-01,Operasyonel Hizmet,Haftalık
+TEM-02,Operasyonel Hizmet,Haftalık
+TEM-03,Operasyonel Hizmet,Haftalık
+TEM-04,Operasyonel Hizmet,Haftalık
+TEM-05,Operasyonel Hizmet,Haftalık
+TEM-06,İletişim / Memnuniyet / Paydaş,Haftalık
+ULM-01,Başvuru / İşlem,Haftalık
+ULM-02,Başvuru / İşlem,Haftalık
+ULM-03,Destek / İç İşleyiş,Haftalık / Aylık
+ULM-04,Operasyonel Hizmet,Haftalık
+ULM-05,Denetim / Uyum,Haftalık
+ULM-06,İletişim / Memnuniyet / Paydaş,Haftalık
+VTM-01,Operasyonel Hizmet,Haftalık
+VTM-02,Operasyonel Hizmet,Haftalık
+VTM-03,Operasyonel Hizmet,Haftalık
+VTM-04,Denetim / Uyum,Haftalık
+VTM-05,Operasyonel Hizmet,Haftalık
+VTM-06,Operasyonel Hizmet,Haftalık
+YZM-01,Destek / İç İşleyiş,Haftalık / Aylık
+YZM-02,Başvuru / İşlem,Haftalık
+YZM-03,Başvuru / İşlem,Haftalık
+YZM-04,Destek / İç İşleyiş,Haftalık / Aylık
+YZM-05,Başvuru / İşlem,Haftalık
+ZBM-01,Denetim / Uyum,Haftalık
+ZBM-02,Denetim / Uyum,Haftalık
+ZBM-03,Denetim / Uyum,Haftalık
+ZBM-04,Operasyonel Hizmet,Haftalık
+ZBM-05,Denetim / Uyum,Haftalık
+ZBM-06,Denetim / Uyum,Haftalık
+ZBM-07,Denetim / Uyum,Haftalık

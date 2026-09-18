@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ActivityCatalog;
+use App\Support\ActivityCatalogMetadataByCode;
 use App\Support\TurkishString;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\File;
@@ -47,6 +48,7 @@ class ActivityService
         $this->faaliyetFullJsonRowsCache = null;
         $this->lastCatalogResolutionDebug = null;
         $this->autoSyncAttempted = false;
+        ActivityCatalogMetadataByCode::forgetCache();
     }
 
     /**
@@ -117,7 +119,7 @@ class ActivityService
 
     /**
      * Filament seçenekleri: katalog id => faaliyet_ailesi.
-     * Öncelik: faaliyet_seti_full.json (Müdürlük sütunu, bulanık eşleşme) → kodlar → activity_catalogs upsert kayıtları.
+     * Öncelik: activity_catalog_server_snapshot.json (müdürlük, bulanık eşleşme) → activity_sets.json → activity_catalogs.
      *
      * @return array<int|string, string>
      */
@@ -131,6 +133,8 @@ class ActivityService
      */
     public function resolveCatalogOptionsForMudurluk(string $mudurluk): array
     {
+        \App\Support\CatalogKalemRevisions::ensureApplied();
+
         $mudurlukRaw = $mudurluk;
         $debug = [
             'directorate_input' => $mudurlukRaw,
@@ -148,13 +152,14 @@ class ActivityService
             'sample_mudurlukler_from_json' => [],
         ];
 
-        $path = app(ActivityCatalogSyncService::class)->resolveFullJsonPath();
+        $sync = app(ActivityCatalogSyncService::class);
+        $path = $sync->resolveServerSnapshotPath();
         $debug['full_json_path'] = $path;
         $debug['full_json_readable'] = File::isReadable($path);
 
         $codes = [];
         if ($debug['full_json_readable']) {
-            $bundle = $this->collectFaaliyetCodesFromFullJson($mudurlukRaw);
+            $bundle = $this->collectFaaliyetCodesFromServerSnapshot($mudurlukRaw);
             $codes = $bundle['codes'];
             $debug['full_json_matched_rows'] = $bundle['matched_rows'];
             $debug['mudurluk_match_mode'] = $bundle['mode'];
@@ -186,13 +191,16 @@ class ActivityService
             ->filter(fn (ActivityCatalog $r) => $this->mudurlukLabelMatchesLoose($mudurlukRaw, (string) $r->mudurluk))
             ->values();
 
+        // Dropdown kaynağı: activity_catalogs (DB). Admin silince listeden düşmeli.
+        // Snapshot yalnızca müdürlükte hiç kayıt yoksa (deploy sonrası boş DB) eksikleri doldurur.
         $rows = $rowsFromMudurluk;
         if ($codes !== []) {
             $rowsFromCodes = $allRows
                 ->filter(fn (ActivityCatalog $r) => in_array((string) $r->faaliyet_kodu, $codes, true))
                 ->values();
 
-            // JSON tarafinda gecikme olsa bile (eski kod listesi), mudurluge eklenen yeni katalog satirlari da gelsin.
+            // JSON'daki kodlar + bu müdürlüğe adminin eklediği DB satırları.
+            // Silinmiş kodlar DB'de olmadığı için listede görünmez (yeniden yaratılmaz).
             $rows = $rowsFromCodes
                 ->merge($rowsFromMudurluk)
                 ->unique(fn (ActivityCatalog $r) => (int) $r->id)
@@ -200,18 +208,17 @@ class ActivityService
                 ->values();
         }
 
-        // JSON'da kod var ama katalog satirlari eksikse (deploy sonrasi sync unutulduysa)
-        // bir kez otomatik senkron dene ve sonucu tekrar cek.
+        // Yalnızca müdürlükte hiç katalog satırı yoksa eksik kodları snapshot'tan oluştur.
+        // Tek kayıt silindiğinde otomatik geri getirme — admin silmesini ezerdi.
         if (
             $codes !== []
-            && $rows->count() < count($codes)
+            && $rowsFromMudurluk->isEmpty()
             && ! $this->autoSyncAttempted
         ) {
             $this->autoSyncAttempted = true;
 
             try {
-                app(ActivityCatalogSyncService::class)->syncFromFile($path);
-                app(ActivityCatalogSyncService::class)->regenerateActivitySetsJson($path);
+                app(ActivityCatalogSqlImportService::class)->createMissingFromSnapshotFile($path);
                 $this->forgetCache();
 
                 $allRows = ActivityCatalog::query()->orderBy('faaliyet_kodu')->get();
@@ -242,10 +249,10 @@ class ActivityService
 
         if ($options === []) {
             if (! $debug['full_json_readable']) {
-                $debug['reason_if_empty'] = 'faaliyet_seti_full.json_okunamadi';
+                $debug['reason_if_empty'] = 'activity_catalog_server_snapshot.json_okunamadi';
             } elseif ($debug['full_json_matched_rows'] === 0) {
-                $debug['reason_if_empty'] = 'full_jsonda_mudurluk_eslesmedi';
-                $debug['sample_mudurlukler_from_json'] = $this->sampleDistinctMudurluksFromFullJson(15);
+                $debug['reason_if_empty'] = 'snapshot_jsonda_mudurluk_eslesmedi';
+                $debug['sample_mudurlukler_from_json'] = $this->sampleDistinctMudurluksFromServerSnapshot(15);
             } elseif ($debug['catalog_rows_fetched'] === 0) {
                 $debug['reason_if_empty'] = 'activity_catalogs_kayit_yok_php_artisan_activity-catalog_sync';
             } else {
@@ -261,33 +268,13 @@ class ActivityService
     /**
      * @return list<array<string, mixed>>
      */
-    private function getFaaliyetFullJsonRows(): array
+    private function getServerSnapshotRows(): array
     {
         if ($this->faaliyetFullJsonRowsCache !== null) {
             return $this->faaliyetFullJsonRowsCache;
         }
 
-        $path = app(ActivityCatalogSyncService::class)->resolveFullJsonPath();
-        if (! File::isReadable($path)) {
-            $this->faaliyetFullJsonRowsCache = [];
-
-            return $this->faaliyetFullJsonRowsCache;
-        }
-
-        $decoded = json_decode(File::get($path), true);
-        if (! is_array($decoded)) {
-            $this->faaliyetFullJsonRowsCache = [];
-
-            return $this->faaliyetFullJsonRowsCache;
-        }
-
-        $out = [];
-        foreach ($decoded as $row) {
-            if (is_array($row)) {
-                $out[] = $row;
-            }
-        }
-        $this->faaliyetFullJsonRowsCache = $out;
+        $this->faaliyetFullJsonRowsCache = app(ActivityCatalogSyncService::class)->readServerSnapshotRows();
 
         return $this->faaliyetFullJsonRowsCache;
     }
@@ -295,11 +282,11 @@ class ActivityService
     /**
      * @return list<string>
      */
-    private function sampleDistinctMudurluksFromFullJson(int $limit): array
+    private function sampleDistinctMudurluksFromServerSnapshot(int $limit): array
     {
         $seen = [];
-        foreach ($this->getFaaliyetFullJsonRows() as $row) {
-            $m = trim((string) ($row['Müdürlük'] ?? ''));
+        foreach ($this->getServerSnapshotRows() as $row) {
+            $m = trim((string) ($row['mudurluk'] ?? ''));
             if ($m === '') {
                 continue;
             }
@@ -319,10 +306,10 @@ class ActivityService
     /**
      * @return array{codes: list<string>, matched_rows: int, mode: 'exact'|'loose'|'none', label: ?string}
      */
-    private function collectFaaliyetCodesFromFullJson(string $mudurlukRaw): array
+    private function collectFaaliyetCodesFromServerSnapshot(string $mudurlukRaw): array
     {
         $trimInput = trim($mudurlukRaw);
-        $rows = $this->getFaaliyetFullJsonRows();
+        $rows = $this->getServerSnapshotRows();
 
         $codes = [];
         $matchedRows = 0;
@@ -330,12 +317,12 @@ class ActivityService
             if (! is_array($row)) {
                 continue;
             }
-            $mCol = trim((string) ($row['Müdürlük'] ?? ''));
+            $mCol = trim((string) ($row['mudurluk'] ?? ''));
             if (! TurkishString::same($mCol, $trimInput)) {
                 continue;
             }
             $matchedRows++;
-            $k = trim((string) ($row['Faaliyet Kodu'] ?? ''));
+            $k = trim((string) ($row['faaliyet_kodu'] ?? ''));
             if ($k !== '') {
                 $codes[] = $k;
             }
@@ -354,7 +341,7 @@ class ActivityService
             if (! is_array($row)) {
                 continue;
             }
-            $mCol = trim((string) ($row['Müdürlük'] ?? ''));
+            $mCol = trim((string) ($row['mudurluk'] ?? ''));
             if ($mCol === '' || ! $this->mudurlukLabelMatchesLoose($trimInput, $mCol)) {
                 continue;
             }
@@ -376,12 +363,12 @@ class ActivityService
             if (! is_array($row)) {
                 continue;
             }
-            $mCol = trim((string) ($row['Müdürlük'] ?? ''));
+            $mCol = trim((string) ($row['mudurluk'] ?? ''));
             if (! TurkishString::same($mCol, $resolved)) {
                 continue;
             }
             $matchedRows++;
-            $k = trim((string) ($row['Faaliyet Kodu'] ?? ''));
+            $k = trim((string) ($row['faaliyet_kodu'] ?? ''));
             if ($k !== '') {
                 $codes[] = $k;
             }

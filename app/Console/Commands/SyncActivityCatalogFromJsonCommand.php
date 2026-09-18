@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\ActivityCatalog;
+use App\Services\ActivityCatalogRaporlamaSikligiService;
 use App\Services\ActivityCatalogSyncService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
@@ -15,12 +16,20 @@ class SyncActivityCatalogFromJsonCommand extends Command
                             {--google-sheet= : Google Sheets paylaşım URL’i}
                             {--gid=0 : Google Sheets sekme gid değeri}
                             {--reset-catalog : activity_catalogs tablosunu import öncesi temizle}
-                            {--no-activity-sets : resources/data/activity_sets.json dosyasını güncelleme}';
+                            {--no-activity-sets : resources/data/activity_sets.json dosyasını güncelleme}
+                            {--fill-raporlama-only : Yalnızca boş/geçersiz raporlama_sikligi alanlarını CSV ile doldur}
+                            {--raporlama-csv-path= : Raporlama CSV yolu}
+                            {--export-raporlama-csv : Snapshot+modelden raporlama CSV üret}
+                            {--sync-reports : Mevcut rapor satırlarındaki raporlama sıklığını güncelle}';
 
-    protected $description = 'Faaliyet kataloğunu JSON/CSV/Google Sheets CSV kaynağından faaliyet_kodu ile upsert eder.';
+    protected $description = 'Faaliyet kataloğunu JSON/CSV kaynağından günceller veya raporlama sıklığını CSV ile tamamlar.';
 
     public function handle(ActivityCatalogSyncService $sync): int
     {
+        if ($this->option('fill-raporlama-only') || $this->option('export-raporlama-csv')) {
+            return $this->handleRaporlamaFill();
+        }
+
         $path = $this->option('path') ?: null;
         $csvPath = $this->option('csv-path') ?: null;
         $googleSheet = $this->option('google-sheet') ?: null;
@@ -72,6 +81,63 @@ class SyncActivityCatalogFromJsonCommand extends Command
             $this->error($e->getMessage());
 
             return self::FAILURE;
+        }
+
+        return self::SUCCESS;
+    }
+
+    private function handleRaporlamaFill(): int
+    {
+        $service = app(ActivityCatalogRaporlamaSikligiService::class);
+
+        if ($this->option('export-raporlama-csv')) {
+            try {
+                $written = $service->exportCsvFromSnapshotAndModel();
+            } catch (\Throwable $e) {
+                $this->error($e->getMessage());
+
+                return self::FAILURE;
+            }
+
+            $this->info("CSV üretildi: {$written['path']} ({$written['row_count']} satır)");
+        }
+
+        $csvPath = (string) ($this->option('raporlama-csv-path') ?: '');
+        if ($csvPath === '') {
+            $csvPath = is_readable($service->resolvePublicCsvPath())
+                ? $service->resolvePublicCsvPath()
+                : $service->resolveDefaultCsvPath();
+        }
+
+        if (! is_readable($csvPath)) {
+            $this->error("Raporlama CSV bulunamadı: {$csvPath}");
+            $this->line('Önce: php artisan activity-catalog:sync --export-raporlama-csv --fill-raporlama-only');
+
+            return self::FAILURE;
+        }
+
+        try {
+            $stats = $service->fillMissingFromCsvFile($csvPath);
+        } catch (\Throwable $e) {
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
+        }
+
+        $this->line("Kaynak: {$csvPath}");
+        $this->info("CSV satırı: {$stats['parsed']}");
+        $this->info("DB güncellenen: {$stats['updated_db']}");
+        $this->info("Snapshot güncellenen: {$stats['updated_snapshot']}");
+
+        if (! $this->option('no-activity-sets')) {
+            app(ActivityCatalogSyncService::class)->regenerateActivitySetsJsonFromServerSnapshot();
+            $this->info('activity_sets.json sunucu snapshot dosyasından yenilendi.');
+        }
+
+        if ($this->option('sync-reports')) {
+            $exitCode = $this->call('aylik-faaliyet:sync-catalog-metadata');
+
+            return $exitCode === self::SUCCESS ? self::SUCCESS : $exitCode;
         }
 
         return self::SUCCESS;

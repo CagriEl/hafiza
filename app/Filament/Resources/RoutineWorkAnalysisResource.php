@@ -37,7 +37,8 @@ class RoutineWorkAnalysisResource extends Resource
             InfolistSection::make('Rutin İş Kaydı')
                 ->schema([
                     TextEntry::make('user.name')->label('Müdürlük'),
-                    TextEntry::make('work_date')->label('Tarih')->date('d.m.Y'),
+                    TextEntry::make('start_date')->label('Başlangıç Tarihi')->date('d.m.Y'),
+                    TextEntry::make('end_date')->label('Bitiş Tarihi')->date('d.m.Y'),
                     TextEntry::make('status')
                         ->label('Durum')
                         ->formatStateUsing(fn (string $state): string => match ($state) {
@@ -57,14 +58,18 @@ class RoutineWorkAnalysisResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
-            ->defaultSort('work_date', 'desc')
+            ->defaultSort('start_date', 'desc')
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Müdürlük')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('work_date')
-                    ->label('Tarih')
+                Tables\Columns\TextColumn::make('start_date')
+                    ->label('Başlangıç')
+                    ->date('d.m.Y')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('end_date')
+                    ->label('Bitiş')
                     ->date('d.m.Y')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('work_item')
