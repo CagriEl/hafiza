@@ -2654,6 +2654,16 @@ class AylikFaaliyetResource extends Resource
                         ) ?? trim((string) (($record->yil ?? '—').' / '.($record->ay ?? '—')));
                     })
                     ->wrap()
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        $direction = strtolower($direction) === 'desc' ? 'desc' : 'asc';
+
+                        return $query
+                            ->orderBy('yil', $direction)
+                            ->orderByRaw('LPAD(ay, 2, \'0\') '.$direction)
+                            ->orderBy('hafta', $direction)
+                            ->orderBy('created_at', $direction)
+                            ->orderBy('id', $direction);
+                    })
                     ->searchable(query: function (Builder $query, string $search): Builder {
                         return $query
                             ->where('yil', 'like', "%{$search}%")
@@ -2782,6 +2792,7 @@ class AylikFaaliyetResource extends Resource
                     ->collapsible(),
             ])
             ->defaultGroup('user.name')
+            ->defaultSort('donem_tarih_araligi', 'asc')
             ->groupingSettingsHidden(false)
             ->filters([
                 Tables\Filters\Filter::make('mudurluk_faaliyet_katalog')
