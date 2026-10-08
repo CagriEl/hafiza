@@ -246,6 +246,7 @@ final class AnalizEkibiRaporVerileri
                 'acikta' => $pending,
                 'durum' => self::suggestDurum($done, $pending),
                 'sapma_not' => $sapma,
+                'kalem_notu' => trim((string) ($line['kalem_notu'] ?? '')),
                 'son_tarih' => AylikFaaliyetWeeklyCarryover::formatDisplayDate($line['son_yapilma_tarihi'] ?? null) ?? '',
             ];
         }

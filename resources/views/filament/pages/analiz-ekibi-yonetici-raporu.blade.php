@@ -365,6 +365,7 @@
                                     <th>Kod</th>
                                     <th>Faaliyet</th>
                                     <th>Alt Kalem</th>
+                                    <th>Not</th>
                                     <th class="num">Öngörülen</th>
                                     <th class="num">Yapılan</th>
                                     <th class="num">Açıkta</th>
@@ -378,6 +379,7 @@
                                         <td>{{ $is['faaliyet_kodu'] !== '' ? $is['faaliyet_kodu'] : '—' }}</td>
                                         <td>{{ $is['etiket'] }}</td>
                                         <td>{{ $is['kalem'] }}</td>
+                                        <td>{{ trim((string) ($is['kalem_notu'] ?? '')) !== '' ? $is['kalem_notu'] : '—' }}</td>
                                         <td class="num">{{ $fmt($is['ongorulen']) }}</td>
                                         <td class="num">{{ $fmt($is['gerceklesen']) }}</td>
                                         <td class="num danger">{{ $fmt($is['acikta']) }}</td>

@@ -109,6 +109,7 @@ final class AnalizEkibiYoneticiRapor
                     'gerceklesen' => $kalem['gerceklesen'],
                     'acikta' => $pending,
                     'durum' => $kalem['durum'],
+                    'kalem_notu' => (string) ($kalem['kalem_notu'] ?? ''),
                     'son_tarih' => $kalem['son_tarih'],
                 ];
             }
@@ -124,6 +125,7 @@ final class AnalizEkibiYoneticiRapor
                     'gerceklesen' => $mapped['gerceklesen'],
                     'acikta' => $mapped['kalan'],
                     'durum' => $mapped['durum'],
+                    'kalem_notu' => '',
                     'son_tarih' => '',
                 ];
             }
@@ -483,6 +485,7 @@ final class AnalizEkibiYoneticiRapor
                     'acikta' => $pending,
                     'kapatildi' => $kapatildi,
                     'durum' => AnalizEkibiRaporVerileri::suggestDurum((int) $done, (int) ceil($pending)),
+                    'kalem_notu' => trim((string) ($line['kalem_notu'] ?? '')),
                     'son_tarih' => AylikFaaliyetWeeklyCarryover::formatDisplayDate($line['son_yapilma_tarihi'] ?? null) ?? '',
                 ];
             }

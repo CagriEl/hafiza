@@ -191,7 +191,12 @@
                 @foreach ($group['rows'] as $row)
                     <tr class="{{ $toneClass[$row['tone'] ?? 'neutral'] ?? '' }}">
                         <td>{{ $row['kod'] }}</td>
-                        <td>{{ $row['kalem'] }}</td>
+                        <td>
+                            {{ $row['kalem'] }}
+                            @if (trim((string) ($row['not'] ?? '')) !== '')
+                                <div style="font-size:9px;color:#4b5563;margin-top:2px;">Not: {{ $row['not'] }}</div>
+                            @endif
+                        </td>
                         <td>{{ ($row['olcu'] ?? '') !== '' ? $row['olcu'] : '—' }}</td>
                         <td class="num">{{ $row['ongorulen'] }}</td>
                         <td class="num">{{ $row['gerceklesen'] }}</td>

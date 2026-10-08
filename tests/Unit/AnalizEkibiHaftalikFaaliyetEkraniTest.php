@@ -84,6 +84,7 @@ class AnalizEkibiHaftalikFaaliyetEkraniTest extends TestCase
                                 'ongorulen' => 21,
                                 'gerceklesen' => 10,
                                 'olcu_birimi' => 'arıza / müdahale',
+                                'kalem_notu' => 'Gece müdahale notu',
                             ],
                             [
                                 'kalem' => 'Pompa ve bakım',
@@ -101,6 +102,8 @@ class AnalizEkibiHaftalikFaaliyetEkraniTest extends TestCase
         $this->assertSame(2, $screen['ozet']['kalem_sayisi']);
         $this->assertSame('arıza / müdahale', $screen['rows'][0]['olcu']);
         $this->assertSame('adet', $screen['rows'][1]['olcu']);
+        $this->assertSame('Gece müdahale notu', $screen['rows'][0]['not']);
+        $this->assertSame('', $screen['rows'][1]['not']);
         $this->assertSame('danger', $screen['rows'][0]['tone']);
         $this->assertSame('warning', $screen['rows'][1]['tone']);
         $this->assertSame('yuksek', $screen['tavsiye']['seviye']);

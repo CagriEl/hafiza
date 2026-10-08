@@ -181,12 +181,17 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                             'aile' => (string) ($row['aile'] ?? ''),
                             'kalem' => $kalem,
                             'olcu' => (string) ($row['olcu'] ?? ''),
+                            'not' => trim((string) ($row['not'] ?? '')),
                             'kpi' => '',
                             'haftalar' => [],
                             'plan_toplam' => 0.0,
                             'gercek_toplam' => 0.0,
                             'tone' => 'neutral',
                         ];
+                    }
+                    $rowNot = trim((string) ($row['not'] ?? ''));
+                    if ($rowNot !== '' && ($kalemIndex[$key]['not'] ?? '') === '') {
+                        $kalemIndex[$key]['not'] = $rowNot;
                     }
                     $planN = $row['ongorulen_sayi'] ?? null;
                     $doneN = $row['gerceklesen_sayi'] ?? null;
@@ -255,6 +260,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                 'aile' => $row['aile'],
                 'kalem' => $row['kalem'],
                 'olcu' => $row['olcu'],
+                'not' => trim((string) ($row['not'] ?? '')),
                 'kpi' => $kpi !== '' ? $kpi : 'Gerçekleşen ≥ öngörülen',
                 'cells' => $cells,
                 'ay' => $plan > 0.0
@@ -532,6 +538,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                         'aile' => $aile,
                         'kalem' => $kalem,
                         'olcu' => $olcu,
+                        'not' => trim((string) ($line['kalem_notu'] ?? '')),
                         'ongorulen' => $planFilled ? self::formatNumber($plan) : '—',
                         'gerceklesen' => $doneFilled ? self::formatNumber($done) : '—',
                         'acikta' => (! $planFilled && ! $doneFilled)
@@ -573,6 +580,7 @@ final class AnalizEkibiHaftalikFaaliyetEkrani
                     'aile' => $aile,
                     'kalem' => $aile !== '' ? $aile : 'Faaliyet',
                     'olcu' => $rowOlcu,
+                    'not' => '',
                     'ongorulen' => $planFilled ? self::formatNumber($plan) : '—',
                     'gerceklesen' => $doneFilled ? self::formatNumber($done) : '—',
                     'acikta' => (! $planFilled && ! $doneFilled)

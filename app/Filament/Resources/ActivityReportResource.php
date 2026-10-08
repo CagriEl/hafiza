@@ -46,8 +46,8 @@ class ActivityReportResource extends Resource
         $tabFromSession = fn (): string => (string) session('activity_report_active_tab', 'all');
 
         return AylikFaaliyetResource::table($table)
-            ->paginated([10, 25, 50])
-            ->defaultPaginationPageOption(25)
+            ->paginated([10, 25, 50, 100, 200])
+            ->defaultPaginationPageOption(200)
             ->actions([
                 Tables\Actions\ViewAction::make()
                     ->label('Görüntüle')

@@ -68,6 +68,7 @@
     .hf-ekran .num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; font-weight:600; }
     .hf-ekran .hf-kalem { font-weight:600; display:block; }
     .hf-ekran .hf-olcu { color:var(--muted); font-size:12px; font-weight:500; }
+    .hf-ekran .hf-not { color:#374151; font-size:12px; font-weight:500; margin-top:4px; display:block; white-space:pre-wrap; }
     .hf-ekran .hf-badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; }
     .hf-ekran .b-success { background:#dcfce7; color:#166534; }
     .hf-ekran .b-danger { background:#fee2e2; color:#991b1b; }
@@ -233,6 +234,9 @@
                                 <tr class="t-{{ $tone }}">
                                     <td>
                                         <span class="hf-kalem">{{ $row['kalem'] }}</span>
+                                        @if (trim((string) ($row['not'] ?? '')) !== '')
+                                            <span class="hf-not">Not: {{ $row['not'] }}</span>
+                                        @endif
                                     </td>
                                     <td>
                                         <span class="hf-olcu">{{ ($row['olcu'] ?? '') !== '' ? $row['olcu'] : '—' }}</span>

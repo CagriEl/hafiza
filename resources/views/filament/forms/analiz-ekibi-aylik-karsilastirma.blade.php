@@ -321,7 +321,12 @@
                         @foreach ($rows as $row)
                             <tr class="t-{{ $row['tone'] ?? 'neutral' }}">
                                 <td>{{ $row['kod'] }}</td>
-                                <td>{{ $row['kalem'] }}</td>
+                                <td>
+                                    {{ $row['kalem'] }}
+                                    @if (trim((string) ($row['not'] ?? '')) !== '')
+                                        <div style="color:#4b5563;font-size:12px;margin-top:4px;">Not: {{ $row['not'] }}</div>
+                                    @endif
+                                </td>
                                 <td>{{ ($row['olcu'] ?? '') !== '' ? $row['olcu'] : '—' }}</td>
                                 <td>{{ $row['kpi'] }}</td>
                                 @foreach (($row['cells'] ?? []) as $cell)
