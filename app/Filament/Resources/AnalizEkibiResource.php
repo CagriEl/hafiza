@@ -72,6 +72,13 @@ class AnalizEkibiResource extends Resource
                             ->searchable()
                             ->preload()
                             ->helperText('Bu ekip üyesinin raporlarda görebileceği müdürlükleri seçin.'),
+
+                        Forms\Components\Toggle::make('can_manage_rapor_haftalari')
+                            ->label('Hafta tanımlarını yönetebilir')
+                            ->helperText('Açıkken bu üye Yönetim → Hafta Tanımları ekranından rapor haftalarının tarih aralıklarını belirleyebilir.')
+                            ->default(false)
+                            ->inline(false)
+                            ->columnSpanFull(),
                     ])
                     ->columns(2),
             ]);
@@ -93,6 +100,10 @@ class AnalizEkibiResource extends Resource
                     ->badge()
                     ->separator(', ')
                     ->toggleable(),
+                Tables\Columns\IconColumn::make('can_manage_rapor_haftalari')
+                    ->label('Hafta Tanımı')
+                    ->boolean()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Kayıt Tarihi')
                     ->dateTime('d.m.Y H:i')

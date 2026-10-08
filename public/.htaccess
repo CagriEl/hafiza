@@ -23,3 +23,17 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Yazı İşleri vb. büyük faaliyet formlarında Bad Request önlemi
+<IfModule mod_php.c>
+    php_value max_input_vars 20000
+    php_value max_input_nesting_level 512
+    php_value post_max_size 128M
+    php_value max_execution_time 180
+</IfModule>
+<IfModule mod_php8.c>
+    php_value max_input_vars 20000
+    php_value max_input_nesting_level 512
+    php_value post_max_size 128M
+    php_value max_execution_time 180
+</IfModule>

@@ -13,13 +13,16 @@ class ControlTeamAuditNote extends Model
         'aylik_faaliyet_id',
         'yil',
         'ay',
+        'hafta',
         'activity_catalog_id',
         'note',
+        'rapor_verileri',
         'audit_date',
     ];
 
     protected $casts = [
         'audit_date' => 'date',
+        'rapor_verileri' => 'array',
     ];
 
     public function user(): BelongsTo

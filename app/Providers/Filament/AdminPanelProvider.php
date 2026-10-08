@@ -2,11 +2,15 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\MaliHizmetlerGiris;
+use App\Filament\Pages\MaliHizmetlerRaporlari;
 use App\Filament\Pages\UsageGuide;
 use App\Filament\Widgets\AnalizEkibiMudurlukChart;
 use App\Filament\Widgets\AdminStatsOverview;
 use App\Filament\Widgets\AnnouncementWidget;
 use App\Filament\Widgets\FaaliyetIstatistikGrafik;
+use App\Filament\Widgets\MaliHizmetlerChart;
+use App\Filament\Widgets\MaliHizmetlerDonutChart;
 use App\Filament\Widgets\MudurlukAylikFaaliyetChart;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -40,10 +44,14 @@ class AdminPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
+                MaliHizmetlerGiris::class,
+                MaliHizmetlerRaporlari::class,
                 UsageGuide::class,
             ])
             ->widgets([
                 AnnouncementWidget::class,
+                MaliHizmetlerChart::class,
+                MaliHizmetlerDonutChart::class,
                 MudurlukAylikFaaliyetChart::class,
                 AnalizEkibiMudurlukChart::class,
                 AdminStatsOverview::class,
@@ -57,6 +65,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make()->label('İletişim'),
                 NavigationGroup::make()->label('Yardım'),
             ])
+            ->sidebarFullyCollapsibleOnDesktop()
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

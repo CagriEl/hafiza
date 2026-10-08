@@ -23,7 +23,7 @@ class ViewActivityReport extends ViewRecord
                 ->action(function () {
                     $record = $this->getRecord();
                     $pdf = Pdf::loadHTML(AylikFaaliyetResource::reportPdfHtml($record))
-                        ->setPaper('a4', 'portrait')
+                        ->setPaper('a4', 'landscape')
                         ->setWarnings(false);
                     $fileName = 'faaliyet_raporu_'
                         .(string) ($record->yil ?? now()->year).'_'

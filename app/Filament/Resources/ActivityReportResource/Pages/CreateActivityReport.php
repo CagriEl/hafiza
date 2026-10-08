@@ -4,9 +4,12 @@ namespace App\Filament\Resources\ActivityReportResource\Pages;
 
 use App\Filament\Concerns\WarnsIfActivityCatalogEmpty;
 use App\Filament\Resources\ActivityReportResource;
+use App\Filament\Resources\AylikFaaliyetResource;
 use App\Models\User;
 use App\Support\AylikFaaliyetEscalation;
+use App\Support\AylikFaaliyetPeriodMerge;
 use App\Support\AylikFaaliyetRepeaterLock;
+use App\Support\ReportPeriodWeeks;
 use Filament\Notifications\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -34,7 +37,19 @@ class CreateActivityReport extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        return AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data);
+        $data = AylikFaaliyetResource::applyReportDayFromForm($data);
+        $data['ay'] = AylikFaaliyetPeriodMerge::normalizeAy((string) ($data['ay'] ?? ''));
+
+        $data = AylikFaaliyetResource::syncFaaliyetlerWithCurrentCatalog(
+            $data,
+            auth()->user()?->name
+        );
+
+        return AylikFaaliyetResource::prepareFaaliyetlerForSave(
+            AylikFaaliyetRepeaterLock::stripAySonuFieldsFromPlanOnlySave($data),
+            null,
+            auth()->user() instanceof User ? auth()->user() : null
+        );
     }
 
     protected function afterCreate(): void
@@ -42,6 +57,11 @@ class CreateActivityReport extends CreateRecord
         $mudurlukAdi = auth()->user()->name;
         $ay = $this->record->ay;
         $yil = $this->record->yil;
+        $donemLabel = ReportPeriodWeeks::recordPeriodLabelForReport(
+            (int) $yil,
+            $ay,
+            $this->record->hafta ?? null
+        ) ?? ReportPeriodWeeks::monthPeriodLabel((int) $yil, (int) preg_replace('/\D/', '', (string) $ay));
 
         $admin = User::find(1);
 
@@ -53,8 +73,8 @@ class CreateActivityReport extends CreateRecord
                 ->title('Yeni Faaliyet Raporu Girildi')
                 ->body(
                     $escalation
-                        ? "$mudurlukAdi, $yil - $ay ayı raporunda üst yönetim bilgilendirmesi gereken sapma veya gecikme satırları var."
-                        : "$mudurlukAdi, $yil - $ay ayı faaliyet planını sisteme yükledi."
+                        ? "$mudurlukAdi, $donemLabel raporunda üst yönetim bilgilendirmesi gereken sapma veya gecikme satırları var."
+                        : "$mudurlukAdi, $donemLabel faaliyet raporunu sisteme yükledi."
                 )
                 ->success()
                 ->actions([

@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\AylikFaaliyetPeriodMerge;
 use App\Support\AylikFaaliyetRepeaterLock;
+use App\Support\ReportPeriodWeeks;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -69,15 +71,81 @@ class AylikFaaliyet extends Model
             return false;
         }
 
+        $variants = \App\Support\AylikFaaliyetPeriodMerge::ayQueryVariants($ay);
+        if ($variants === []) {
+            return false;
+        }
+
         $query = static::query()
             ->where('user_id', $userId)
             ->where('yil', $yil)
-            ->where('ay', trim($ay));
+            ->whereIn('ay', $variants);
 
         if ($exceptId !== null && $exceptId > 0) {
             $query->whereKeyNot($exceptId);
         }
 
         return $query->exists();
+    }
+
+    public static function existsForUserPeriodWeek(
+        int $userId,
+        int $yil,
+        string $ay,
+        int|string $hafta,
+        ?int $exceptId = null
+    ): bool {
+        if ($userId <= 0 || $yil <= 0 || trim($ay) === '') {
+            return false;
+        }
+
+        $variants = \App\Support\AylikFaaliyetPeriodMerge::ayQueryVariants($ay);
+        if ($variants === []) {
+            return false;
+        }
+
+        $haftaKey = \App\Support\ReportPeriodWeeks::normalizeReportHafta($hafta);
+        if ($haftaKey === null) {
+            return false;
+        }
+
+        $query = static::query()
+            ->where('user_id', $userId)
+            ->where('yil', $yil)
+            ->whereIn('ay', $variants)
+            ->where('hafta', $haftaKey);
+
+        if ($exceptId !== null && $exceptId > 0) {
+            $query->whereKeyNot($exceptId);
+        }
+
+        return $query->exists();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function ayQueryVariants(string|int $ay): array
+    {
+        return \App\Support\AylikFaaliyetPeriodMerge::ayQueryVariants($ay);
+    }
+
+    public function raporHaftasiLabel(): string
+    {
+        $hafta = $this->hafta ?? null;
+        $dailyLabel = ReportPeriodWeeks::normalizeReportHafta($hafta);
+        if ($dailyLabel !== null && ReportPeriodWeeks::isDailyPeriod($dailyLabel)) {
+            return ReportPeriodWeeks::dailyPeriodLabel($dailyLabel);
+        }
+
+        $yil = (int) ($this->yil ?? 0);
+        $ay = (int) preg_replace('/\D/', '', (string) ($this->ay ?? ''));
+
+        if ($yil > 0 && $ay >= 1 && $ay <= 12) {
+            return ReportPeriodWeeks::recordPeriodLabelForReport($yil, $ay, $hafta)
+                ?? ReportPeriodWeeks::monthPeriodLabel($yil, $ay);
+        }
+
+        return trim((string) (($this->yil ?? '—').' / '.str_pad((string) ($this->ay ?? '—'), 2, '0', STR_PAD_LEFT)));
     }
 }
