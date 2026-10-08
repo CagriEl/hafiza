@@ -17,8 +17,13 @@ class ListActivityReports extends ListRecords
 {
     protected static string $resource = ActivityReportResource::class;
 
+    protected int | string | null $defaultTableRecordsPerPageSelectOption = 200;
+
     public function mount(): void
     {
+        // Eski oturumdaki 10/25 tercihi yeni varsayılanı ezmesin.
+        session()->forget($this->getTablePerPageSessionKey());
+
         parent::mount();
         $this->collapseAllGroupsInitially();
         $legacy = ['my', 'own'];
